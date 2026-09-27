@@ -53,6 +53,107 @@ $k_\TT$, once $w<\lambda_{k_\TT}$ all components are active. Then
 $R=\frac12\sum_{i\le k_\TT}\log(\lambda_i/w)$ gives $w=(\prod_i\lambda_i)^{1/k_\TT}e^{-2R/k_\TT}$ and $D=k_\TT w$, which is
 \cref{prop:phase} after the change of units $R\mapsto R\ln2$ and halving. \qed
 
+\subsection{Proof of \cref{thm:separable} (separable teachers)}\label{app:separable}
+
+Write $k=V-1$ and $\cL=\cL_{\Hel^2}(\hat Q;\mu)$.
+
+\emph{Upper bound at one prompt.} Let $\hat p$ be the Laplace estimate from $N$ i.i.d.\ draws of $p\in\Delta(\cV)$,
+with counts $N_a\sim\mathrm{Bin}(N,p_a)$. For $p_a>0$, $\E\frac1{N_a+1}=\frac{1-(1-p_a)^{N+1}}{(N+1)p_a}\le\frac1{(N+1)p_a}$, so by
+Jensen's inequality
+\[
+\E\KL(p\|\hat p)=\sum_ap_a\,\E\log\frac{p_a(N+V)}{N_a+1}\le\sum_ap_a\log\Big(p_a(N+V)\,\E\frac1{N_a+1}\Big)\le\log\Big(1+\frac k{N+1}\Big).
+\]
+Since $1-(1-h)^T\le Th$, \cref{prop:pinsker}(iv) gives
+$\Hel^2(p^{\otimes T},\hat p^{\otimes T})\le T\Hel^2(p,\hat p)\le\frac T2\KL(p\|\hat p)$. With $N=n_xT$, and by concavity of
+$u\mapsto\min\{1,u\}$,
+\[
+\E\big[\Hel^2(\Pseq,\hat Q^x)\,\big|\,n_x\big]\le\min\Big\{1,\frac T2\cdot\frac k{n_xT+1}\Big\}\le\min\Big\{1,\frac k{2n_x}\Big\},
+\]
+which also holds for $n_x=0$. \emph{Averaging over the design.} For $a\ge\frac12$ and every integer $N\ge0$,
+$\min\{1,a/N\}\le\min\{1,2a/(N+1)\}$. If $N\sim\mathrm{Bin}(n,\pi)$, then $\E\frac1{N+1}\le\frac1{(n+1)\pi}$, so by concavity
+$\E\min\{1,a/N\}\le\min\{1,\frac{2a}{(n+1)\pi}\}$. Taking $a=k/2$ and $\pi=\cD(x)$ gives $\E\cL\le S_n(\cD)$. For a deterministic
+allocation, use $\min\{1,k/(2n_x)\}\le\min\{1,k/n_x\}$ directly.
+
+\emph{Lower bound.} Let $m_0=\lfloor V/2\rfloor$ and $V'=2m_0\in\{V-1,V\}$, so $V'\ge k$. Fix a finite set $\cX_0\subseteq\cX$ and
+numbers $\delta_x\in(0,\frac12]$ with $T\delta_x^2\le\frac14$. For $\sigma\in\{\pm1\}^{\cX_0\times[m_0]}$ and $x\in\cX_0$, let $p_{x,\sigma}$ put mass
+$(1+\sigma_{x,j}\delta_x)/V'$ on token $2j-1$ and $(1-\sigma_{x,j}\delta_x)/V'$ on token $2j$ for $j\le m_0$, and no mass on a
+leftover token when $V$ is odd. For $x\notin\cX_0$ let $p_x$ be uniform on the first $V'$ tokens. Write
+$P^x_\sigma=p_{x,\sigma}^{\otimes T}$.
+
+(1) \emph{Separation.} If $\sigma_x$ and $\sigma'_x$ differ in $r$ pairs, then $\Hel^2(p_{x,\sigma},p_{x,\sigma'})=rg_x$ with
+$g_x=\frac2{V'}(1-\sqrt{1-\delta_x^2})\in[\frac{\delta_x^2}{V'},\frac{2\delta_x^2}{V'}]$. So $rg_xT\le\delta_x^2T\le\frac14$, and
+$\Hel^2(P^x_\sigma,P^x_{\sigma'})=1-(1-rg_x)^T\ge1-e^{-rg_xT}\ge(1-e^{-1})\,rT\delta_x^2/V'$.
+
+(2) \emph{Projection.} Given $\hat Q$, let $\hat\sigma_x$ minimise $\Hel(\hat Q^x,P^x_{\sigma_x})$ over $\sigma_x\in\{\pm1\}^{m_0}$. Since $\Hel$ is
+a metric, $\Hel(P^x_{\hat\sigma},P^x_\sigma)\le2\Hel(\hat Q^x,P^x_\sigma)$. By (1),
+$\cL\ge\sum_{x\in\cX_0}\sum_{j\le m_0}w_x\ind\{\hat\sigma_{x,j}\ne\sigma_{x,j}\}$ with $w_x:=\frac{1-e^{-1}}4\,\mu(x)T\delta_x^2/V'$.
+
+(3) \emph{Assouad's lemma} \citep{assouad1983deux}; see \citet[Lemma~2.12]{tsybakov2009introduction}. Let $\P_\sigma$ be the
+law of the transcript under teacher $\sigma$ and the given, possibly adaptive, design. Let $\sigma^{(x,j)}$ be $\sigma$
+with coordinate $(x,j)$ flipped. Pairing each $\sigma$ with $\sigma^{(x,j)}$ gives
+\[
+\max_\sigma\E_\sigma\cL\ \ge\ \sum_{x\in\cX_0}\sum_{j\le m_0}\frac{w_x}2\big(1-\tau_{x,j}\big),\qquad
+\tau_{x,j}:=2^{-|\cX_0|m_0}\sum_\sigma\TV\big(\P_\sigma,\P_{\sigma^{(x,j)}}\big).
+\]
+
+(4) \emph{Chain rule for adaptive designs.} The design's choice kernels do not depend on $\sigma$. The
+log-likelihood ratio of the transcript is therefore $\sum_i\log\big(P^{x_i}_\sigma(y_i)/P^{x_i}_{\sigma'}(y_i)\big)$, and
+$\KL(\P_\sigma\|\P_{\sigma^{(x,j)}})=\E_\sigma[n_x]\,T\,\KL(p_{x,\sigma}\|p_{x,\sigma^{(x,j)}})$. The token-level divergence equals
+$\frac{2\delta_x}{V'}\log\frac{1+\delta_x}{1-\delta_x}\le\frac{16\delta_x^2}{3V'}$ for $\delta_x\le\frac12$. By Pinsker and Jensen,
+$\tau_{x,j}\le\big(\frac83\,\bar n_x\,T\delta_x^2/V'\big)^{1/2}$, where $\bar n_x:=2^{-|\cX_0|m_0}\sum_\sigma\E_\sigma[n_x]$ and $\sum_x\bar n_x\le n$.
+
+(5) \emph{Choice of $\delta_x$.} Put $t_x:=T\delta_x^2/V'=\min\{\frac1{4V'},\frac3{32\bar n_x}\}$. Then $T\delta_x^2\le\frac14$, $\delta_x\le\frac12$ and
+$\tau_{x,j}\le\frac12$. So prompt $x$ contributes at least
+$\frac{m_0w_x}4=\frac{1-e^{-1}}{32}\,\mu(x)\,V't_x\ge c_{\mathrm{sep}}\,\mu(x)\min\{1,k/\bar n_x\}$, because
+$V't_x=\min\{\frac14,\frac{3V'}{32\bar n_x}\}$ and $V'\ge k$.
+
+(6) \emph{Conclusion.} For an i.i.d.\ design $\bar n_x=n\cD(x)$; letting $\cX_0$ increase to $\cX$ gives $c_{\mathrm{sep}}S_n(\cD)$.
+For an adaptive design $\bar n/n$ is a sub-probability vector, so the bound is at least $c_{\mathrm{sep}}$ times the
+infimum of $S_n$ restricted to $\cX_0$. Taking $\cX_0$ to be the $M$ most probable prompts and letting $M\to\infty$
+gives $c_{\mathrm{sep}}L_n$, by part (ii).
+
+\emph{Optimal design, part (ii).} Let $f(u):=\min\{1,k/(nu)\}$, which is non-increasing. By the rearrangement
+inequality, $\sum_x\mu(x)f(\cD(x))$ does not increase when the values of $\cD$ are rearranged to be ordered like
+$\mu$. After that, the set $\{x:n\cD(x)>k\}$ consists of the $m$ most probable prompts for some $m<n/k$. On this
+set $f(\cD)=k/(n\cD)$, and Cauchy--Schwarz gives
+$\sum_{i\le m}\mu_{(i)}\frac k{n\cD_{(i)}}\ge\frac kn\big(\sum_{i\le m}\sqrt{\mu_{(i)}}\big)^2$. The other prompts contribute
+$\sum_{i>m}\mu_{(i)}$. Hence $S_n(\cD)\ge L_n$. Conversely, since $f(u)\le k/(nu)$, the design $\cD^\star\propto\sqrt\mu$ on the $m^\star$
+most probable prompts has $S_n(\cD^\star)\le\frac kn(\sum_{i\le m^\star}\sqrt{\mu_{(i)}})^2+\sum_{i>m^\star}\mu_{(i)}=L_n$. The minimum over $m$
+exists: going from $m$ to $m+1$ changes the bracket in $L_n$ by
+$\mu_{(m+1)}\big[\frac kn\big(2\sum_{i\le m}\sqrt{\mu_{(i)}}/\sqrt{\mu_{(m+1)}}+1\big)-1\big]$, which is positive for all large $m$.
+Part (iii) follows from (i) and (ii), and part (iv) is immediate. \qed
+
+\subsection{Proof of \cref{thm:local-design}(b) (van Trees for adaptive designs)}\label{app:vantrees}
+
+Let the transcript be $o=(\xi,x_1,y_1,\dots,x_n,y_n)$, where $\xi$ is the design's internal randomness. Its
+density is $p(\xi)\prod_i\pi_i(x_i\mid\xi,o_{<i})\,Q^{x_i}_\theta(y_i)$, and only the factors $Q^{x_i}_\theta(y_i)$ depend on $\theta$. The
+score is therefore $\sum_i\nabla\log Q^{x_i}_\theta(y_i)$, a sum of martingale differences, and the Fisher
+information of the transcript is
+\[
+\mathcal I^{(n)}(\theta)=\E_\theta\sum_{i=1}^n\mathcal I_{x_i}(\theta)=n\,\mathcal I_{\bar\cD_\theta}(\theta),\qquad
+\bar\cD_\theta:=\frac1n\sum_{i=1}^n\mathrm{Law}_\theta(x_i)\in\Delta(\cX).
+\]
+Let $\lambda(u)=\prod_{i\le k}\cos^2(\pi u_i/2)$ on $[-1,1]^k$, whose location Fisher information is $\pi^2I_k$, and
+let $\lambda_n$ be the law of $\theta=\theta^\circ+bu/\sqrt n$ with $u\sim\lambda$. The multivariate van Trees inequality
+\citep{vantrees1968detection,gill1995applications} states that, for any estimator,
+\[
+\E_{\lambda_n}\E_\theta\big[(\htheta-\theta)(\htheta-\theta)^\top\big]\succeq\Big(\E_{\lambda_n}\mathcal I^{(n)}(\theta)+\frac{n\pi^2}{b^2}I_k\Big)^{-1}.
+\]
+It follows from the matrix Cauchy--Schwarz inequality, because the joint score
+$U=\nabla_\theta\log\big(p(o\mid\theta)\lambda_n(\theta)\big)$ satisfies $\E[(\htheta-\theta)U^\top]=I_k$. That identity is an integration by
+parts in $\theta$, and the boundary terms vanish because $\lambda_n$ vanishes on the boundary of its support.
+Since $\cX$ is finite and each $\mathcal I_x(\cdot)$ is continuous, $\mathcal I_x(\theta)\preceq\mathcal I_x(\theta^\circ)+\omega_nI_k$ on the
+support of $\lambda_n$, with $\omega_n\to0$. Therefore $\E_{\lambda_n}\mathcal I^{(n)}(\theta)\preceq n(\mathcal I_{\tilde\cD_n}+\omega_nI_k)$, where
+$\tilde\cD_n:=\E_{\lambda_n}\bar\cD_\theta\in\Delta(\cX)$ and $\mathcal I$ is evaluated at $\theta^\circ$. Let
+$\Phi^\star_\eps:=\min_{\cD}\tr\big(W(\mathcal I_\cD+\eps I_k)^{-1}\big)$ with $W=\mathcal I_\mu$. Taking the trace against $W$ gives
+\[
+\sup_{\|\theta-\theta^\circ\|_\infty\le b/\sqrt n}n\,\E_\theta\|\htheta-\theta\|^2_W\ \ge\ n\,\E_{\lambda_n}\E_\theta\|\htheta-\theta\|^2_W\ \ge\ \Phi^\star_{\omega_n+\pi^2/b^2}.
+\]
+$\Phi^\star_\eps$ is continuous in $\eps>0$, so the $\liminf_n$ is at least $\Phi^\star_{\pi^2/b^2}$. Finally, $\Phi^\star_\eps\uparrow\Phi^\star$ as
+$\eps\downarrow0$. To see this, take minimisers $\cD_\eps$ and a convergent subsequence $\cD_\eps\to\cD_0$ (the simplex is
+compact). If $\mathcal I_{\cD_0}\succ0$, the values converge to $\Phi(\cD_0)\ge\Phi^\star$. Otherwise
+$\lambda_{\min}(\mathcal I_{\cD_\eps}+\eps I_k)\to0$, and $\tr(W(\cdot)^{-1})\ge\lambda_{\min}(W)/\lambda_{\min}(\cdot)\to\infty$. \qed
+
 \subsection{Numerical verification}
 
 The scripts in \texttt{verification/} check the results marked \textsf{[numerically checked]}, by random
@@ -67,5 +168,12 @@ TV estimator, the bias of the stop-gradient estimator, the unbiasedness of the p
 \cref{def:pajsd}, and the bias that results from adding the two recipes. \texttt{check\_capacity.py} verifies
 \cref{prop:powerlaw,prop:phase,thm:bottleneck,cor:facts}, the $R=0$ tightness of \cref{cor:facts-tv}, and
 \cref{thm:capacity} on 300 random instances by exact computation of $I(\mathbf T;Y)$. \texttt{check\_representations.py} verifies
-\cref{prop:cca,thm:overconstraint,prop:fisher-rep} in a random instance of the linear-Gaussian model. All
-checks pass.
+\cref{prop:cca,thm:overconstraint,prop:fisher-rep} in a random instance of the linear-Gaussian model.
+\texttt{check\_design.py} verifies \cref{prop:design-game} on 200 random design games by solving both linear
+programs. For \cref{thm:separable} it checks the Laplace bound by exact enumeration, the binomial averaging
+inequality and the hypercube separations of the lower bound, the identity $\inf_\cD S_n(\cD)=L_n$ by direct
+search, and the upper bound by simulation. It fits the rate exponents of \cref{cor:sep-rates,cor:sep-soft}.
+In a $V=2$, $T=3$ autoregressive logistic model with three shared parameters it verifies the chain rule
+for $\mathcal I_x$, parts (d)--(f) of \cref{thm:local-design}, and part (a) by simulating the MLE under $\mu$ and
+under the I-optimal design. It also verifies \cref{prop:adaptivity-gap,prop:bias-design,prop:path-shift}, and
+\cref{prop:iw-design}(a,b) by simulating the weighted MLE for a misspecified student. All checks pass.

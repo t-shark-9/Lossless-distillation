@@ -1,0 +1,251 @@
+\subsection{Shared parameters: I-optimal design and the local minimax constant}\label{sec:local-design}
+
+When the student's $k$ parameters are shared across prompts, a query at one prompt informs the student
+everywhere. The design question then becomes a problem of classical optimal design
+\citep{kiefer1960equivalence,pukelsheim1993optimal}, with a sequence-level information matrix. Let
+$\Theta_\TS\subseteq\R^k$ be open and $p=q_{\theta^\circ}$, let $\cX$ be finite, and let $\theta\mapsto\log Q^x_\theta(y)$ be
+twice continuously differentiable for all $x$ and $y$, with $Q^x_\theta(y)>0$ on a set that does not depend on
+$\theta$. Softmax students qualify. The \emph{sequence Fisher information} of a prompt and of a design are
+\[
+\mathcal I_x:=\E_{y\sim\Pseq}\big[\nabla\log Q^x_\theta(y)\,\nabla\log Q^x_\theta(y)^\top\big]_{\theta=\theta^\circ}
+=\sum_{t=1}^T\E_{s_t\sim\Pseq}\mathcal I(s_t),\qquad\mathcal I_\cD:=\E_{x\sim\cD}\mathcal I_x ,
+\]
+where $\mathcal I(s)=J(s)^\top(\diag p-pp^\top)J(s)$ is the per-state information of \cref{prop:rb}. The chain
+rule holds because the per-token scores are martingale differences. Assume $\mathcal I_\mu\succ0$ and set
+\[
+\Phi(\cD):=\tr\big(\mathcal I_\cD^{-1}\mathcal I_\mu\big)\quad(\infty\text{ if }\mathcal I_\cD\text{ is singular}),\qquad
+\Phi^\star:=\min_{\cD\in\Delta(\cX)}\Phi(\cD),\qquad\mathrm{lev}(x):=\tr\big(\mathcal I_\mu^{-1}\mathcal I_x\big).
+\]
+$\Phi$ is the I-optimality (integrated-variance) criterion for the sequence Fisher information, and
+$\mathrm{lev}(x)$ is the Fisher leverage of prompt $x$, with $\E_\mu\mathrm{lev}=k$.
+
+\begin{theorem}[Locally minimax input design]\label{thm:local-design}
+\begin{enumerate}[label=(\alph*),leftmargin=*]
+\item \Kn\Ck \emph{Fixed designs.} Let $\mathcal I_\cD\succ0$. The MLE $\htheta$ fitted to $n$ hard-label queries drawn
+i.i.d.\ from $\cD$ satisfies
+\[
+n\,\cL_\KL(\htheta;\mu)\ \Rightarrow\ \tfrac12Z^\top\mathcal I_\mu^{1/2}\mathcal I_\cD^{-1}\mathcal I_\mu^{1/2}Z,\qquad Z\sim\cN(0,I_k),
+\]
+a limit law with mean $\frac12\Phi(\cD)$. At $\cD=\mu$ this is the $k/2n$ law of \cref{prop:exact}(b), now for
+sequence-level KL: $\Phi(\mu)=k$.
+\item \Pa{the regularity above} \emph{No adaptive design beats $\Phi^\star$.} For every adaptive design and
+estimator,
+\[
+\lim_{b\to\infty}\ \liminf_{n\to\infty}\ \sup_{\|\theta-\theta^\circ\|_\infty\le b/\sqrt n}\ n\,\E_\theta\big\|\htheta_n-\theta\big\|^2_{\mathcal I_\mu}\ \ge\ \Phi^\star ,
+\]
+where $\E_\theta$ is taken with teacher $q_\theta$ and $\|v\|_A^2:=v^\top Av$. Since
+$2\cL_\KL(\theta';\mu)=\|\theta'-\theta\|^2_{\mathcal I_\mu}(1+o(1))$ as $\theta'\to\theta$ when the teacher is $q_\theta$, this is the local
+form of $n\,\cL_\KL\ge\frac12\Phi^\star$.
+\item \Kn \emph{Adaptivity attains it.} Spend $\lceil\sqrt n\rceil$ queries on $\mu$ to obtain a pilot $\tilde\theta$, draw
+the rest i.i.d.\ from a minimiser of $\Phi$ evaluated at $\tilde\theta$, and fit the MLE to all data. The limit
+law of $n\,\cL_\KL(\htheta;\mu)$ then has mean $\frac12\Phi^\star$.
+\item \Pv\Ck \emph{Equivalence theorem.} $\Phi$ is convex and the optimal information matrix is unique. A
+design $\cD^\star$ is optimal iff
+$\Psi(x):=\tr\big(\mathcal I_{\cD^\star}^{-1}\mathcal I_\mu\mathcal I_{\cD^\star}^{-1}\mathcal I_x\big)\le\Phi(\cD^\star)$ for all $x\in\cX$, and
+then equality holds on the support of $\cD^\star$.
+\item \Pv\Ck \emph{How much design can gain.} $\cD=\mu$ is optimal iff $\mathrm{lev}(x)\le k$ for every $x\in\cX$,
+including prompts outside the support of $\mu$. In general
+\[
+\frac{k^2}{\max_x\mathrm{lev}(x)}\ \le\ \Phi^\star\ \le\ \big(\E_\mu\sqrt{\mathrm{lev}}\big)^2\ \le\ k ,
+\]
+and the importance-sampling design $\cD\propto\mu\sqrt{\mathrm{lev}}$ already achieves the middle bound. If the
+parameters split into blocks, one of size $k_x$ for each prompt, then $\mathrm{lev}(x)=k_x/\mu(x)$,
+$\Phi^\star=\big(\sum_x\sqrt{\mu(x)k_x}\big)^2$ and $\cD^\star\propto\sqrt{\mu(x)k_x}$. This is the square-root law of
+\cref{thm:separable}.
+\item \Pv\Ck \emph{Horizon.} $\Phi$ is unchanged when every $\mathcal I_x$ is multiplied by the same constant.
+Since $\mathcal I_x=T\bar{\mathcal I}_x$, with $\bar{\mathcal I}_x$ the average per-position information along teacher paths
+from $x$, the optimal design and the constant $\frac12\Phi^\star$ depend on $T$ only through the profile
+$x\mapsto\bar{\mathcal I}_x$. The sequence-level rate is horizon-free; per token it is $\Phi^\star/(2nT)$.
+\end{enumerate}
+\end{theorem}
+\begin{proof}
+(a) The pairs $(x_i,y_i)$ are i.i.d.\ with Fisher information $\mathcal I_\cD$, because $\cD$ does not depend on
+$\theta$. Hence $\sqrt n(\htheta-\theta^\circ)\Rightarrow\cN(0,\mathcal I_\cD^{-1})$ under standard regularity. The map
+$\theta\mapsto\cL_\KL(\theta;\mu)$ has zero gradient and Hessian $\mathcal I_\mu$ at $\theta^\circ$; apply the delta method.
+(b) The van Trees inequality applied to the whole transcript; see \cref{app:vantrees}.
+(c) By (d) the optimal information matrix is unique, and it depends continuously on $\theta$. So the
+information of the second stage converges to it. The MLE under a design whose empirical information
+stabilises is asymptotically normal by the martingale central limit theorem
+\citep{chaudhuri1993nonlinear}; \citet{pronzato2013design} give the general theory.
+(d) $\cD\mapsto\mathcal I_\cD$ is affine, and $M\mapsto\tr(\mathcal I_\mu M^{-1})$ is strictly convex on positive definite
+matrices. The directional derivative of $\Phi$ at $\cD$ towards $\delta_x$ is $\Phi(\cD)-\Psi(x)$, and a convex
+function on the simplex is minimal iff all these derivatives are $\ge0$. Since $\E_{\cD^\star}\Psi=\Phi(\cD^\star)$,
+equality must hold on the support \citep{kiefer1974general}.
+(e) At $\cD=\mu$ we have $\Phi=k$ and $\Psi=\mathrm{lev}$; apply (d). For the upper bound, let $w=\mu/\cD$ and
+$B:=\E_\mu[w\,\mathcal I_x]$. The block matrix $\E_\cD\big[(1,w)^\top(1,w)\otimes\mathcal I_x\big]$ has blocks $\mathcal I_\cD$,
+$\mathcal I_\mu$, $\mathcal I_\mu$, $B$ and is positive semidefinite, so its Schur complement gives $\mathcal I_\cD\succeq\mathcal I_\mu B^{-1}\mathcal I_\mu$.
+Hence $\Phi(\cD)\le\tr(\mathcal I_\mu^{-1}B)=\sum_x\mu(x)^2\mathrm{lev}(x)/\cD(x)$. Cauchy--Schwarz minimises the right side at
+$\cD\propto\mu\sqrt{\mathrm{lev}}$, with value $(\E_\mu\sqrt{\mathrm{lev}})^2\le\E_\mu\mathrm{lev}=k$. For the lower bound, let
+$M:=\mathcal I_\mu^{-1/2}\mathcal I_\cD\mathcal I_\mu^{-1/2}$. Then $\Phi(\cD)=\tr M^{-1}\ge k^2/\tr M$ and $\tr M=\E_\cD\mathrm{lev}\le\max_x\mathrm{lev}(x)$.
+The block case is a direct computation.
+(f) Immediate from the definition.
+\end{proof}
+
+\noindent
+For smooth students, then, the answer is to query where the sequence Fisher information is large
+relative to deployment mass, measured in the metric $\mathcal I_\mu$. Prompts whose teacher continuations
+are long and uncertain carry more information, through the sum over $t$ in $\mathcal I_x$. The optimal design
+can put mass outside the support of $\mu$, where \cref{prop:covshift} would treat the shift as infinite.
+
+\begin{proposition}[No fixed design is uniformly optimal]\label{prop:adaptivity-gap}
+\Pv\Ck For every $K\ge2$ and $\eps>0$ there is a one-parameter model with $K$ prompts in which every fixed
+design satisfies $\sup_\theta\Phi_\theta(\cD)/\Phi^\star_\theta\ge K(1-\eps)$, the subscript marking the true parameter. By
+\cref{thm:local-design}(c), the two-stage adaptive design attains the ratio $1$ at every $\theta$.
+\end{proposition}
+\begin{proof}
+At prompt $j$ let every position emit $\mathrm{Bern}(\sigma(\theta c_j))$ independently, so that
+$\mathcal I_j(\theta)=Tc_j^2\sigma'(\theta c_j)$. With $k=1$, $\Phi_\theta(\cD)/\Phi^\star_\theta=\max_j\mathcal I_j(\theta)/\E_\cD\mathcal I_j(\theta)$. Let $u^\star$
+maximise $u^2\sigma'(u)$ and put $c_j=u^\star/\theta_j$ with $\theta_j=r^j$. At $\theta=\theta_j$,
+$\mathcal I_i/\mathcal I_j=r^{2(j-i)}\sigma'(u^\star r^{j-i})/\sigma'(u^\star)$, which tends to $0$ as $r\to\infty$ for every $i\ne j$. So
+the ratio at $\theta_j$ tends to $1/\cD(j)$, and $\max_j1/\cD(j)\ge K$.
+\end{proof}
+
+\begin{remark}[Token budgets, state queries and soft labels]\label{rem:state-design}
+Because the teacher can be queried anywhere, a query can also be a single state $s=(x,y_{<t})$, which
+returns one token or $p_t(\cdot\mid s)$. With hard labels, $n$ state queries from a law $\nu$ on states carry
+information $n\,\E_\nu\mathcal I(s)$. Moreover $\mathcal I_\mu=T\,\E_{s\sim\bar d_\mu}\mathcal I(s)$, where
+$\bar d_\mu:=\frac1T\sum_t\dteach t$ is taken with $x\sim\mu$. At equal token budgets, a sequence design $\cD$ is
+therefore equivalent to the state design $\bar d_\cD$. State-level design optimises the same criterion over
+the larger set of all laws on states, so it can only help. With soft labels in the realisable case the
+Fisher information is infinite, and design reduces to identification. For a linear-softmax student,
+soft labels at $d$ states with spanning features recover the teacher exactly (\cref{prop:exact}(a)). This
+needs at least $\lceil d/T\rceil$ sequence queries, and exactly that many when each path contributes $T$ new
+directions. Here the horizon helps.
+\end{remark}
+
+\subsection{Misspecified students: the design moves the target}\label{sec:mis-design}
+
+\begin{proposition}[Unweighted designs inflate the approximation term]\label{prop:bias-design}
+\Pv\Ck Let $e_\theta(x)\ge0$ be a per-input deployment divergence, and let
+$\theta^\star_\cD\in\argmin_\theta\E_\cD e_\theta$ and $\theta^\star_\mu\in\argmin_\theta\E_\mu e_\theta$. Then
+\[
+\E_\mu e_{\theta^\star_\cD}\le\rho(\mu\|\cD)\,\rho(\cD\|\mu)\ \E_\mu e_{\theta^\star_\mu},
+\]
+and the factor is sharp: for any $\mu\ne\cD$ of full support on two prompts and any $\eta>0$, a class of
+two students attains $(1-\eta)\,\rho(\mu\|\cD)\rho(\cD\|\mu)$.
+\end{proposition}
+\begin{proof}
+By \cref{prop:covshift} twice and the optimality of $\theta^\star_\cD$,
+\[
+\E_\mu e_{\theta^\star_\cD}\le\rho(\mu\|\cD)\,\E_\cD e_{\theta^\star_\cD}\le\rho(\mu\|\cD)\,\E_\cD e_{\theta^\star_\mu}\le\rho(\mu\|\cD)\,\rho(\cD\|\mu)\,\E_\mu e_{\theta^\star_\mu}.
+\]
+For sharpness, label the prompts so that $\mu_1/\cD_1\ge1\ge\mu_2/\cD_2$. Then
+$\rho(\mu\|\cD)\rho(\cD\|\mu)=\mu_1\cD_2/(\cD_1\mu_2)>1$. Take the profiles $e_{\theta_1}=(0,1)$ and $e_{\theta_2}=(s,0)$ with
+$s=(1-\eta)\cD_2/\cD_1$. For small $\eta$, $\theta_2$ is optimal under $\cD$ and $\theta_1$ under $\mu$, and the ratio of their
+$\mu$-risks is $s\mu_1/\mu_2$.
+\end{proof}
+
+\noindent
+Under misspecification, then, the training law changes \emph{which} student is learned, not only how
+well its risk transfers. Importance weighting removes this dependence. Minimising $\E_\cD[w\,\ell_\theta]$ with
+$w=\mu/\cD$ targets $\theta^\star_\mu$ for every $\cD$ with $\mu\ll\cD$, and the design then affects only the variance.
+
+\begin{proposition}[Optimal design for importance-weighted distillation]\label{prop:iw-design}
+Let $\ell_\theta(x,o)$ be a per-query loss whose conditional mean given $x$ equals the deployment
+divergence at $x$ up to a $\theta$-free term. Examples are $-\log Q^x_\theta(y)$ for hard labels and, by
+\cref{thm:chain}, the soft-label cross-entropy summed along the teacher path. Let $\cX$ be finite, let
+$R_\mu(\theta):=\E_\mu\E[\ell_\theta\mid x]$ be smooth with a unique interior minimiser $\theta^\star$, and let
+$H:=\nabla^2R_\mu(\theta^\star)\succ0$. Put $S(x):=\E[\nabla\ell_{\theta^\star}\nabla\ell_{\theta^\star}^\top\mid x]$ and define the
+\emph{sandwich leverage} $\mathrm{lev}_{\mathrm{sw}}(x):=\tr\big(H^{-1}S(x)\big)$.
+\begin{enumerate}[label=(\alph*),nosep]
+\item \Kn\Ck For $\mu\ll\cD$, the weighted M-estimator $\htheta_w$ satisfies
+$n\big(R_\mu(\htheta_w)-R_\mu(\theta^\star)\big)\Rightarrow$ a limit law with mean $\frac12\E_\mu[(\mu/\cD)\,\mathrm{lev}_{\mathrm{sw}}]$
+\citep{shimodaira2000improving}.
+\item \Pv\Ck The optimal design is $\cD^\star\propto\mu\sqrt{\mathrm{lev}_{\mathrm{sw}}}$, with value
+$\frac12(\E_\mu\sqrt{\mathrm{lev}_{\mathrm{sw}}})^2$, against $\frac12\E_\mu\mathrm{lev}_{\mathrm{sw}}$ for $\cD=\mu$. If $\mathrm{lev}_{\mathrm{sw}}\equiv c$ is
+constant, then $\E_\mu[(\mu/\cD)\,\mathrm{lev}_{\mathrm{sw}}]=c\,(1+\chi^2(\mu\|\cD))$. With weighting, the covariate-shift
+quantity that matters is therefore the leverage-weighted $\chi^2$ divergence, not $\rho$ or TV.
+\item \Pv In the realisable case with hard labels, $S(x)=\mathcal I_x$, $H=\mathcal I_\mu$ and $\mathrm{lev}_{\mathrm{sw}}=\mathrm{lev}$,
+so (b) is the importance-sampling design of \cref{thm:local-design}(e). The unweighted MLE does better
+still, since $\Phi^\star\le(\E_\mu\sqrt{\mathrm{lev}})^2$: weighting only corrects a bias, and realisability
+removes that bias. With soft labels, $S\equiv0$ in the realisable case, in line with \cref{rem:state-design}.
+\end{enumerate}
+\end{proposition}
+\begin{proof}
+(a) $\E_\cD[w\nabla\ell_{\theta^\star}]=\nabla R_\mu(\theta^\star)=0$, so $\sqrt n(\htheta_w-\theta^\star)\Rightarrow\cN(0,H^{-1}\Sigma H^{-1})$
+with $\Sigma=\E_\cD[w^2S]$. A second-order expansion of $R_\mu$ at $\theta^\star$ gives the mean
+$\frac12\tr(H^{-1}\Sigma)=\frac12\sum_x\mu(x)^2\mathrm{lev}_{\mathrm{sw}}(x)/\cD(x)$. Active learning with importance-weighted
+estimators under misspecification is studied by \citet{kanamori2003active} and \citet{sugiyama2006active};
+we have not re-verified whether they state this closed form.
+(b) Cauchy--Schwarz, and $\sum_x\mu(x)^2/\cD(x)=1+\chi^2(\mu\|\cD)$.
+(c) Substitute.
+\end{proof}
+
+\subsection{Where to query inside a sequence}\label{sec:path-design}
+
+Because the teacher can be queried at any prefix, one could generate prefixes with a cheap proposal $r$,
+for example the student, and ask the teacher only for soft labels. This moves the covariate shift from
+prompts to states, and there it compounds with depth.
+
+\begin{proposition}[State-level shift compounds with depth]\label{prop:path-shift}
+\Pv\Ck Draw prompts from $\cD$ and prefixes from an autoregressive proposal $r$, so that the law of
+depth-$t$ states is $d^{\,r}_t(x,y_{<t})=\cD(x)\prod_{j<t}r(y_j\mid s_j)$. The target law of forward-type risks
+(\cref{thm:chain}) is $\dteach t$ with $x\sim\mu$. Let $w_t:=\dteach t/d^{\,r}_t$,
+$\gamma:=\inf_s\max_ap(a\mid s)/r(a\mid s)\ge1$ and $\chi_0:=\inf_s\chi^2\big(p(\cdot\mid s)\,\|\,r(\cdot\mid s)\big)$.
+\begin{enumerate}[label=(\roman*),nosep]
+\item $\|w_t\|_\infty\ge\rho(\mu\|\cD)\,\gamma^{t-1}$ and $\E_{d^{\,r}_t}[w_t^2]\ge\big(1+\chi^2(\mu\|\cD)\big)(1+\chi_0)^{t-1}$. The constant
+of \cref{prop:covshift} and the variance factor of importance weighting both grow exponentially with
+depth.
+\item For $r=p$ (teacher-generated prefixes), $w_t(x,y_{<t})=\mu(x)/\cD(x)$ for every $t$. Both quantities
+keep their prompt-level values at every horizon.
+\item The loss is not an artefact of weighting. Let $\cD=\mu$, and let $p(\cdot\mid s)\equiv p_0$ and $r(\cdot\mid s)\equiv r_0$
+at depths below $t$, with $\mathsf K_0:=\KL(p_0\|r_0)>0$. Let the teacher's conditionals at depth-$t$ states
+be unrelated to one another, as in \cref{def:separable}. A learner that receives soft labels at $N$
+states drawn from $d^{\,r}_t$ has, in the worst case, expected depth-$t$ error
+$\E_{s\sim\dteach t}\Hel^2(p(\cdot\mid s),\hat q(\cdot\mid s))\ge\frac14\big(1-\eps_t-Ne^{-(t-1)\mathsf K_0/2}\big)$ with $\eps_t\to0$. So $N$ must
+grow like $e^{(t-1)\mathsf K_0/2}$.
+\end{enumerate}
+\end{proposition}
+\begin{proof}
+(i) Start at a prompt that maximises $\mu/\cD$ and follow the tokens that maximise $p/r$. For the second
+moment, condition on $s_{t-1}$:
+$\E_r[(p/r)^2(y_{t-1}\mid s_{t-1})\mid s_{t-1}]=1+\chi^2(p(\cdot\mid s_{t-1})\|r(\cdot\mid s_{t-1}))\ge1+\chi_0$. Induct down to
+$\E_\cD[(\mu/\cD)^2]=1+\chi^2(\mu\|\cD)$.
+(ii) The product over positions equals $1$.
+(iii) Let $A_t$ be the set of depth-$t$ states with $\log\frac{P(y_{<t}\mid x)}{R(y_{<t}\mid x)}\ge(t-1)\mathsf K_0/2$. By the law
+of large numbers $\dteach t(A_t)=1-\eps_t\to1$, and by a change of measure $d^{\,r}_t(A_t)\le e^{-(t-1)\mathsf K_0/2}$. The
+expected number of queried states in $A_t$ is at most $Nd^{\,r}_t(A_t)$. So the expected $\dteach t$-mass of
+unqueried states in $A_t$ is at least $1-\eps_t-Ne^{-(t-1)\mathsf K_0/2}$. At an unqueried state, the two-point prior
+of \cref{cor:sep-soft} gives Bayes risk at least $\frac14$.
+\end{proof}
+
+\begin{remark}[Consequences for the design problem]\label{rem:path-design}
+For forward-type risks (forward KL, and the teacher-prefix half of PA-JSD), teacher-generated prefixes
+are the only state design whose shift constants do not grow with depth. The design freedom that
+remains is the prompt law $\cD$, treated above. For reverse-type risks (\cref{eq:chain-rev}) the target is
+the student's own prefix law $\dstud t$. The only horizon-free design is then on-policy, and it is
+necessarily adaptive, because $\theta$ is being learned. On-policy distillation is adaptive input design,
+and the DAgger-type guarantees of \cref{thm:pdl,rem:onpolicy} are guarantees for this design. Knowing the
+labelling function makes $w_t$ computable, since $P(y_{<t}\mid x)$ follows from the teacher's soft labels
+along the prefix, but it does not make $w_t$ small. This is the ``curse of horizon'' of off-policy
+evaluation \citep{liu2018breaking}.
+\end{remark}
+
+\subsection{Answer to the design problem}\label{sec:design-answer}
+
+\begin{center}\small
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.19\linewidth}>{\raggedright\arraybackslash}p{0.21\linewidth}>{\raggedright\arraybackslash}p{0.22\linewidth}>{\raggedright\arraybackslash}p{0.3\linewidth}@{}}
+\toprule
+regime & optimal design & minimax deployment risk & adaptivity and horizon\\\midrule
+shift bounds of \cref{prop:covshift} & $\cD=\mu$ & worst case over all error profiles & not a design criterion (\cref{prop:design-game})\\
+finite realisable class & LP solution, possibly off the support of $\mu$ & $\le\kappa^\star_{\cG_\Theta}\log(|\Theta_\TS|/\delta)/n$ & horizon-free (\cref{prop:design-game})\\
+separable, hard labels & $\propto\sqrt\mu$ on the head of $\mu$ & $\asymp L_n$ & adaptivity gains a constant; uniform in $T$ (\cref{thm:separable})\\
+separable, soft labels & the $n$ most probable prompts, once & $\asymp\sum_{i>n}\mu_{(i)}$ & no gain from adaptivity (\cref{cor:sep-soft})\\
+shared parameters, realisable & I-optimal for the sequence Fisher information & $\frac12\Phi^\star/n$, $\Phi^\star\le(\E_\mu\sqrt{\mathrm{lev}})^2\le k$ & adaptivity needed to reach $\Phi^\star(\theta^\circ)$, gains up to $|\cX|$, cannot beat it; horizon-free (\cref{thm:local-design,prop:adaptivity-gap})\\
+misspecified, weighted & $\propto\mu\sqrt{\mathrm{lev}_{\mathrm{sw}}}$ & excess $\frac12(\E_\mu\sqrt{\mathrm{lev}_{\mathrm{sw}}})^2/n$ & unweighted designs move the target (\cref{prop:bias-design,prop:iw-design})\\
+states inside sequences & teacher prefixes (forward), on-policy (reverse) & --- & mismatch costs $e^{\Theta(t\mathsf K_0)}$; on-policy is adaptive (\cref{prop:path-shift})\\\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent
+In short: minimising the covariate-shift terms of \cref{prop:covshift} returns $\cD=\mu$, but the optimal
+design samples the deployment law \emph{tempered by the square root of each prompt's information
+leverage}, $\cD\propto\mu\sqrt{\mathrm{lev}}$, restricted to the head of $\mu$ that the budget can learn, with
+teacher-generated continuations. For unstructured teachers $\mathrm{lev}=k/\mu$, so this design is $\sqrt\mu$ on
+the head. It is then minimax optimal up to a constant (\cref{thm:separable}), and for heavy-tailed $\mu$
+it improves the exponent of the rate (\cref{cor:sep-rates}). For shared parameters it is never worse
+than $\mu$ and is within the factor $(\E_\mu\sqrt{\mathrm{lev}})^2/\Phi^\star$ of the I-optimal design
+(\cref{thm:local-design}(e)). The minimax rates in the sequence setting are horizon-free whenever the
+per-prompt teacher family has bounded dimension. Adaptivity changes constants, not rates, except
+through the on-policy choice of prefixes. Experiment E4 (\cref{sec:experiments}) tests these
+predictions, and \cref{sec:open} lists what remains open.

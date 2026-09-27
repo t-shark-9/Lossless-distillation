@@ -48,10 +48,19 @@ constraint provably has zero approximation cost for a nonlinear teacher--student
 sample-complexity and computational gains of intermediate supervision for transformer students, beyond
 parity-type separations?
 
-\item \textbf{Optimal input design for distillation.} The teacher can be queried anywhere. Which input
-distribution $\cD$, possibly adaptive, minimises the deployment risk under $\mu$ for a fixed query budget,
-given the covariate-shift terms of \cref{prop:covshift}? This is an active-learning or optimal-design problem
-with a known labelling function. Minimax rates for it are unknown in the sequence setting.
+\item \textbf{Optimal input design beyond the two extremes.} \Cref{sec:design} solves the design problem at
+both ends of the structure spectrum. For unstructured teachers the minimax rate is $\Theta(L_n)$, uniformly in
+the horizon, and the square-root law is optimal (\cref{thm:separable}). For teachers with shared
+parameters, the local constant is $\frac12\Phi^\star/n$ and the I-optimal design attains it
+(\cref{thm:local-design}). Open are: (a)~non-asymptotic minimax rates for shared and partially shared
+classes, for example a teacher whose prompt-to-logit map lies in a reproducing-kernel Hilbert space with
+a power-law spectrum, where the tempering exponent of \cref{heur:tempering} should interpolate between
+$\frac12$ and $1$; (b)~the sharp constant in \cref{thm:separable}; (c)~noiseless regimes, namely soft labels
+under misspecification and deterministic teachers, where deterministic or adaptive designs can beat
+i.i.d.\ sampling by more than constants, by quadrature-type rates \citep{cohen2017optimal} or by
+binary-search-type exponential savings \citep{dasgupta2005coarse}; noisy active learning has its own
+minimax theory \citep{castro2008minimax}; (d)~designs for the behavioural (TV) risk, where
+\cref{heur:tempering} predicts $\mu^{2/3}$.
 
 \item \textbf{Decoding-level losslessness.} Beyond the margin condition of \cref{prop:margin}, give sharp
 bounds on the probability that greedy or beam-search outputs of teacher and student differ, in terms
