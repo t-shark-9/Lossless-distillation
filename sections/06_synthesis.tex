@@ -54,11 +54,12 @@ $O(\sqrt{\mathrm{TV}^\star})$, whereas KL objectives carry no such guarantee.
 \begin{tabular}{@{}p{0.2\linewidth}p{0.74\linewidth}@{}}
 \toprule
 status & results\\\midrule
-proved, unconditional & TV as worst-case regret (\ref{prop:tv-task}); $\JSD_\beta$ sandwich (\ref{prop:jsd}); local equivalence (\ref{prop:local}); event bounds (\ref{prop:events}); margins (\ref{prop:margin}); chain rules (\ref{thm:chain}); hybrid bounds (\ref{prop:hybrid}, \ref{prop:hybrid-div}); master decomposition (\ref{thm:master}); compounding theorems (\ref{thm:terminal}--\ref{prop:exposure}); curvature (\ref{prop:convexity}); gradient formulas and unbiased estimators (\ref{prop:grad}, \ref{prop:seq-grad}--\ref{prop:jsd-est}); temperature limits (\ref{prop:temperature}); bounded mixture estimator (\ref{prop:mix-est}); agnostic competitiveness (\ref{prop:agnostic}); facts floors and metric entropy (\ref{cor:facts}--\ref{cor:metric}); one-shot converse (\ref{thm:rd}); CCA/CKA facts (\ref{prop:cca})\\
-proved under assumptions & capacity floor (\ref{as:finite}); softmax-bottleneck floor (\ref{as:linear}); uniform deviation (\ref{as:bounded}); horizon-free MLE (\ref{as:real}, \ref{as:finite}); PA-JSD estimation (\ref{as:finite}); end-to-end bounds; last-layer redundancy (\ref{as:linear})\\
+proved, unconditional & TV as worst-case regret (\ref{prop:tv-task}); $\JSD_\beta$ sandwich (\ref{prop:jsd}); local equivalence (\ref{prop:local}); event bounds (\ref{prop:events}); margins (\ref{prop:margin}); chain rules (\ref{thm:chain}); hybrid bounds (\ref{prop:hybrid}, \ref{prop:hybrid-div}); master decomposition (\ref{thm:master}); compounding theorems (\ref{thm:terminal}--\ref{prop:exposure}); curvature (\ref{prop:convexity}); gradient formulas and unbiased estimators (\ref{prop:grad}, \ref{prop:seq-grad}--\ref{prop:jsd-est}); temperature limits (\ref{prop:temperature}); bounded mixture estimator (\ref{prop:mix-est}); agnostic competitiveness (\ref{prop:agnostic}); value-tilted teacher and stable points (\ref{prop:tilt}, \ref{prop:stable}); myopic stable points and no selecting objective (\ref{prop:separable}, \ref{prop:rps}); teacher-directed gradients (\ref{lem:directed}); weak-coupling contraction (\ref{prop:contraction}); oscillation formulas (\ref{prop:oscillation}); facts floors and metric entropy (\ref{cor:facts}--\ref{cor:metric}); one-shot converse (\ref{thm:rd}); CCA/CKA facts (\ref{prop:cca})\\
+proved under assumptions & capacity floor (\ref{as:finite}); softmax-bottleneck floor (\ref{as:linear}); uniform deviation (\ref{as:bounded}); horizon-free MLE (\ref{as:real}, \ref{as:finite}); PA-JSD estimation (\ref{as:finite}); end-to-end bounds; last-layer redundancy (\ref{as:linear}); stable points are the lossless students, Fejér convergence and implicit bias, local convergence (\ref{thm:fp-real}, \ref{thm:fejer}, \ref{prop:local-conv}; \ref{as:real})\\
 proved within a stylised model & power-law and exponential floors (\ref{prop:powerlaw}, \ref{prop:phase}); no capacity gap under optimal allocation (\ref{prop:nogap}); no identifiability gain and preconditioning (\ref{prop:noidgain}, \ref{prop:precond}); over-constraint and Fisher alignment (\ref{thm:overconstraint}, \ref{prop:fisher-rep})\\
 known results cited & Pinsker/BH; SGD rates; $k/2n$ asymptotics; SQ lower bounds for parities\\
 heuristics & dominant term (\ref{heur:dominant}); size and data exponents (\ref{heur:size}, \ref{heur:data}); capacity gap as aliasing (\ref{heur:gap}); deep-network representation matching (\ref{heur:repr-deep})\\
+numerically established & periodic orbit of the stop-gradient flow (\ref{prop:oscillation}(b)); spurious minima of the sequence-level reverse KL (\ref{rem:spurious}); $F$ increasing along the stop-gradient flow (\ref{rem:not-lyapunov})\\
 conjecture & distillation gap law (\ref{conj:law})\\\bottomrule
 \end{tabular}
 \end{center}
@@ -87,6 +88,10 @@ forward KL, and $\kappa\approx1$ for on-policy training when $u=O(1)$.
 $\hat u_t(s)=\max_a\hat Q^p_t(s,a)-\min_a\hat Q^p_t(s,a)$ from teacher continuations.
 (d)~The prefix-weight process $w_t(s)$ of \cref{prop:pajsd}: the fraction of positions where
 $|w_t-\beta|>0.1$, which is where token-level GKD departs from sequence-level JSD.
+(e)~For the two on-policy reverse-KL runs, track the norm of the covariance term of \cref{prop:tilt}(ii) and the
+per-token loss heterogeneity $\mathrm{osc}_t$ of \cref{prop:stable}(b). When the teacher is nearly realisable, \cref{thm:fp-real} and
+\cref{prop:local-conv} predict that the two runs end at the same student. Otherwise, \cref{prop:separable} predicts that the
+stop-gradient run keeps branches that the full-estimator run abandons.
 \emph{Falsifier:} on-policy gains that do not correlate with small $\hat u$, or $\kappa$ unaffected by the prefix
 law, would refute the performance-difference account of exposure bias.
 

@@ -53,6 +53,98 @@ $k_\TT$, once $w<\lambda_{k_\TT}$ all components are active. Then
 $R=\frac12\sum_{i\le k_\TT}\log(\lambda_i/w)$ gives $w=(\prod_i\lambda_i)^{1/k_\TT}e^{-2R/k_\TT}$ and $D=k_\TT w$, which is
 \cref{prop:phase} after the change of units $R\mapsto R\ln2$ and halving. \qed
 
+\subsection{Proofs for \cref{sec:fixed-points} (stop-gradient fixed points)}\label{app:fixed-points}
+
+\paragraph{Proof of \cref{thm:fejer}.}
+Write $g(s):=\nabla_z\ell(z_{\theta_k}(s))$ and $z^\circ(s):=z_{\theta^\circ}(s)$, so that $\softmax z^\circ(s)=p(\cdot\mid s)$.
+(i)~Since $z_{\theta_k}(s)-z^\circ(s)=\Psi_s(\theta_k-\theta^\circ)$, \cref{lem:directed} gives
+$\langle\theta_k-\theta^\circ,\Psi_s^\top g(s)\rangle=\langle z_{\theta_k}(s)-z^\circ(s),g(s)\rangle\ge c_\ell\|g(s)\|^2$ at every prefix. Summing,
+$\langle\theta_k-\theta^\circ,\hat v_k\rangle\ge\frac{c_\ell}B\sum_{i,t}\|g(s^i_t)\|^2$. Since $g\in\operatorname{range}C$, $\|\Psi_s^\top g\|=\|(C\Psi_s)^\top g\|\le\|C\Psi_s\|_{\mathrm{op}}\|g\|$.
+Cauchy--Schwarz over $t$ and convexity of $\|\cdot\|^2$ over $i$ then give $\|\hat v_k\|^2\le\frac\Lambda B\sum_{i,t}\|g(s^i_t)\|^2$. Expanding the square,
+\[
+\|\theta_{k+1}-\theta^\circ\|^2\le\|\theta_k-\theta^\circ\|^2-(2\eta c_\ell-\eta^2\Lambda)\,\tfrac1B\textstyle\sum_{i,t}\|g(s^i_t)\|^2 ,
+\]
+and $2\eta c_\ell-\eta^2\Lambda\ge\eta c_\ell$ for $\eta\le c_\ell/\Lambda$. For the exact update, $v(\theta_k)$ is the mean of the single-trajectory estimate over a
+trajectory drawn from the $\lambda$-mixture, whose prefix marginals are $\nu_t(\theta_k)$. The inner-product bound passes to the mean
+by linearity, and the norm bound by Jensen. (ii)~If $v(\theta)=0$, the exact version of the two bounds gives
+$0=\langle\theta-\theta^\circ,v(\theta)\rangle\ge c_\ell\,h(\theta)$ with $h(\theta):=\sum_t\E_{s\sim\nu_t(\theta)}\|\nabla_z\ell(z_\theta(s))\|^2$. The support of $\nu_t(\theta)$ is all of
+$\cS_t$: the student has full support if $\lambda>0$, and the teacher has full support if $\lambda<1$. So $\nabla_z\ell=0$ on $\cS_+$,
+and $q_\theta=p$ there by \cref{lem:directed}.
+(iii)~By (i), $\|\theta_k-\theta^\circ\|$ is non-increasing for every $\theta^\circ\in\cM$, so $(\theta_k)$ is bounded, and summing (i) over $k$ gives
+$\eta c_\ell\sum_k\frac1B\sum_{i,t}\|g(s^i_t)\|^2\le\|\theta_0-\theta^\circ\|^2$ surely. The trajectories at step $k$ are drawn afresh given $\theta_k$, so the
+conditional mean of the $k$-th summand is $h(\theta_k)$. Hence $\E\sum_kh(\theta_k)<\infty$, and $h(\theta_k)\to0$ almost surely. The function $h$ is
+continuous because $\cS_+$ is finite, and by (ii) it vanishes only on $\cM$. So on this event every cluster point $\bar\theta$ of the
+bounded sequence lies in $\cM$. Applying (i) with $\theta^\circ=\bar\theta$ shows that $\|\theta_k-\bar\theta\|$ is non-increasing; a subsequence tends to
+$0$, so $\theta_k\to\bar\theta$. Every update lies in $\mathcal R:=\operatorname{span}\bigcup_s\operatorname{range}(\Psi_s^\top C)$, so $\bar\theta\in\theta_0+\mathcal R$. Moreover
+$\cM=\{\theta:C\Psi_s\theta=C\Psi_s\theta^\circ\ \forall s\}=\theta^\circ+\mathcal R^\perp$, because $\bigcap_s\ker(C\Psi_s)=\mathcal R^\perp$. The intersection $(\theta_0+\mathcal R)\cap(\theta^\circ+\mathcal R^\perp)$
+is the single point $\operatorname{proj}_\cM(\theta_0)$. For the rate, note that $\nabla^2_z\ell=f''(1)(\diag p_s-p_sp_s^\top)$ at $z^\circ(s)$ (see the proof of
+\cref{prop:local-conv}), which is positive definite on $\operatorname{range}C$. Also $\delta\mapsto(C\Psi_s\delta)_s$ is injective on $\mathcal R$, and $\nu_t(\theta)\to\dteach t>0$
+as $\theta\to\theta_\infty$. Hence $h(\theta)\ge\mu\|\theta-\theta_\infty\|^2$ for $\theta\in\theta_0+\mathcal R$ near $\theta_\infty$, for some $\mu>0$. Since $\theta_k-\theta_\infty\in\mathcal R$, the exact version
+of (i) gives $\|\theta_{k+1}-\theta_\infty\|^2\le(1-\eta c_\ell\mu)\|\theta_k-\theta_\infty\|^2$ for all large $k$. \qed
+
+\paragraph{Proof of \cref{prop:local-conv}.}
+(i)~Let $v_s$ be teacher logits and $\Gamma(\theta):=\big(C(z_\theta(s)-v_s)\big)_{s\in\cS_+}$. Then $\cM=\Gamma^{-1}(0)$, since $\softmax z=\softmax v$ iff $Cz=Cv$, and
+$D\Gamma=\mathbf J$ is surjective near $\theta^\circ$. The regular value theorem gives the claim.
+(ii)~Write $v(\theta)=\sum_{t,s}\nu_t(\theta)(s)\,\partial_\theta z_\theta(s)^\top g_\theta(s)$ with $g_\theta(s)=\nabla_z\ell(z_\theta(s))$. On $\cM$ every $g_m(s)$ vanishes, so only
+the term in which the derivative hits $g$ survives:
+$Dv(m)=\sum_{t,s}\nu_t(m)(s)\,\partial_\theta z_m(s)^\top\nabla^2_z\ell\,\partial_\theta z_m(s)$. Here $\nu_t(m)=\dteach t$ because $Q_m=P$. In the notation of the
+proof of \cref{lem:directed}, $g=F_q\xi$, and at $q=p$ the vector $\xi$ is constant, so $F_q\xi=0$. Differentiating gives
+$\nabla^2_z\ell=F_p\,\partial_z\xi=f''(1)F_p(I-\one p^\top)=f''(1)F_p$, since $\partial_z r=I-\one q^\top$ and $\frac{d}{dr}\psi_f(e^{-r})|_{r=0}=f''(1)$. So
+$Dv(m)=f''(1)\mathbf H(m)$. For $F(\theta)=L(\theta;\theta)$, the Hessian is the sum of the four second derivatives of $L$ in its two arguments.
+The two mixed ones contain $\nabla_{\theta'}\ell_m(s)=0$, and the one in the second argument alone contains $\ell_m(s)=0$. So $\nabla^2F(m)=Dv(m)$. Finally, $\mathbf H(m)\delta=0$
+iff $F_{p_s}\partial_\theta z_m(s)\delta=0$ for every $s$, because $\dteach t(s)>0$. This holds iff $C\partial_\theta z_m(s)\delta=0$ for every $s$, that is, iff $\delta\in\ker\mathbf J_m=T_m\cM$.
+(iii)~Let $G(\theta)=\theta-\eta v(\theta)$ and $A_m:=f''(1)\mathbf H(m)$. The rank of $A_m$ equals that of $\mathbf J_m$, which is constant near $\theta^\circ$, so its positive
+eigenvalues depend continuously on $m$. Choose a compact neighbourhood $K$ of $\theta^\circ$ in $\cM$ on which they lie in $[\underline h,\bar h]$ with
+$\eta\bar h<2$, and set $\rho:=\max(|1-\eta\underline h|,|1-\eta\bar h|)<1$. On a tubular neighbourhood $U$ of $K$ the nearest-point projection $\pi$ onto $\cM$ is
+well defined, and $\delta:=\theta-\pi(\theta)$ lies in the normal space $(T_{\pi(\theta)}\cM)^\perp=\operatorname{range}A_{\pi(\theta)}$. The field $v$ is $C^1$ and vanishes on $\cM$,
+so $v(\theta)=A_{\pi(\theta)}\delta+o(\|\delta\|)$ uniformly on $U$. Hence
+\begin{gather*}
+\operatorname{dist}(G(\theta),\cM)\le\|G(\theta)-\pi(\theta)\|\le\|(I-\eta A_{\pi(\theta)})\delta\|+o(\|\delta\|)\le\rho'\|\delta\|,\\
+\|G(\theta)-\theta\|=\eta\|v(\theta)\|\le c\|\delta\|,
+\end{gather*}
+for $\|\delta\|\le r_0$, with any fixed $\rho'\in(\rho,1)$. Start close enough to $\theta^\circ$ that the total displacement $c\,\delta_0/(1-\rho')$ keeps the iterates in $U$
+with projections in $K$. Then $\operatorname{dist}(\theta_k,\cM)\le\rho'^k\delta_0$, and $\sum_k\|\theta_{k+1}-\theta_k\|<\infty$, so $\theta_k$ converges. Its limit $\theta_\infty$ lies in the closed set
+$\cM$, and $\|\theta_k-\theta_\infty\|\le c\,\rho'^k\delta_0/(1-\rho')$. \qed
+
+\paragraph{Proof of \cref{prop:contraction}.}
+Since $R$ does not depend on $\theta$, $\nabla_{\theta'}[L(\theta';\theta_1)-L(\theta';\theta_2)]=\sum_t\sum_{s\in\cS_t}\big(\nu_t(\theta_1)-\nu_t(\theta_2)\big)(s)\,\big(\nabla\ell_{\theta'}(s)-c_t\big)$ for any
+vectors $c_t$, because each signed measure has total mass zero. Its norm is at most
+$\sum_t2\,\TV(\nu_t(\theta_1),\nu_t(\theta_2))\,\rho_t(\theta')$. Also $\TV(\nu_t(\theta_1),\nu_t(\theta_2))=\lambda\TV(d^{\,\theta_1}_t,d^{\,\theta_2}_t)\le\lambda(t-1)\Lambda_\TV\|\theta_1-\theta_2\|$, by the
+hybrid argument of \cref{prop:hybrid} applied to the first $t-1$ tokens. So the map $\theta\mapsto\nabla_{\theta'}L(\theta';\theta)$ is $\beta(\theta')$-Lipschitz, with
+$\beta(\theta'):=2\lambda\Lambda_\TV\sum_t(t-1)\rho_t(\theta')$. Now let $\theta'_i=\Phi(\theta_i)$ and $\Delta=\theta'_1-\theta'_2$, and let $\nabla$ denote the gradient of $L+R$ in its
+first argument. The first-order conditions on the convex set $\Theta_\TS$ are $\langle\nabla(\theta'_1;\theta_1),\Delta\rangle\le0\le\langle\nabla(\theta'_2;\theta_2),\Delta\rangle$. Strong
+convexity then gives
+\[
+\gamma\|\Delta\|^2\le\langle\nabla(\theta'_1;\theta_1)-\nabla(\theta'_2;\theta_1),\Delta\rangle\le\langle\nabla(\theta'_2;\theta_2)-\nabla(\theta'_2;\theta_1),\Delta\rangle\le\beta(\theta'_2)\|\theta_1-\theta_2\|\|\Delta\| .
+\]
+For softmax students, $\|\softmax(z+\delta)-\softmax z\|_1\le\frac12\operatorname{osc}(\delta)\le\frac1{\sqrt2}\|\delta\|_2$. This follows by integrating
+$\|F_q\delta\|_1=\E_q|\delta-\E_q\delta|\le\sqrt{\Var_q\delta}\le\frac12\operatorname{osc}(\delta)$, using Popoviciu's inequality. So $\Lambda_\TV=J/(2\sqrt2)$ works. The last claims are
+Banach's fixed-point theorem. \qed
+
+\paragraph{Proof of \cref{prop:oscillation}.}
+(a)~The student's second-token law is the same at both second-step prefixes. A weighted sum of reverse KLs from one
+distribution to several members of an exponential family equals, up to a constant, the reverse KL to the member
+with the averaged natural parameter. Hence
+$L(\theta';\theta)=k_1(\theta')+k(\theta';\bar m)+\mathrm{const}$, where $\bar m=(2w-1)M$, $w=q_\theta(a\mid x)=\sigma(-\kappa\theta)$,
+$k_1(\theta')=\KL(\mathrm{Bern}\,\sigma(\kappa\theta')\|\mathrm{Bern}\,\frac12)$ and $k(\theta';m)=\KL(\mathrm{Bern}\,\sigma(\theta')\|\mathrm{Bern}\,\sigma(m))$. From
+$\partial_z\KL(\mathrm{Bern}\,\sigma(z)\|\mathrm{Bern}\,\sigma(z_p))=\sigma'(z)(z-z_p)$ (proof of \cref{prop:convexity}(ii)) we get
+$\partial^2_{\theta'}(k_1+k)=\frac{1+\kappa^2}4$ and $\partial_m\partial_{\theta'}k=-\frac14$ at $(\theta',m)=(0,0)$. At $\theta=0$ both terms vanish only at $\theta'=0$. Also
+$L(\cdot\,;0)\to2\log2$ at $\pm\infty$, and $L(\cdot\,;\theta)\to L(\cdot\,;0)$ uniformly as $\theta\to0$. So for $\theta$ near $0$ the global minimiser is the local
+branch given by the implicit function theorem, with $d\theta'/d\bar m=1/(1+\kappa^2)$. Combined with $d\bar m/d\theta=2Mw'(0)=-\kappa M/2$ this gives
+$\Phi'(0)$. Since $v(\theta)=\partial_{\theta'}L(\theta';\theta)|_{\theta'=\theta}$, $v'(0)=\frac{1+\kappa^2}4+(-\frac14)(-\frac{\kappa M}2)$.
+(b)~Let $U$ and $B$ have rows $e(\phi_j-\psi)$ and $e(\phi_k)$, let $w=\softmax(\kappa U\theta)$ and $\theta^j:=\varrho e(\phi_j)$, and write $G(z;p)=\nabla_z\KL(\softmax z\|p)$. Then
+$v(\theta)=\kappa U^\top G(\kappa U\theta;u)+\sum_jw_j(\theta)\,\omega B^\top G(\omega B\theta;p_j)$, where $u$ is uniform and $p_j=\softmax(\omega B\theta^j)$. At $\theta=0$ all first-token and
+second-token laws are uniform, and $\sum_j\theta^j=0$ gives $v(0)=0$. For three equally spaced angles, $U^\top CU=B^\top CB=\frac32I$ and
+$\sum_j\theta^j e(\phi_j-\psi)^\top=\frac32\varrho R_\psi$. Differentiating gives three terms. The first-token term contributes
+$\kappa^2U^\top F_uU=\frac{\kappa^2}2I$, with $F_u=\frac13C$. Averaging the second-token Hessians over $j$ with weights $\frac13$, their parts linear in
+$\theta^j$ cancel and $\frac{\omega^2}{3}B^\top CB=\frac{\omega^2}2I$ remains. The weights contribute
+$\sum_jG_j\nabla w_j(0)^\top$ with $G_j=\omega B^\top G(0;p_j)=-\frac{\omega^2}2\theta^j$ and $\nabla w_j(0)=\frac\kappa3e(\phi_j-\psi)$. This term equals
+$-\frac{\omega^2\kappa\varrho}4R_\psi$. The eigenvalues of $-Dv(0)$ are $-\frac{\kappa^2+\omega^2}2+\frac{\omega^2\kappa\varrho}4e^{\pm i\psi}$, and their real part is positive under the
+stated condition. For $(1,3,6,\frac\pi3)$ they are $1.75\pm11.69\,i$. The angular velocity of $\dot\theta=-v(\theta)$ is positive on the annulus
+$0.2\le\|\theta\|\le1.05$ (grid check), so the first-return map $P$ to the positive horizontal axis is well defined and
+continuous on $[0.3,1]$. Numerically $P(0.3)\approx0.557$ and $P(1)\approx0.740$, and the trajectories stay in the annulus. So $P$ has a fixed
+point $r^\ast\approx0.714$, which gives a periodic orbit, and $P'(r^\ast)\approx0.146$ makes it attracting. \qed
+
 \subsection{Numerical verification}
 
 The scripts in \texttt{verification/} check the results marked \textsf{[numerically checked]}, by random
@@ -67,5 +159,12 @@ TV estimator, the bias of the stop-gradient estimator, the unbiasedness of the p
 \cref{def:pajsd}, and the bias that results from adding the two recipes. \texttt{check\_capacity.py} verifies
 \cref{prop:powerlaw,prop:phase,thm:bottleneck,cor:facts}, the $R=0$ tightness of \cref{cor:facts-tv}, and
 \cref{thm:capacity} on 300 random instances by exact computation of $I(\mathbf T;Y)$. \texttt{check\_representations.py} verifies
-\cref{prop:cca,thm:overconstraint,prop:fisher-rep} in a random instance of the linear-Gaussian model. All
-checks pass.
+\cref{prop:cca,thm:overconstraint,prop:fisher-rep} in a random instance of the linear-Gaussian model.
+\texttt{check\_fixed\_points.py} covers \cref{sec:fixed-points}. It checks \cref{prop:tilt} by exact enumeration, and
+\cref{lem:directed} on random logits. It checks \cref{thm:fejer} on random logit-affine instances, pathwise for
+stochastic updates, for all three losses and three mixture weights, together with the implicit bias. It checks
+\cref{prop:local-conv}(ii) for a nonlinear student and the contraction bound of \cref{prop:contraction}. It also checks the
+examples of \cref{prop:separable,prop:rps,prop:oscillation} and \cref{rem:not-lyapunov,rem:spurious}. For the periodic orbit it checks on a grid that
+the angular velocity is positive on an annulus. It then checks that trajectories started on the segment
+$[0.3,1]\times\{0\}$ stay in that annulus for one turn, and that the first-return map $P$ satisfies $P(0.3)>0.3$ and $P(1)<1$.
+So $P$ has a fixed point, which is a periodic orbit, and the script computes its multiplier. All checks pass.

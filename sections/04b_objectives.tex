@@ -28,6 +28,7 @@ at $\theta^\circ$. In general the stop-gradient fixed points are the $\theta$ th
 $\theta'\mapsto\sum_t\E_{\dstud t}\KL(q_{\theta'}\|p)$. This set includes the fixed points of the DAgger-type map
 $\theta\mapsto\argmin_{\theta'}\sum_t\E_{\dstud t}\KL(q_{\theta'}\|p)$, and is larger when that inner objective is
 non-convex (\cref{prop:convexity}). These are not, in general, stationary points of the sequence-level KL.
+\Cref{sec:fixed-points} characterises them, gives Lyapunov functions and convergence guarantees, and shows where none exist.
 \end{proposition}
 \begin{proof}
 $F(\theta)=\sum_t\E_{s\sim\dstud t}g_t(\theta;s)$ by \cref{thm:chain}. Differentiating gives a direct term and a
@@ -209,3 +210,5 @@ order (\cref{prop:local}), and skew-Jeffreys additionally \emph{certifies} likel
 If the student is capacity-limited, use PA-JSD to allocate its error where the deployment criterion is
 least hurt. A natural schedule is PA-JSD to convergence followed by a skew-Jeffreys fine-tune, monitoring
 both sequence-level quantities (\cref{sec:experiments}).
+
+\input{sections/04c_fixed_points}

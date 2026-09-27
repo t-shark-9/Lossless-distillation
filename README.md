@@ -11,7 +11,7 @@ carries a status tag: *proved*, *proved under stated assumptions*, *proved withi
 | 1. Formalise "lossless" | §1: TV as worst-case task regret; Pinsker/BH/Hellinger; $\mathrm{JSD}_\beta$ sandwich; local $\chi^2$ equivalence; coverage vs precision event bounds; chain rules pairing each KL direction with its prefix law |
 | 2. Decompose the error | §2: master identity (approximation + estimation + optimisation + prefix shift + covariate shift); softmax-bottleneck floor; horizon-free MLE rate; Rao–Blackwell view of soft labels; $O(\varepsilon T)$ / $O(\varepsilon T^2)$ / $O(u\,T\varepsilon)$ compounding theorems |
 | 3. Lower bounds | §3: information-theoretic capacity floor $\ge (I(\mathbf T;Y)-R\ln 2)/(mN)$; one-shot rate–distortion converse; power law $D(R)\asymp R^{-(\alpha-1)}$ and exponential phase; scaling-law predictions |
-| 4. Objective design | §4: logit gradients; mode covering vs seeking; temperature and $\tau^2$; Fisher view of dark knowledge; unbiased Rao–Blackwellised estimators; **PA-JSD**, a sequence-level prefix-adaptive $\mathrm{JSD}_\beta$ objective with proven properties |
+| 4. Objective design | §4: logit gradients; mode covering vs seeking; temperature and $\tau^2$; Fisher view of dark knowledge; unbiased Rao–Blackwellised estimators; **PA-JSD**, a sequence-level prefix-adaptive $\mathrm{JSD}_\beta$ objective with proven properties; fixed points, Lyapunov functions and convergence of stop-gradient on-policy (DAgger-type) distillation (§4.8) |
 | 5. Beyond output matching | §5: CCA/CKA; last-layer redundancy; when matching helps (noise, conditioning, compositional hardness); over-constraint theorem; Fisher-aligned matching |
 | 6. Synthesis | §6: end-to-end sandwich theorem; status table; three experiments with exact quantities to measure. §7 lists open problems |
 
@@ -29,6 +29,7 @@ python3 verification/check_divergences.py   # single-distribution inequalities, 
 python3 verification/check_sequences.py     # exact enumeration: chain rules, compounding, unbiased estimators
 python3 verification/check_capacity.py      # water-filling exponents, softmax-bottleneck floor, K-facts floor
 python3 verification/check_representations.py  # over-constraint theorem, Fisher-aligned matching, CCA/CKA facts
+python3 verification/check_fixed_points.py      # stop-gradient fixed points: tilted teacher, Fejér convergence, cycles
 ```
 
 Each script prints `PASS`/`FAIL` per claim. The claims are identified by their LaTeX labels.

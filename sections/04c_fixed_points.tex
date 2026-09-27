@@ -1,0 +1,354 @@
+\subsection{Fixed points of stop-gradient on-policy distillation}\label{sec:fixed-points}
+
+The stop-gradient estimator of \cref{prop:rb-reverse} is what one obtains by treating sampled student prefixes as
+data. Its mean is not the gradient of any sequence-level divergence, so its fixed points need their own
+analysis. This subsection characterises them and decides when they minimise a sequence-level divergence. It
+also gives Lyapunov functions and convergence guarantees, and shows by examples where none exist.
+
+\paragraph{Setting.} Throughout this subsection $\cD$ has finite support (a finite prompt set), so the set $\cS_+$ of
+prefixes $s=(x,y_{<t})$ with $x\in\operatorname{supp}\cD$ and $t\le T$ is finite. Absorbing end-of-sequence states are
+excluded, since all models agree there. The teacher has full support at every $s\in\cS_+$. The student is a softmax model, so
+$q_\theta(\cdot\mid s)$ has full support too. The per-token loss is $\ell_\theta(s):=\mathsf D\big(p(\cdot\mid s)\|q_\theta(\cdot\mid s)\big)$, where
+$\mathsf D$ is forward KL, reverse KL (meaning $\KL(q\|p)$, as in \eqref{eq:per-token-errors}) or $\JSD_\beta$. Training prefixes follow
+the mixture $\nu_t(\theta)=\lambda\dstud t+(1-\lambda)\dteach t$ with $\lambda\in[0,1]$, as in \cref{sec:decomposition}. We write
+$\cM:=\{\theta:\Qseq=\Pseq\text{ for all }x\in\operatorname{supp}\cD\}$ for the set of lossless students. Because the teacher has full
+support, $\theta\in\cM$ if and only if $q_\theta=p$ on $\cS_+$.
+
+\begin{definition}[Stop-gradient surrogate, DAgger map, stable points]\label{def:dagger}
+Let $L(\theta';\theta):=\sum_{t=1}^T\E_{s\sim\nu_t(\theta)}\ell_{\theta'}(s)$ and $F(\theta):=L(\theta;\theta)$. The \emph{DAgger map} is
+$\Phi(\theta):=\argmin_{\theta'\in\Theta_\TS}L(\theta';\theta)$, and $\theta$ is \emph{stable} if $\theta\in\Phi(\theta)$. The \emph{stop-gradient field} is
+$v(\theta):=\nabla_{\theta'}L(\theta';\theta)|_{\theta'=\theta}$, and $\theta$ is \emph{stop-gradient stationary} if $v(\theta)=0$. Stable points in the
+interior of $\Theta_\TS$ are stop-gradient stationary.
+\end{definition}
+\noindent
+For reverse KL and $\lambda=1$, $F(\theta)=\E_\cD\KL(\Qseq\|\Pseq)$ by \cref{thm:chain}. In that case $v$ is the mean of the
+stop-gradient estimator and $\Phi$ is the map of \cref{prop:rb-reverse}. For $\lambda=0$ the prefix law does not depend on $\theta$,
+and stable points are simply minimisers of $F$. In the language of performative prediction
+\citep{perdomo2020performative}, stable points are \emph{performatively stable}, minimisers of $F$ are \emph{performatively
+optimal}, and exact DAgger is \emph{repeated risk minimisation}. What is specific to distillation is that the teacher
+minimises every per-token loss simultaneously.
+
+\paragraph{What the stop-gradient discards.}
+
+\begin{proposition}[The unbiased gradient chases a value-tilted teacher]\label{prop:tilt}
+\Pv\Ck Take reverse KL and $\lambda=1$. For $s\in\cS_t$ let $V^\theta_t(s):=\KL\big(Q_\theta(\cdot\mid s)\,\|\,P(\cdot\mid s)\big)$ be the reverse KL
+between the laws of the continuation $y_{t:T}$ given the prefix $s$, and set $V^\theta_{T+1}:\equiv0$. Define the
+\emph{value-tilted teacher} $\tilde p^\theta(a\mid s):=p(a\mid s)\,e^{-V^\theta_{t+1}(s,a)}/Z^\theta(s)$, where $(s,a)$ is $s$ extended by $a$ and
+$Z^\theta(s)$ normalises. Then:
+\begin{enumerate}[label=(\roman*),nosep]
+\item $\nabla F(\theta)=\sum_t\E_{s\sim\dstud t}\nabla_{\theta'}\KL\big(q_{\theta'}(\cdot\mid s)\|\tilde p^\theta(\cdot\mid s)\big)\big|_{\theta'=\theta}$, and $v(\theta)$ is the same expression
+with $\tilde p^\theta$ replaced by $p$;
+\item $\nabla F(\theta)-v(\theta)=\sum_t\E_{s\sim\dstud t}\Cov_{a\sim q_\theta(\cdot\mid s)}\big(\nabla_\theta\log q_\theta(a\mid s),\,V^\theta_{t+1}(s,a)\big)$;
+\item (soft performance difference) for all $\theta,\theta'$,
+\[
+F(\theta')-F(\theta)=\sum_{t=1}^T\E_{s\sim d^{\,\theta'}_t}\Big[\KL\big(q_{\theta'}(\cdot\mid s)\,\|\,\tilde p^\theta(\cdot\mid s)\big)-\KL\big(q_\theta(\cdot\mid s)\,\|\,\tilde p^\theta(\cdot\mid s)\big)\Big].
+\]
+\end{enumerate}
+\end{proposition}
+\noindent
+The unbiased gradient is therefore a DAgger step towards a \emph{moving} target. That target up-weights tokens after
+which the student already imitates the teacher well. The stop-gradient freezes the target at $p$: it is soft policy
+iteration with the value function set to zero. By (ii) the two agree when the student's future error $V^\theta_{t+1}(s,\cdot)$
+is uncorrelated with its score at every visited prefix. This holds, for example, when that error does not depend on the next token.
+\begin{proof}
+By \cref{thm:chain} applied to continuation laws, $V^\theta_t(s)=\KL\big(q_\theta(\cdot\mid s)\|p(\cdot\mid s)\big)+\E_{a\sim q_\theta(\cdot\mid s)}V^\theta_{t+1}(s,a)$, and
+$F=\E_{x\sim\cD}V^\theta_1(x)$. (ii)~In the score term of \cref{prop:rb-reverse}, condition on $(s_t,y_t)$. The future sum
+$\sum_{k>t}g_k(s_k)$ has conditional mean $V^\theta_{t+1}(s_t,y_t)$, and $\E_{a\sim q}\nabla\log q(a\mid s)=0$ turns the product into a
+covariance. (i)~$\nabla_{\theta'}\KL(q_{\theta'}\|\tilde p^\theta)|_{\theta'=\theta}=\sum_a\nabla_\theta q_\theta(a\mid s)\big[\log\frac{q_\theta(a\mid s)}{p(a\mid s)}+V^\theta_{t+1}(s,a)\big]$, because
+$\sum_a\nabla_\theta q_\theta(a\mid s)=0$ removes the constant $1+\log Z^\theta(s)$. The first part of the bracket gives $v$ and the second gives
+(ii). (iii)~Along $y\sim Q^x_{\theta'}$ the sum $\sum_t[V^\theta_{t+1}(s_{t+1})-V^\theta_t(s_t)]$ telescopes to $-V^\theta_1(x)$, where $s_{T+1}:=y$. Hence
+$F(\theta')-F(\theta)=\E\sum_t\big[\log\frac{q_{\theta'}}{p}(y_t\mid s_t)+V^\theta_{t+1}(s_{t+1})-V^\theta_t(s_t)\big]$. Given $s_t=s$, the $t$-th term has mean
+$\KL(q_{\theta'}\|\tilde p^\theta)-\log Z^\theta(s)-V^\theta_t(s)$, and $V^\theta_t(s)=\KL(q_\theta\|\tilde p^\theta)-\log Z^\theta(s)$. This is the maximum-entropy form of
+\cref{thm:pdl}. In control as inference with reward $\log p$, $\tilde p^\theta$ is the soft-greedy policy
+\citep{levine2018reinforcement}.
+\end{proof}
+
+\begin{proposition}[What a stable point is]\label{prop:stable}
+\Pv Let $\ell\ge0$ be any per-token loss and $\lambda\in[0,1]$.
+\begin{enumerate}[label=(\alph*),nosep]
+\item (Self-consistency.) $\bar\theta$ is stable iff $F(\bar\theta)=\min_{\theta'}L(\theta';\bar\theta)$. In words, its training objective equals the best
+token-level loss that any student attains on $\bar\theta$'s own prefix law. Hence $F(\bar\theta)\le T\eps_\infty$, where
+$\eps_\infty:=\inf_{\theta'}\sup_{s\in\cS_+}\ell_{\theta'}(s)$. For reverse KL with $\lambda=1$ this gives $\E_\cD\TV(P,Q_{\bar\theta})\le\sqrt{T\eps_\infty/2}$.
+\item (Suboptimality.) For every $\theta$,
+$F(\bar\theta)\le F(\theta)+\lambda\sum_{t=1}^T\mathrm{osc}_t(\ell_\theta)\,\TV\big(d^{\,\bar\theta}_t,d^{\,\theta}_t\big)$, where $\mathrm{osc}_t(g):=\sup_{\cS_t}g-\inf_{\cS_t}g$. So the
+excess of a stable point over $\min F$ is controlled by how \emph{unevenly} the minimiser's error is spread over
+prefixes of equal length. For $\lambda=0$ the stable points are exactly the minimisers of $F$.
+\item (First order.) If $\bar\theta$ is stop-gradient stationary, then
+$\nabla F(\bar\theta)=\lambda\sum_t\sum_{s\in\cS_t}\ell_{\bar\theta}(s)\,\nabla_\theta d^{\,\theta}_t(s)|_{\theta=\bar\theta}$; for reverse KL and $\lambda=1$ this is
+\cref{prop:tilt}(ii). It vanishes when the per-token loss is homogeneous, that is, when $\ell_{\bar\theta}$ is constant on each $\cS_t$.
+\end{enumerate}
+\end{proposition}
+\begin{proof}
+(a)~This restates $L(\bar\theta;\bar\theta)=\min_{\theta'}L(\theta';\bar\theta)$. Moreover $L(\theta';\bar\theta)\le T\sup_s\ell_{\theta'}(s)$ for every $\theta'$. For the TV bound
+use Pinsker and Jensen. (b)~$F(\bar\theta)\le L(\theta;\bar\theta)=F(\theta)+\sum_t(\E_{\nu_t(\bar\theta)}-\E_{\nu_t(\theta)})\ell_\theta$, and
+$\nu_t(\bar\theta)-\nu_t(\theta)=\lambda(d^{\,\bar\theta}_t-d^{\,\theta}_t)$. For probability laws $\mu,\mu'$, $|\E_\mu g-\E_{\mu'}g|\le\mathrm{osc}(g)\,\TV(\mu,\mu')$.
+(c)~$\nabla F=\nabla_{\theta'}L+\nabla_\theta L$ at $\theta'=\theta=\bar\theta$, and the first term is $v(\bar\theta)=0$. Finally
+$\sum_{s\in\cS_t}\nabla_\theta d^{\,\theta}_t(s)=0$.
+\end{proof}
+
+\paragraph{The realisable case.}
+
+\begin{theorem}[Under realisability the stable points are exactly the lossless students]\label{thm:fp-real}
+\Pa{\cref{as:real}} Let $\mathsf D$ be any per-token divergence that vanishes only at $q=p$, for example the three above, and
+let $\lambda\in[0,1]$.
+\begin{enumerate}[label=(\roman*),nosep]
+\item The stable points are exactly the elements of $\cM$. Hence they are the minimisers of every sequence-level
+divergence, and of $F$.
+\item Exact DAgger, $\theta_{k+1}\in\Phi(\theta_k)$, satisfies $\theta_k\in\cM$ for all $k\ge1$. Even for a student that may assign zero
+probability, $\theta_k\in\cM$ for all $k\ge T$.
+\item Let $\mathbf J_\theta:\delta\mapsto\big(C\,\partial_\theta z_\theta(s)\,\delta\big)_{s\in\cS_+}$ be the centred-logit Jacobian, and let $\mathsf D$ be one of the three
+divergences above. If $\mathbf J_\theta$ is surjective, then $v(\theta)=0$ iff $\theta\in\cM$. Surjectivity requires
+$\dim\Theta_\TS\ge(V-1)|\cS_+|$, which is the overparameterised regime; tabular students (free logits at every prefix) always
+satisfy it. For tabular students with reverse KL and $\lambda=1$, every stationary point of $F$ also lies in $\cM$.
+\end{enumerate}
+\end{theorem}
+\begin{proof}
+With a full-support teacher, \cref{as:real} says that $q_{\theta^\circ}=p$ on $\cS_+$. (i)~If $\theta\in\cM$ then $\ell_\theta\equiv0$ on $\cS_+$, so
+$L(\theta;\theta)=0\le L(\cdot\,;\theta)$. Conversely, let $\bar\theta$ be stable. Since $L(\theta^\circ;\bar\theta)=0$, also $L(\bar\theta;\bar\theta)=0$. Hence
+$q_{\bar\theta}=p$ on the support of every $\nu_t(\bar\theta)$. If $\lambda<1$, that support contains the support of $\dteach t$, which is all of
+$\cS_t$. If $\lambda=1$, induct on $t$: $d^{\,\bar\theta}_1=\dteach1$, and if $q_{\bar\theta}=p$ on $\cS_1,\dots,\cS_t$ then $d^{\,\bar\theta}_{t+1}=\dteach{t+1}$, which charges all of
+$\cS_{t+1}$. Under realisability the minimisers of any divergence between sequence laws are exactly $\cM$.
+(ii)~The minimum of $L(\cdot\,;\theta_k)$ is $0$, attained at $\theta^\circ$. So $\theta_{k+1}$ matches $p$ on the support of each $\nu_t(\theta_k)$. For a
+softmax student, or if $\lambda<1$, this support is all of $\cS_+$. Otherwise the induction of (i) shows that $\theta_k$ matches $p$ on
+$\cS_1\cup\dots\cup\cS_k$. (iii)~Let $g_\theta(s):=\nabla_z\mathsf D\big(p(\cdot\mid s)\|\softmax z\big)|_{z=z_\theta(s)}$. Then $\one^\top g_\theta(s)=0$, so $g_\theta(s)=Cg_\theta(s)$ and
+$v(\theta)=\mathbf J_\theta^\top\big(\nu_t(\theta)(s)\,g_\theta(s)\big)_{s}$. If $\mathbf J_\theta$ is surjective then $\mathbf J_\theta^\top$ is injective, so $v(\theta)=0$ forces $g_\theta=0$ on
+$\cS_+$, where $\nu>0$. By \cref{prop:grad}, $g=q\odot(\psi_f(p/q)-\E_q\psi_f(p/q))$, and $\psi_f$ is strictly decreasing when $f''>0$. So
+$g=0$ with $q>0$ forces $p/q$ to be constant, that is, $q=p$. For tabular students the logits $z_s$ at $s$ affect only
+$q(\cdot\mid s)$. So by \cref{prop:tilt}(i), $\partial_{z_s}F=d^{\,\theta}(s)\,\nabla_z\KL\big(\softmax z_s\|\tilde p^\theta(\cdot\mid s)\big)$, which vanishes only if
+$q_\theta(\cdot\mid s)=\tilde p^\theta(\cdot\mid s)$. At $t=T$ the tilt is trivial, so $q_\theta=p$ on $\cS_T$. Then $V^\theta_T\equiv0$ and the tilt is trivial at
+$T-1$; backward induction gives $q_\theta=p$ on $\cS_+$.
+\end{proof}
+\noindent
+So in the realisable regime the answer to ``when do the fixed points minimise a sequence-level divergence'' is:
+always, for every sequence-level divergence at once, and whatever mixture weight $\lambda$ and per-token divergence are used
+in training. The bias of \cref{prop:rb-reverse} is irrelevant here, because the teacher minimises every per-token
+loss on every prefix law. Without realisability this fails in three distinct ways (\cref{prop:separable,prop:rps,prop:oscillation}).
+
+\paragraph{The misspecified case.}
+
+\begin{proposition}[Separable students: stable points are myopic]\label{prop:separable}
+\Pv\Ck Take reverse KL and $\lambda=1$. Suppose the student class is \emph{state-separable}: $q_\theta(\cdot\mid s)$ ranges independently over
+sets $\mathcal Q_s$, $s\in\cS_+$. Suppose each $\bar q_s:=\argmin_{q\in\mathcal Q_s}\KL\big(q\|p(\cdot\mid s)\big)$ exists, is unique and has full support.
+\begin{enumerate}[label=(\roman*),nosep]
+\item The stable points are exactly the students with $q(\cdot\mid s)=\bar q_s$ on $\cS_+$. Exact DAgger reaches them in one step. They
+are also the unique minimisers of $\sum_{s\in\cS_+}c_s\KL\big(q(\cdot\mid s)\|p(\cdot\mid s)\big)$ for every choice of positive weights $c_s$, in particular
+of the off-policy reverse KL $\mathsf H^{\mathrm{rKL}}_{\mathrm{off}}$ of \cref{prop:hybrid-div}.
+\item A minimiser $q^\star$ of $F$ is obtained by backward induction: $q^\star(\cdot\mid s)\in\argmin_{q\in\mathcal Q_s}\KL\big(q\|\tilde p^{\star}(\cdot\mid s)\big)$, where $\tilde p^\star$ is
+the value-tilted teacher of $q^\star$ (\cref{prop:tilt}). It equals the stable point when the tilt does not move any of these
+projections, for example when every $V^\star_{t+1}(s,\cdot)$ is constant.
+\item The two can be far apart, and the stable point can be the better one. Let $T=V=2$, with one prompt $x$ and
+tokens $a,b$. Let $p(\cdot\mid x)$ be uniform and $\mathcal Q_x$ unrestricted, let $p(\cdot\mid x,a)\in\mathcal Q_{(x,a)}$, and let $\mathcal Q_{(x,b)}=\{\bar q_b\}$ with
+$\eps:=\KL\big(\bar q_b\|p(\cdot\mid x,b)\big)$ and $\tau:=\TV\big(\bar q_b,p(\cdot\mid x,b)\big)$. Then
+\[
+F(\bar q)=\tfrac\eps2,\quad \min F=\log\tfrac{2}{1+e^{-\eps}}<\log 2,\qquad
+\TV(P,\bar Q)=\tfrac\tau2,\quad \TV(P,Q^\star)\ge\tfrac12\tanh\tfrac\eps2 .
+\]
+For $p(\cdot\mid x,b)=(1-10^{-40},10^{-40})$ and $\bar q_b=(0.9,0.1)$: $\eps\approx8.89$, $F(\bar q)\approx4.44$ against $\min F\approx0.693$, but
+$\TV(P,\bar Q)=0.05$ against $\TV(P,Q^\star)\approx0.4999$.
+\end{enumerate}
+\end{proposition}
+\noindent
+In (iii) the sequence-level minimiser abandons the branch it cannot imitate. This is mode seeking at the level of
+whole continuations. The stop-gradient student cannot see that incentive, and so it keeps the branch. Exact DAgger started at
+$q^\star$ moves to $\bar q$ and increases $F$. So $F$ is not a Lyapunov function for exact DAgger.
+\begin{proof}
+(i)~$L(\theta';\theta)=\sum_sd^{\,\theta}(s)\KL(q_{\theta'}(\cdot\mid s)\|p(\cdot\mid s))$ separates over prefixes. It is minimised iff $q_{\theta'}(\cdot\mid s)=\bar q_s$
+wherever $d^{\,\theta}(s)>0$, which is all of $\cS_+$ for a softmax student. A stable point therefore equals $\bar q$ wherever it
+puts mass. Because $\bar q$ has full support, the induction of \cref{thm:fp-real}(i) shows that this is all of $\cS_+$. The
+same separation handles fixed positive weights $c_s$. (ii)~By \cref{prop:tilt},
+$V_t(s)=\KL\big(q(\cdot\mid s)\|\tilde p(\cdot\mid s)\big)-\log Z(s)$, where the tilt depends only on the choices at longer prefixes. By separability
+these choices can be made first, and minimising every $V_t(s)$ minimises $F=\E V_1$. (iii)~$F(\bar q)=\frac12\cdot0+\frac12\eps$. At
+$(x,a)$ the optimal value is $0$ and at $(x,b)$ it is $\eps$. So by (ii), $q^\star(\cdot\mid x)\propto(\frac12,\frac12e^{-\eps})$ and $\min F=-\log Z(x)$. The
+laws $P$ and $\bar Q$ differ only after $b$, which has probability $\frac12$; this gives $\TV(P,\bar Q)=\tau/2$. Finally,
+$\TV(P,Q^\star)\ge|P(y_1=b)-Q^\star(y_1=b)|=\frac12-\frac1{1+e^{\eps}}=\frac12\tanh\frac\eps2$.
+\end{proof}
+
+\begin{proposition}[No objective selects the stable points]\label{prop:rps}
+\Pv\Ck There are three students $A,B,C$, with $T=2$, $V=3$ and one prompt, such that in the classes $\{A,B\}$,
+$\{B,C\}$ and $\{C,A\}$ the unique stable points are $A$, $B$ and $C$ respectively. The class $\{A,B,C\}$ has no stable point, and
+exact DAgger cycles $A\to C\to B\to A$. Consequently, no function $\Gamma$ of the student has the stable points as its minimisers for
+every student class. This includes every sequence-level divergence $\E_\cD\mathsf D(P\|Q_\theta)$. Also, exact DAgger admits no Lyapunov
+function in general.
+\end{proposition}
+\begin{proof}
+Let the teacher be uniform at every prefix, and write $j=1,2,3$ for the second-step prefixes. Take
+first-step laws $w^A=(1-2\epsilon,\epsilon,\epsilon)$, with $w^B$ and $w^C$ its cyclic shifts and $0<\epsilon<\frac13$. At the second step, choose
+conditionals whose reverse KLs to the teacher at prefixes $1,2,3$ are $e^A=\gamma(1,0,2)$, $e^B=\gamma(2,1,0)$ and $e^C=\gamma(0,2,1)$, with
+$0<\gamma<\frac12\log3$. For example, use $(r,\frac{1-r}2,\frac{1-r}2)$ with $r\in[\frac13,1)$ chosen so that its reverse KL to the uniform law takes the required value. All three students have the same
+first-step KL $k$, so $L(Y;X)=k+\langle w^X,e^Y\rangle$. On $A$'s prefixes the values for $Y=A,B,C$ are $\gamma$, $(2-3\epsilon)\gamma$ and $3\epsilon\gamma$;
+the other cases follow by cyclic symmetry. So on its own prefixes $A$ beats $B$ but loses to $C$; $B$ beats $C$ but loses
+to $A$; and $C$ beats $A$ but loses to $B$. This gives the pairwise claims, $\Phi(A)=C$, $\Phi(C)=B$ and $\Phi(B)=A$. If $\Gamma$ existed, the
+pairwise classes would force $\Gamma(A)<\Gamma(B)<\Gamma(C)<\Gamma(A)$. A Lyapunov function $\mathcal V$ that strictly decreases along non-stable
+iterates would likewise force $\mathcal V(A)>\mathcal V(C)>\mathcal V(B)>\mathcal V(A)$.
+\end{proof}
+\noindent
+Stable points are therefore equilibria, not optima. The ``beats on its own prefixes'' relation can be cyclic,
+exactly as in a rock--paper--scissors game. The general bounds that remain are \cref{prop:stable}(a,b). What rescues the
+realisable case is that the teacher beats everyone on every prefix law.
+
+\paragraph{Lyapunov functions and convergence.} The key property is that each per-token gradient points
+towards the teacher in logit space, whatever weight the prefix law gives it.
+
+\begin{lemma}[Teacher-directed logit gradients]\label{lem:directed}
+\Pv\Ck Let $p=\softmax v$ have full support, let $q=\softmax z$, $r=\log(q/p)$ and $F_q=\diag q-qq^\top$, and let $g=\nabla_z\ell$ for
+$\ell\in\{\KL(q\|p),\KL(p\|q),\JSD_\beta(p\|q)\}$. Then $\langle z-v,g\rangle$ equals $\Var_q(r)$, $\KL(p\|q)+\KL(q\|p)$ and
+$(1-\beta)\Cov_q\big(r,\log\frac qm\big)$ respectively. Moreover
+\[
+\langle z-v,g\rangle\ \ge\ c_\ell\,\|g\|^2,\qquad c_\ell=2,\ 2,\ \tfrac{2}{1-\beta}\quad\text{respectively},
+\]
+and $\langle z-v,g\rangle=0$ only if $q=p$. For every $f$-divergence, $\langle z-v,\nabla_zD_f(p\|\softmax z)\rangle=\Cov_q\big(r,\psi_f(e^{-r})\big)\ge0$.
+\end{lemma}
+\begin{proof}
+Since $z-v=r+c\one$ and $\one^\top g=0$, we have $\langle z-v,g\rangle=\langle r,g\rangle$. By \cref{prop:grad}, $g=F_q\xi$ with $\xi=\psi_f(e^{-r})$
+applied entrywise. This gives $\xi=r$ for reverse KL (up to an additive constant, which $F_q$ annihilates), $\xi=-e^{-r}$ for forward KL, and $\xi=(1-\beta)\phi(r)$ with $\phi(r)=\log\frac qm=-\log(\beta e^{-r}+1-\beta)$ for $\JSD_\beta$.
+Since $\frac{d}{dr}\psi_f(e^{-r})=e^{-2r}f''(e^{-r})\ge0$, $\xi$ is a non-decreasing function of $r$. Hence $\langle r,F_q\xi\rangle=\Cov_q(r,\xi)\ge0$ by
+Chebyshev's association inequality, and equality requires $r$ to be $q$-a.s.\ constant, that is, $q=p$. The factor $c_\ell$ comes from
+Böhning's bound $F_q\preceq\frac12C$ \citep{bohning1992multinomial}, which gives $\|F_q\xi\|^2\le\frac12\,\xi^\top F_q\xi=\frac12\Var_q\xi$. For reverse KL
+this is the claim. For $\JSD_\beta$, $0<\phi'<1$, so $\Cov_q(r,\phi(r))-\Var_q\phi(r)=\Cov_q(r-\phi(r),\phi(r))\ge0$, because both arguments
+are non-decreasing in $r$. For forward KL, $g=\int_0^1H_\tau\,d\tau\,(z-v)$ with $H_\tau$ the Hessian of $\mathrm{lse}$ at $v+\tau(z-v)$. The
+average $\bar H$ satisfies $0\preceq\bar H\preceq\frac12C$, and $\|\bar Hw\|^2\le\frac12w^\top\bar Hw$.
+\end{proof}
+
+\begin{theorem}[Logit-affine students: a Lyapunov function and global convergence]\label{thm:fejer}
+\Pa{\cref{as:real}}\Ck Let $z_\theta(s)=\Psi_s\theta+b_s$ for $s\in\cS_+$. Examples are the read-out of \cref{as:linear}, a random-feature student, or a
+network linearised around its initialisation \citep{jacot2018neural,chizat2019lazy}. Realisability then says $\cM\ne\emptyset$. It holds
+for \emph{every} teacher when $\mathbf J=(C\Psi_s)_{s\in\cS_+}$ has full row rank $(V-1)|\cS_+|$, the overparameterised case. Let $\ell$ be
+one of the three losses, with $c_\ell$ as in \cref{lem:directed}, let $\lambda\in[0,1]$, and set $\Lambda:=T\max_s\|C\Psi_s\|_{\mathrm{op}}^2$. Iterate
+$\theta_{k+1}=\theta_k-\eta\hat v_k$ with $0<\eta\le c_\ell/\Lambda$. Here
+$\hat v_k=\frac1B\sum_{i\le B}\sum_{t\le T}\Psi_{s^i_t}^\top\nabla_z\ell\big(z_{\theta_k}(s^i_t)\big)$ is the stop-gradient estimate from $B$ fresh trajectories. Each
+trajectory is a student roll-out with probability $\lambda$ and a teacher roll-out otherwise.
+\begin{enumerate}[label=(\roman*),nosep]
+\item (Lyapunov function.) For every $\theta^\circ\in\cM$ and every realisation of the samples,
+\[
+\|\theta_{k+1}-\theta^\circ\|^2\le\|\theta_k-\theta^\circ\|^2-\frac{\eta c_\ell}{B}\sum_{i,t}\big\|\nabla_z\ell\big(z_{\theta_k}(s^i_t)\big)\big\|^2 .
+\]
+The same holds for the exact update $\hat v_k=v(\theta_k)$, with $\sum_t\E_{s\sim\nu_t(\theta_k)}$ in place of the sample average.
+\item (No spurious fixed points.) $v(\theta)=0$ iff $\theta\in\cM$. The stable points are also exactly $\cM$ (\cref{thm:fp-real}).
+\item (Convergence and implicit bias.) Almost surely, $\theta_k\to\theta_\infty:=\operatorname{proj}_\cM(\theta_0)$, the lossless student nearest to $\theta_0$.
+The limit depends on none of $\lambda$, $\ell$, $\eta$, $B$ or the sampled trajectories. With exact updates the convergence is eventually
+linear.
+\end{enumerate}
+\end{theorem}
+\noindent
+The proof is in \cref{app:fixed-points}. The Lyapunov function works simultaneously for every lossless student, every
+mixture weight and every one of the three losses. It needs neither convexity (reverse KL and $\JSD_\beta$ are non-convex
+in the logits, \cref{prop:convexity}) nor small steps beyond $\eta\le c_\ell/\Lambda$. No uniform \emph{rate} holds, though. For reverse KL,
+$\|\nabla_z\ell\|$ is exponentially small at nearly deterministic students (\cref{prop:missing}), and this produces long
+plateaus.
+
+\begin{remark}[$F$ is not a Lyapunov function, even here]\label{rem:not-lyapunov}
+\Ck Take a tabular student with $T=V=2$, one prompt, a uniform teacher at every prefix, and student conditionals
+$q(\cdot\mid x)=(0.6,0.4)$, $q(\cdot\mid x,a)=(\frac12,\frac12)$ and $q(\cdot\mid x,b)=(1-10^{-4},10^{-4})$. Along $\dot\theta=-v(\theta)$ with reverse KL and $\lambda=1$, the
+derivative is $\frac{d}{dt}F=-\langle\nabla F,v\rangle\approx+0.013$. The stop-gradient pulls $q(a\mid x)$ towards $\frac12$, whereas
+$\tilde p(a\mid x)\approx\frac23$ because the student is poor after $b$. Yet $\|\theta-\theta^\circ\|$ decreases along the same flow, since the
+proof of \cref{thm:fejer}(i) applies verbatim in continuous time, and training converges to $\cM$.
+\end{remark}
+
+\begin{remark}[The unbiased objective can trap where the stop-gradient cannot]\label{rem:spurious}
+\Ck In the setting of \cref{thm:fejer}, $v$ has no zero outside $\cM$. The sequence-level reverse KL $F$ can nevertheless
+have strict local minima outside $\cM$. Take $T=V=2$, one prompt, tokens $0,1$ and $\theta\in\R^2$. Let the student's log-odds
+$\log\frac{q(1\mid s)}{q(0\mid s)}$ be $2\theta_1+3\theta_2$ at $s=x$, $1.5-3\theta_1-2.5\theta_2$ at $s=(x,0)$ and $-2+3\theta_1-3\theta_2$ at $s=(x,1)$. The teacher is the
+student at $\theta=0$, so $\cM=\{0\}$. Then $F$ has a strict local minimum at $\theta^\ast\approx(1.218,-1.486)$, with $F(\theta^\ast)\approx0.579$ and
+$\|v(\theta^\ast)\|\approx0.78$. At $\theta^\ast$ the student reaches the branch it imitates badly, $(x,1)$, only with probability $0.12$.
+Imitating that branch better would first require visiting it more often, which $F$ penalises. Gradient descent
+on $F$ started at $\theta^\ast$ stays there, whereas stop-gradient descent converges to $0$. The bias of \cref{prop:rb-reverse} removes
+exactly this steering incentive.
+\end{remark}
+
+\begin{proposition}[Nonlinear overparameterised students: local convergence]\label{prop:local-conv}
+\Pa{\cref{as:real}}\Ck Let $\theta\mapsto z_\theta(s)$ be $C^2$ for $s\in\cS_+$, and let $\theta^\circ\in\cM$ with $\mathbf J_{\theta^\circ}$ surjective. Let $\ell$ be one of the
+three losses and $\lambda\in[0,1]$.
+\begin{enumerate}[label=(\roman*),nosep]
+\item Near $\theta^\circ$, $\cM$ is a $C^2$ submanifold of codimension $(V-1)|\cS_+|$ with tangent space $\ker\mathbf J$.
+\item At every $m\in\cM$ near $\theta^\circ$,
+\begin{gather*}
+Dv(m)=\nabla^2F(m)=f''(1)\,\mathbf H(m),\\
+\mathbf H(m):=\sum_{t=1}^T\E_{s\sim\dteach t}\,\partial_\theta z_m(s)^\top\big(\diag p_s-p_sp_s^\top\big)\,\partial_\theta z_m(s),
+\end{gather*}
+where $p_s=p(\cdot\mid s)$. This is the teacher-prefix Fisher information. It does not depend on $\lambda$; it is symmetric and positive
+semidefinite, and its kernel is $T_m\cM$.
+\item Let $0<\eta<2/\big(f''(1)\lambda_{\max}(\mathbf H(\theta^\circ))\big)$. Then the exact iteration $\theta_{k+1}=\theta_k-\eta v(\theta_k)$, started close enough to $\theta^\circ$,
+converges to a point of $\cM$ at a linear rate. Its asymptotic contraction factor per step is at most
+$\max\{|1-\eta f''(1)h|:h\in\operatorname{spec}\mathbf H(\theta^\circ)\setminus\{0\}\}$ plus an arbitrarily small margin, and $\operatorname{dist}(\theta,\cM)$ is a
+local Lyapunov function.
+\end{enumerate}
+\end{proposition}
+\noindent
+Near a lossless student, therefore, on-policy stop-gradient, off-policy and full-gradient training coincide to first
+order. The prefix law and the bias of \cref{prop:rb-reverse} enter only at second order, consistent with
+\cref{rem:local}. The proof is in \cref{app:fixed-points}.
+
+\begin{proposition}[Weak coupling implies contraction]\label{prop:contraction}
+\Pv\Ck This adapts the analysis of repeated risk minimisation in \citet{perdomo2020performative}. Let $\Theta_\TS$ be convex and let $R$ be a fixed regulariser, such
+as weight decay, such that $\theta'\mapsto L(\theta';\theta)+R(\theta')$ is $\gamma$-strongly convex and differentiable for every $\theta$; let $\Phi(\theta)$ be its
+minimiser. Let $\Lambda_\TV$ be a Lipschitz constant of $\theta\mapsto q_\theta(\cdot\mid s)$ in TV, uniform in $s$. For softmax students with
+$\|\partial_\theta z_\theta(s)\|_{\mathrm{op}}\le J$ one can take $\Lambda_\TV=J/(2\sqrt2)$. Define the \emph{gradient heterogeneity}
+$\rho_t(\theta'):=\inf_c\sup_{s\in\cS_t}\|\nabla_{\theta'}\ell_{\theta'}(s)-c\|$. Then
+\[
+\|\Phi(\theta_1)-\Phi(\theta_2)\|\le\kappa\,\|\theta_1-\theta_2\|,\qquad
+\kappa:=\frac{2\lambda\Lambda_\TV}{\gamma}\sup_{\theta'\in\Phi(\Theta_\TS)}\sum_{t=1}^T(t-1)\,\rho_t(\theta').
+\]
+If $\kappa<1$, there is a unique stable point $\bar\theta$. Exact DAgger then converges to it linearly from any start, and
+$\|\theta-\bar\theta\|$ is a Lyapunov function.
+\end{proposition}
+\noindent
+So the performative coupling is proportional to the mixture weight $\lambda$, to the sensitivity of the student's
+conditionals, to $T^2$, and to how much the per-token gradients at best responses \emph{differ} across prefixes. Their
+size does not enter. Under realisability without a regulariser, all per-token gradients vanish on $\cM\supseteq\Phi(\Theta_\TS)$, so
+$\rho_t\equiv0$. This is the mechanism behind \cref{thm:fp-real}(ii). The proof is in \cref{app:fixed-points}.
+
+\begin{proposition}[Oscillations]\label{prop:oscillation}
+Take reverse KL and $\lambda=1$.
+\begin{enumerate}[label=(\alph*),nosep]
+\item \Pv\Ck (Exact DAgger overshoots.) Let $T=V=2$ and $\theta\in\R$. The student's first token is $b$ with probability $\sigma(\kappa\theta)$
+and $a$ otherwise. Its second token is drawn from $\mathrm{Bern}(\sigma(\theta))$ after either first token, so it ignores its own
+prefix. The teacher is uniform at the first step, and $\mathrm{Bern}(\sigma(M))$ after $a$ and $\mathrm{Bern}(\sigma(-M))$ after $b$. Then $\theta=0$ is
+stable, $\Phi$ is smooth near $0$, and
+\[
+\Phi'(0)=-\frac{\kappa M}{2(1+\kappa^2)},\qquad v'(0)=\frac{1+\kappa^2}4+\frac{\kappa M}8>0 .
+\]
+If $\kappa M>2(1+\kappa^2)$, then $\theta=0$ repels exact DAgger but attracts the stop-gradient flow. For $\kappa=1$ and $M=8$, exact
+DAgger converges to the $2$-cycle $\{\pm3.830\}$, on which $F\approx8.155>F(0)\approx3.307$.
+\item \Pv(linear instability)\ \Ck(periodic orbit)\ (The stop-gradient flow can cycle.) Let $T=2$, $V=3$ and $\theta\in\R^2$. Write
+$e(\alpha)=(\cos\alpha,\sin\alpha)$ and $\phi_j=2\pi j/3$. The student's first-token logits are $\kappa\langle e(\phi_j-\psi),\theta\rangle$ for $j=0,1,2$. Its
+second-token logits are $\omega\langle e(\phi_k),\theta\rangle$ for $k=0,1,2$, whatever the first token. The teacher is uniform at the first step,
+and after first token $j$ it has second-token logits $\omega\langle e(\phi_k),\varrho\,e(\phi_j)\rangle$. Then $v(0)=0$ and
+\[
+Dv(0)=\frac{\kappa^2+\omega^2}2\,I-\frac{\omega^2\kappa\varrho}4\,R_\psi ,
+\]
+where $R_\psi$ is the rotation by $\psi$. If $\omega^2\kappa\varrho\cos\psi>2(\kappa^2+\omega^2)$, then $\theta=0$ is a repelling focus of $\dot\theta=-v(\theta)$. For
+$(\kappa,\omega,\varrho,\psi)=(1,3,6,\pi/3)$ the flow has, numerically, an attracting periodic orbit. Its period is about $1.607$ and its radius
+lies between $0.447$ and $0.714$. The multiplier of the return map is about $0.146$, and $F$ oscillates between $14.68$ and
+$17.16$ along the orbit. The gradient flow of $F$ from the same starting points instead lowers $F$ to about $1.1$.
+\end{enumerate}
+\end{proposition}
+\noindent
+A continuous function cannot strictly decrease around a non-constant periodic orbit. So in (b) the stop-gradient
+flow has no strict Lyapunov function, and it descends no objective at all. This holds in particular for any flow of the form $-A(\theta)\nabla G$
+with $A\succ0$. Oscillation (a) is the familiar failure of repeated risk minimisation under strong performative
+effects; small steps cure it. Oscillation (b) survives infinitesimal steps and exact expectations. The proof of
+the formulas is in \cref{app:fixed-points}.
+
+\paragraph{Answers to the questions of open problem~P6.}
+\begin{enumerate}[leftmargin=*,label=(\arabic*),nosep]
+\item \emph{Characterisation.} The stable points are the students that are best responses to their own prefix law
+(\cref{prop:stable}(a)). The unbiased gradient differs from the stop-gradient field by a covariance with the student's
+future error; equivalently, the unbiased gradient chases a value-tilted teacher (\cref{prop:tilt}). Under realisability the stable
+points are exactly the lossless students (\cref{thm:fp-real}). For separable classes they are the myopic per-prefix
+I-projections (\cref{prop:separable}).
+\item \emph{Coincidence with minimisers of a sequence-level divergence.} Under realisability they coincide always, for every divergence. For separable classes they
+coincide with the minimisers of the off-policy reverse KL, but not with those of the on-policy one, and the gap in
+$F$ is unbounded. In general no objective of any kind selects them (\cref{prop:rps}). The excess over $\min F$ is controlled by
+the heterogeneity of the per-token error (\cref{prop:stable}(b)).
+\item \emph{Lyapunov functions.} Several positive cases exist. For logit-affine realisable students, $\|\theta-\theta^\circ\|^2$ is one, for every lossless $\theta^\circ$, every
+prefix law and every one of the three losses, even with sampled trajectories (\cref{thm:fejer}). For nonlinear overparameterised
+students, $\operatorname{dist}(\theta,\cM)$ is one locally (\cref{prop:local-conv}). Under weak coupling, $\|\theta-\bar\theta\|$ is one (\cref{prop:contraction}). In
+general none exists (\cref{prop:rps,prop:oscillation}). The sequence-level objective $F$ itself is not one, even when training converges
+(\cref{prop:separable}(iii), \cref{rem:not-lyapunov}).
+\item \emph{Convergence for overparameterised students.} Under realisability, which overparameterisation provides for every
+teacher, exact DAgger converges in one step (\cref{thm:fp-real}(ii)). Stochastic stop-gradient descent with a constant step
+$\eta\le c_\ell/\Lambda$ converges almost surely for logit-affine students (the lazy or kernel regime), and the limit is the lossless student
+nearest to the initialisation (\cref{thm:fejer}). For nonlinear students whose centred-logit Jacobian is surjective it converges
+locally and linearly for $\eta<2/(f''(1)\lambda_{\max}(\mathbf H))$ (\cref{prop:local-conv}). There the stop-gradient is also the \emph{safer} choice, because the
+unbiased objective can have spurious local minima (\cref{rem:spurious}).
+\end{enumerate}

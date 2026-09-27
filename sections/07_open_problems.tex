@@ -37,10 +37,22 @@ Relate $u$ to measurable properties of the teacher, such as its value function u
 mixing of its induced Markov chain on prefixes. A distribution-dependent $u$ would turn the $O(uT\eon)$
 bound into a usable prediction.
 
-\item \textbf{Fixed points of stop-gradient on-policy distillation.} Characterise the fixed points of the
-DAgger-type map in \cref{prop:rb-reverse}. When do they coincide with minimisers of a sequence-level
-divergence? Is there a Lyapunov function? Under what conditions does the iteration converge for
-overparameterised students?
+\item \textbf{Stop-gradient on-policy distillation beyond the kernel regime.} \Cref{sec:fixed-points} answers the
+questions first posed here about the DAgger-type map of \cref{prop:rb-reverse}. Its fixed points are the students that
+best-respond to their own prefix law. They coincide with the minimisers of every sequence-level divergence under
+realisability, and in general with those of no objective. The parameter distance to the lossless set is a Lyapunov
+function for logit-affine students. For overparameterised students, stop-gradient descent converges globally in
+the kernel regime and locally in general; in the misspecified case it can cycle. Three questions remain.
+(a)~\emph{Global convergence for nonlinear students.} Is there a nonlinear analogue of the Fejér property of
+\cref{thm:fejer}, for example for students whose logit map is star-shaped around the lossless set, or in a mean-field
+limit?
+(b)~\emph{Quality of misspecified stable points.} With a bounded per-token loss such as $\JSD_\beta$, are stable points
+agnostically TV-competitive, $\E\TV(P,Q_{\bar\theta})\le\phi(\mathrm{TV}^\star)$ with $\phi(0^+)=0$, as the minimisers of PA-JSD are
+(\cref{prop:agnostic})? For $T=1$ they are. \Cref{prop:separable}(iii) shows that a stable point can beat the
+sequence-level reverse-KL minimiser in TV, and \cref{prop:rps} shows that stable points need not exist.
+(c)~\emph{Spurious minima of the unbiased objective.} How common are the non-lossless local minima of the
+sequence-level reverse KL exhibited in \cref{rem:spurious}, and do they explain when stop-gradient training
+outperforms training with the unbiased gradient?
 
 \item \textbf{Representation matching in deep networks.} Extend \cref{thm:overconstraint,prop:fisher-rep} beyond the
 linear-Gaussian model. Is there a Fisher-aligned target, depending on $s$ through the Jacobian, whose
