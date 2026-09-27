@@ -102,7 +102,7 @@ At tolerance $\eps$ and deployment law $\mu$, the student is:
 \item[likelihood lossless] if $\E_\mu\KL(\Pseq\|\Qseq)\le\eps$;
 \item[two-sided lossless] if $\E_\mu[\KL(\Pseq\|\Qseq)+\KL(\Qseq\|\Pseq)]\le2\eps$;
 \item[decoding lossless] if it is behaviourally lossless and the margin condition of
-\cref{prop:margin} holds on the teacher's greedy paths.
+\cref{prop:margin} holds on the teacher's greedy paths (\cref{sec:decoding} quantifies this notion).
 \end{description}
 \end{definition}
 
@@ -119,7 +119,9 @@ likelihoods are used (scoring, calibration, uncertainty, perplexity), the releva
 log-loss regret, which is \emph{exactly} $\E_\mu\KL(\Pseq\|\Qseq)$. If the student is sampled at scale and
 rare events matter (hallucinations, unsafe outputs), the precision bound of \cref{prop:events}(ii--iii)
 requires the \emph{reverse} direction. Hence two-sided losslessness. If decoding is greedy or beam
-search, margins matter too (\cref{prop:margin}).
+search, margins matter too (\cref{prop:margin}). Sampling-level losslessness then controls the decoded
+output only through the teacher's probability of its own greedy prefix (\cref{thm:greedy-seq}), which
+can be exponentially small.
 \item \emph{Among trainable surrogates, sequence-level forward KL is canonical.} It dominates behavioural
 loss via Pinsker and gives log-loss exactly. By \cref{thm:chain} its per-token decomposition uses
 \emph{teacher prefixes only}, so it is estimable without student roll-outs and has no exposure-bias term

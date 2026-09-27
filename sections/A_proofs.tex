@@ -67,5 +67,9 @@ TV estimator, the bias of the stop-gradient estimator, the unbiasedness of the p
 \cref{def:pajsd}, and the bias that results from adding the two recipes. \texttt{check\_capacity.py} verifies
 \cref{prop:powerlaw,prop:phase,thm:bottleneck,cor:facts}, the $R=0$ tightness of \cref{cor:facts-tv}, and
 \cref{thm:capacity} on 300 random instances by exact computation of $I(\mathbf T;Y)$. \texttt{check\_representations.py} verifies
-\cref{prop:cca,thm:overconstraint,prop:fisher-rep} in a random instance of the linear-Gaussian model. All
-checks pass.
+\cref{prop:cca,thm:overconstraint,prop:fisher-rep} in a random instance of the linear-Gaussian model.
+\texttt{check\_decoding.py} verifies \cref{lem:merge,prop:flip,lem:knapsack,thm:greedy,thm:greedy-seq,cor:separation,cor:rates,prop:hard,thm:beam,prop:spec}.
+It checks the flip thresholds against direct constrained optimisation over the simplex, the knapsack
+characterisation against brute force over subsets, and the sequence-level and beam-search statements by
+exact enumeration, including the attaining students and the example of \cref{thm:beam}(iv). All checks
+pass.

@@ -90,6 +90,8 @@
 \newcommand{\Qseq}{Q^{x}_{\theta}}
 \newcommand{\dteach}[1]{d^{\,p}_{#1}}
 \newcommand{\dstud}[1]{d^{\,\theta}_{#1}}
+\newcommand{\gr}{\operatorname{gr}}
+\newcommand{\Ldec}{\cL_{\mathrm{dec}}}
 
 \title{Near-Lossless Knowledge Distillation:\\
 Definitions, Error Decompositions, Capacity Lower Bounds and Objective Design}
@@ -118,8 +120,12 @@ estimator; (v)~analyse intermediate-representation matching, proving when it is 
 when it helps (noisy supervision, conditioning, compositional hardness) and when it over-constrains,
 and propose a Fisher-aligned variant with no approximation cost in a linear-Gaussian model;
 (vi)~assemble an end-to-end bound, separate what is proved from what is conjectured, and specify
-experiments and open problems. Every inequality marked \emph{numerically checked} is verified by the
-scripts in \texttt{verification/}.
+experiments; (vii)~give sharp bounds on the probability that the greedy or beam-search outputs of teacher
+and student differ: exact flip thresholds for every $f$-divergence, an exact knapsack characterisation of
+the worst case in terms of the teacher's margins along its greedy paths, and a path-weighted exchange rate
+which shows that behavioural and decoding-level losslessness are logically independent. We close with
+open problems. Every inequality marked \emph{numerically checked} is verified by the scripts in
+\texttt{verification/}.
 \end{abstract}
 
 \tableofcontents
@@ -132,7 +138,8 @@ scripts in \texttt{verification/}.
 \input{sections/04_objectives}
 \input{sections/05_representations}
 \input{sections/06_synthesis}
-\input{sections/07_open_problems}
+\input{sections/07_decoding}
+\input{sections/08_open_problems}
 
 \appendix
 \input{sections/A_proofs}

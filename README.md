@@ -13,7 +13,8 @@ carries a status tag: *proved*, *proved under stated assumptions*, *proved withi
 | 3. Lower bounds | §3: information-theoretic capacity floor $\ge (I(\mathbf T;Y)-R\ln 2)/(mN)$; one-shot rate–distortion converse; power law $D(R)\asymp R^{-(\alpha-1)}$ and exponential phase; scaling-law predictions |
 | 4. Objective design | §4: logit gradients; mode covering vs seeking; temperature and $\tau^2$; Fisher view of dark knowledge; unbiased Rao–Blackwellised estimators; **PA-JSD**, a sequence-level prefix-adaptive $\mathrm{JSD}_\beta$ objective with proven properties |
 | 5. Beyond output matching | §5: CCA/CKA; last-layer redundancy; when matching helps (noise, conditioning, compositional hardness); over-constraint theorem; Fisher-aligned matching |
-| 6. Synthesis | §6: end-to-end sandwich theorem; status table; three experiments with exact quantities to measure. §7 lists open problems |
+| 6. Synthesis | §6: end-to-end sandwich theorem; status table; three experiments with exact quantities to measure. §8 lists open problems |
+| Open problem: decoding-level losslessness | §7: exact flip thresholds for every $f$-divergence; knapsack characterisation of the worst-case probability that greedy outputs differ, given per-token errors on greedy paths and the teacher's margins; path-weighted thresholds for sequence-level and training losses (behavioural and decoding losslessness are independent); margin-condition rates; beam search; greedy verification versus speculative sampling |
 
 ## Build
 
@@ -29,6 +30,7 @@ python3 verification/check_divergences.py   # single-distribution inequalities, 
 python3 verification/check_sequences.py     # exact enumeration: chain rules, compounding, unbiased estimators
 python3 verification/check_capacity.py      # water-filling exponents, softmax-bottleneck floor, K-facts floor
 python3 verification/check_representations.py  # over-constraint theorem, Fisher-aligned matching, CCA/CKA facts
+python3 verification/check_decoding.py      # flip thresholds, knapsack bounds, greedy/beam decoding, speculative verification
 ```
 
 Each script prints `PASS`/`FAIL` per claim. The claims are identified by their LaTeX labels.

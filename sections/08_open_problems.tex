@@ -53,10 +53,16 @@ distribution $\cD$, possibly adaptive, minimises the deployment risk under $\mu$
 given the covariate-shift terms of \cref{prop:covshift}? This is an active-learning or optimal-design problem
 with a known labelling function. Minimax rates for it are unknown in the sequence setting.
 
-\item \textbf{Decoding-level losslessness.} Beyond the margin condition of \cref{prop:margin}, give sharp
-bounds on the probability that greedy or beam-search outputs of teacher and student differ, in terms
-of per-token divergences and the teacher's margin distribution along its greedy paths. The analogous
-problem for speculative decoding, whose per-token acceptance probability is exactly $1-\TV$
-\citep{leviathan2023fast}, suggests
-that such bounds are within reach.
+\item \textbf{Decoding-level losslessness beyond the worst case.} \Cref{sec:decoding} settles the worst case.
+It gives exact flip thresholds (\cref{prop:flip}), the knapsack characterisation of the largest disagreement
+probability (\cref{thm:greedy}), the path-weighted exchange rate with sequence-level and training errors
+(\cref{thm:greedy-seq}), and cut-gap thresholds for beam trajectories (\cref{thm:beam}). Three questions
+remain. (a)~Trained students are not adversarial. Characterise the joint law of per-token errors and
+margins that distillation produces. This would place real students between the worst-case exponent
+$\frac\alpha{1+\alpha}$ and the margin-blind exponent $\alpha$ (\cref{rem:decoding-training}). (b)~For beam width $k\ge2$,
+find the exact output-level threshold. For TV and KL it lies between $\omega^{(k)}_f$ and the final-level merge
+cost $k_f(P^+_{T+1},P^-_{T+1})$, because moving mass between the two best final hypotheses always changes the
+output; \cref{thm:beam}(iv) shows that the lower end can be the right one. (c)~Truncated sampling (top-$k$,
+nucleus, min-$p$) interpolates between the $1-\TV$ acceptance of speculative sampling
+\citep{leviathan2023fast} and the greedy threshold. Derive the corresponding sharp bounds.
 \end{enumerate}

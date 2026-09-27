@@ -1,0 +1,247 @@
+\subsection{Greedy decoding: sequence-level and training errors}
+
+Training does not control errors on greedy paths. Off-policy distillation controls per-token errors on
+teacher-sampled prefixes, and on-policy distillation controls them on student-sampled prefixes. Both are
+tied to sequence-level divergences by \cref{thm:chain,prop:hybrid}. A teacher sample passes through
+$s^\star_t$ only with probability $\pi^\star_t$, and this turns out to be the exact exchange rate.
+
+\begin{theorem}[Path-weighted thresholds]\label{thm:greedy-seq}
+\Pv\Ck For every $f$-divergence and every input $x$,
+\[
+\inf_{q_\theta}\Big\{D_f(\Pseq\|\Qseq):\ g_{q_\theta}(x)\ne g_p(x)\Big\}=\omega_f(x):=\min_{1\le t\le T}k_f\big(\pi^\star_tp^\star_{t,1},\,\pi^\star_tp^\star_{t,2}\big).
+\]
+In particular, writing $\omega_{\mathrm{rKL}}$ for the threshold of $\KL(\Qseq\|\Pseq)$,
+\begin{gather*}
+\omega_{\TV}=\tfrac12\min_t\pi^\star_t\gamma_t,\qquad
+\omega_{\KL}=\min_t\pi^\star_t\,\kappa_{\KL}\big(p_t(\cdot\mid s^\star_t)\big),\\
+\omega_{\mathrm{rKL}}=\min_t\,-\log\Big(1-\pi^\star_t\big(\sqrt{p^\star_{t,1}}-\sqrt{p^\star_{t,2}}\big)^2\Big).
+\end{gather*}
+Consequently $\Ldec(\theta;\mu)\le\Phi_{\omega_f}\big(\cL_{D_f}(\theta;\mu)\big)\le\bar\Phi_{\omega_f}\big(\cL_{D_f}(\theta;\mu)\big)$. The
+supremum of $\Ldec$ over students with $\cL_{D_f}\le\eps$ obeys the two-sided bound of \cref{thm:greedy}(iii),
+with $\omega_f$ in place of $\bar\kappa$. Under $\mu=\cD$, \cref{thm:chain} gives $\cL_{\KL}=T\eoff^{\KL}$ and
+$\cL_{\mathrm{rKL}}=T\eon^{\mathrm{rKL}}$, and \cref{prop:hybrid} gives $\cL_{\TV}\le T\min\{\eoff^{\TV},\eon^{\TV}\}$. For TV and
+KL, the extremal students change one next-token distribution per input, and for them all these relations
+are equalities. So the bounds in terms of per-token training errors are sharp too.
+\end{theorem}
+\begin{proof}
+Fix $x$ and drop it from the notation.
+\emph{Lower bound.} Let $t$ be the first flip (\cref{lem:firstflip}). Up to step $t$ the student follows the
+teacher's greedy path, so $Q(s^\star_t)=\prod_{j<t}q_j(a^\star_j\mid s^\star_j)>0$. The flip then gives
+$Q(s^\star_t,a^\star_t)\le Q(s^\star_t,b)$ for some $b\ne a^\star_t$. Apply \cref{lem:merge} to the law of $y_{\le t}$ with
+$S_+=\{(s^\star_t,a^\star_t)\}$ and $S_-=\{(s^\star_t,b):b\ne a^\star_t\}$, whose teacher masses are $\pi^\star_tp^\star_{t,1}$ and at most
+$\pi^\star_tp^\star_{t,2}$. Finally, $D_f(P\|Q)\ge D_f(P_{\le t}\|Q_{\le t})$ by data processing.
+\emph{Attainment.} At a minimising $t$, take the law of \cref{lem:merge} for $y_{\le t}$ and extend it to
+sequences with the teacher's conditional law given $y_{\le t}$. Its likelihood ratio is constant on the three
+cells, so $D_f(P\|Q)=\omega_f(x)$. With the strict version of \cref{lem:merge}, its greedy path either leaves
+the teacher's before step $t$ or flips at $s^\star_t$. Either way the outputs differ, at cost at most
+$\omega_f(x)+\delta$. States of different inputs are disjoint, so the per-input constructions combine. The
+probability statements then follow as in the proof of \cref{thm:greedy}(ii)--(iii).
+\emph{Special cases.} For TV and KL, the minimiser in $k_f$ is $c=\frac{P_1+P_2}2$ and leaves the rest unchanged.
+So $k_f(\pi P_1,\pi P_2)=\pi\,k_f(P_1,P_2)$, and the extremal law changes only $q_t(\cdot\mid s^\star_t)$. Both prefix laws
+then put mass $\pi^\star_t$ on $s^\star_t$ and agree elsewhere, so the hybrid sums of \cref{prop:hybrid} equal
+$\TV(P,Q)$. For reverse KL, use the closed form of \cref{prop:flip}(ii) with $(p_1,p_2)$ replaced by
+$\pi^\star_t(p^\star_{t,1},p^\star_{t,2})$.
+\end{proof}
+
+\begin{corollary}[Behavioural and decoding losslessness are independent]\label{cor:separation}
+\Pv\Ck
+\begin{enumerate}[label=(\roman*),nosep]
+\item (Confident teachers.) If $\pi^\star_T(x)\ge\pi_0$ for $\mu$-almost every $x$, then $\omega_{\TV}\ge\pi_0\bar\kappa_{\TV}$ and
+$\omega_{\KL}\ge\pi_0\bar\kappa_{\KL}$. Sequence-level losslessness then controls decoding as in \cref{thm:greedy}, at
+the price of dividing the budget by $\pi_0$.
+\item (Uncertain teachers.) Let the teacher emit i.i.d.\ tokens from $\{0,1\}$ with $p(0)=\frac{1+\gamma}2$. Change only the
+student's next-token distribution at the prefix $0^{T-1}$, to $(\frac12-\delta,\frac12+\delta)$. Then the greedy output of
+every input changes, while $\TV(\Pseq,\Qseq)=(\frac\gamma2+\delta)(\frac{1+\gamma}2)^{T-1}$ and
+$\KL(\Pseq\|\Qseq)\to(\frac{1+\gamma}2)^{T-1}\kappa_{\KL}$ as $\delta\to0$. For $\gamma=0.2$ and $T=100$ both are below
+$2\cdot10^{-23}$, yet $\Ldec=1$.
+\item (Converse.) The student that emits $\gr(p_t(\cdot\mid s))$ with probability one at every state has $\Ldec=0$. Yet
+$\TV(\Pseq,\Qseq)=1-\Pseq(g_p(x))$, and $\KL(\Pseq\|\Qseq)=\infty$ unless $\Pseq$ is a point mass.
+\end{enumerate}
+The path weight $\pi^\star_t$ is thus the exact exchange rate between the two notions. It is close to $1$ only
+when the teacher is confident along its own greedy path.
+\end{corollary}
+\begin{proof}
+(i) $\pi^\star_t\ge\pi^\star_T$ for $t\le T$, and $k_f(\pi P_1,\pi P_2)=\pi\,k_f(P_1,P_2)$ for TV and KL.
+(ii) The two laws differ only in the next-token law at $s=0^{T-1}$, which the teacher reaches with probability
+$(\frac{1+\gamma}2)^{T-1}$. When two autoregressive laws differ at a single state $s$,
+$\TV(\Pseq,\Qseq)=\Pseq(s)\,\TV(p(\cdot\mid s),q(\cdot\mid s))$. The KL value follows from \cref{thm:chain}.
+(iii) $\Qseq$ is the point mass at $g_p(x)$.
+\end{proof}
+
+\begin{corollary}[Rates under a margin condition]\label{cor:rates}
+\Pv\Ck Let $\bar\gamma(x):=\min_t\pi^\star_t(x)\gamma_t(x)$ be the path-weighted greedy margin, and suppose that
+$\mu[\bar\gamma\le u]\le Cu^\alpha$ for all $u>0$. This is a margin condition of the type introduced by
+\citet{mammen1999smooth} and \citet{tsybakov2004optimal}. Then for every student
+\[
+\Ldec\le\Big(\frac{2(1+\alpha)}{\alpha}\,\cL_{\TV}\Big)^{\frac\alpha{1+\alpha}}C^{\frac1{1+\alpha}}
+\qquad\text{and}\qquad
+\Ldec\le\Big(\frac{2(2+\alpha)}{\alpha}\,\cL_{\KL}\Big)^{\frac\alpha{2+\alpha}}C^{\frac2{2+\alpha}}.
+\]
+Both exponents are attained. Take $T=1$, $V=2$, and $\mu$ uniform on $n$ inputs with margins $(i/n)^{1/\alpha}$,
+$i\le n$, so that $C=1$. As $n\to\infty$, the worst-case $\Ldec$ at $\cL_{\TV}=\eps$ converges to the first bound.
+At $\cL_{\KL}=\eps$, its ratio to the second bound tends to $1$ as $n\to\infty$ and then $\eps\to0$. Through
+Pinsker's inequality, the first bound would give only the exponent $\frac\alpha{2(1+\alpha)}$ in $\cL_{\KL}$. If instead
+the per-token TV on greedy paths is at most $\eta$ everywhere and $\mu[\min_t\gamma_t\le u]\le C_\star u^\alpha$, then
+$\Ldec\le C_\star(2\eta)^\alpha$ by \cref{thm:greedy}(iv).
+\end{corollary}
+\begin{proof}
+By \cref{thm:greedy-seq,lem:knapsack}, $\Ldec\le\bar\Phi_\omega(\eps)$ with $\eps=\cL_{D}$. Moreover
+$\E(1-\omega/\tau)_+=\frac1\tau\int_0^\tau\mu[\omega<u]\dd u$. If $\mu[\omega<u]\le C'u^a$ for all $u$, then
+\[
+\bar\Phi_\omega(\eps)\le\inf_{\tau>0}\Big\{\frac\eps\tau+\frac{C'\tau^a}{1+a}\Big\}=\Big(\frac{(1+a)\eps}{a}\Big)^{\frac a{1+a}}C'^{\frac1{1+a}},
+\]
+with the infimum at $\tau^{1+a}=\frac{(1+a)\eps}{aC'}$. For TV, $\omega_{\TV}=\bar\gamma/2$, so $(a,C')=(\alpha,2^\alpha C)$. For KL,
+$\pi^\star_t\kappa_{\KL}\ge\pi^\star_t\gamma_t^2/(2m_t)\ge(\pi^\star_t\gamma_t)^2/2$ by \cref{prop:flip}(ii) and $\pi^\star_tm_t\le1$. So
+$\omega_{\KL}\ge\bar\gamma^2/2$ and $(a,C')=(\alpha/2,2^{\alpha/2}C)$. In the example, the function
+$\tau\mapsto\frac\eps\tau+\frac1\tau\int_0^\tau\mu[\omega<u]\dd u$ has derivative
+$\tau^{-2}\big[\int_0^\tau(\mu[\omega<\tau]-\mu[\omega<u])\dd u-\eps\big]$, whose bracket is non-decreasing. So the function is
+quasi-convex, and its stationary point is its minimum. The limit law satisfies $\mu[\omega<u]=C'u^a$ near $0$
+in the TV case, so for small $\eps$ the display is an equality for it. The discrete law converges to it,
+and \cref{lem:knapsack} loses at most $1/n$. For
+$T=1$ and $V=2$, $\kappa_{\KL}=\mathrm{kl}(\frac{1+\gamma}2\|\frac12)=\frac{\gamma^2}2(1+O(\gamma^2))$.
+\end{proof}
+
+\begin{remark}[What the adversary exploits, and how training can avoid it]\label{rem:decoding-training}
+(a)~The worst case puts the whole error budget on small-margin states. Replace the $L^1$ budget by
+$\E_\mu\max_t(e^\star_t)^r\le\eps^r$, and assume $\mu[\min_t\gamma_t\le u]\le Cu^\alpha$. Then \cref{thm:greedy}, applied to
+$\mathsf D^r$, gives the exponent $\frac{r\alpha}{r+\alpha}$ for TV errors. This interpolates between $\frac\alpha{1+\alpha}$ ($r=1$)
+and $\alpha$ ($r=\infty$). If the errors are independent of the margins, then
+$\mu[\text{flip at }t]\le\E F_t(2e^\star_t)$, where $F_t(u)=\mu[\gamma_t\le u]$. For $\alpha\le1$, Jensen's inequality bounds
+this by $C(2\E e^\star_t)^\alpha$, which is linear in the error when $\alpha=1$.
+(b)~The factor $\pi^\star_t$ in \cref{thm:greedy-seq} is the price of training on sampled prefixes. Suppose the
+training prefix law puts mass at least $\lambda$ on each greedy state, as with
+$\nu_t=(1-\lambda)\dteach t+\lambda\,\delta_{s^\star_t}$ or with soft-label distillation on the teacher's greedy outputs. Then
+the training loss is at least $\lambda\eps^\star$, so \cref{thm:greedy} applies with $\eps^\star\le F/\lambda$, and no path
+weight appears.
+\end{remark}
+
+\subsection{Hard labels on decoded outputs}
+
+\begin{proposition}[A margin-free bound for sequence-level distillation]\label{prop:hard}
+\Pv\Ck Fix a beam width $k\ge1$; $k=1$ is greedy decoding. Let $\hat y(x)$ and $\hat y_\theta(x)$ be the teacher's
+and the student's outputs. If $\Qseq(\hat y(x))>\frac12$, then $\hat y_\theta(x)=\hat y(x)$. Hence
+\[
+\P_\mu\big[\hat y_\theta\ne\hat y\big]\le\E_\mu\min\Big\{1,\log_2\frac1{\Qseq(\hat y(x))}\Big\}\le\frac1{\ln2}\,\E_\mu\big[-\log\Qseq(\hat y(x))\big].
+\]
+For greedy decoding, a disagreement needs $q_t(a^\star_t\mid s^\star_t)\le\frac12$ at the first flip. The constant $\frac12$
+cannot be improved.
+\end{proposition}
+\begin{proof}
+If $Q(\hat y)>\frac12$, every prefix $\hat y_{\le t}$ has $Q$-mass above $\frac12$, so it has more mass than any other
+prefix of the same length. By induction on $t$, $\hat y_{\le t}$ is a candidate at level $t$ and is the
+student's best candidate, so it stays in the student's beam. At the end it is the student's most
+probable hypothesis. Next, $\ind\{Q\le\frac12\}\le\min\{1,\log_2(1/Q)\}$. At a greedy flip,
+$q(a^\star_t)\le q(b)\le1-q(a^\star_t)$. Finally, $q_t(\cdot\mid s^\star_t)=(\frac12-\delta,\frac12+\delta)$ on two tokens is a flip
+for every $\delta>0$.
+\end{proof}
+
+\noindent
+The right-hand side is the objective of sequence-level knowledge distillation \citep{kim2016sequence}:
+maximum likelihood on the teacher's beam-search outputs. \Cref{prop:hard} shows that this objective is
+a calibrated surrogate for decoding-level losslessness, with no margin in the constant. It asks the student
+to be \emph{confident} on the teacher's decoded outputs, not to be faithful to the teacher's
+distribution. These are different targets (\cref{cor:separation}). A soft-label student that matches a
+teacher with small margins has $Q(\hat y)\approx P(\hat y)$, which may be far below $\frac12$. For such teachers
+the margin-dependent bounds of \cref{thm:greedy,thm:greedy-seq} are the relevant ones.
+
+\subsection{Beam search}
+
+Beam search of width $k$ keeps a set $\mathcal B_t$ of at most $k$ prefixes of length $t$, starting from
+$\mathcal B_0=\{x\}$. The candidates at level $t$ are $\mathcal C_t=\{(u,a):u\in\mathcal B_{t-1},\ a\in\cV\}$. $\mathcal B_t$ consists of
+the $k$ candidates of largest prefix probability under the decoding model, with ties broken by a fixed
+order. The output is the most probable element of $\mathcal B_T$. With the absorbing end-of-sequence
+convention, every hypothesis has length $T$, so this is beam search without length normalisation. The
+\emph{trajectory} is $(\mathcal B_1,\dots,\mathcal B_T,\text{output})$. For the teacher's beam search, let $P^+_t\ge P^-_t$ be
+the $k$-th and $(k+1)$-th largest values of $\Pseq$ on $\mathcal C_t$, where $\Pseq(u)$ is the teacher's probability of
+the prefix $u$. Let $P^+_{T+1}\ge P^-_{T+1}$ be the two largest values of $\Pseq$ on $\mathcal B_T$. A level with no
+$(k+1)$-th candidate cannot change and is dropped, as is level $T+1$ when $k=1$. We write $P^x_{\le t}$ for
+the law of $y_{\le t}$, and set $P^x_{\le T+1}:=\Pseq$.
+
+\begin{theorem}[Beam search]\label{thm:beam}
+\Pv\Ck Fix $x$ and $k\ge1$.
+\begin{enumerate}[label=(\roman*),nosep]
+\item If the student's trajectory first differs from the teacher's at level $t\in\{1,\dots,T+1\}$, then
+$D_f(P^x_{\le t}\|Q^x_{\theta,\le t})\ge k_f(P^+_t,P^-_t)$ for every $f$-divergence. In particular
+$\TV(P^x_{\le t},Q^x_{\theta,\le t})\ge\frac12(P^+_t-P^-_t)$, and
+$\sum_{j\le\min(t,T)}\E_{s\sim\dteach j\mid x}\KL(p_j\|q_j)(s)=\KL(P^x_{\le t}\|Q^x_{\theta,\le t})\ge k_{\KL}(P^+_t,P^-_t)$.
+\item (Beam-local form.) For $\mathsf D\in\{\TV,\KL\}$, the same lower bounds hold for
+\[
+\sum_{j\le\min(t,T)}\ \sum_{u\in\mathcal B_{j-1}}\Pseq(u)\,\mathsf D(p_j\|q_j)(u).
+\]
+Only per-token errors at the teacher's beam states enter, weighted by the teacher's probabilities of
+those states.
+\item (Exactness.) $\omega^{(k)}_f(x):=\min_tk_f(P^+_t,P^-_t)$ is the infimum of $D_f(\Pseq\|\Qseq)$ over students whose
+trajectory differs from the teacher's. The outputs can differ only if $D_f(\Pseq\|\Qseq)\ge\omega^{(k)}_f(x)$, so
+$\P_\mu[\text{beam outputs differ}]\le\bar\Phi_{\omega^{(k)}_f}(\cL_{D_f})$. For trajectories, this is sharp in the sense of
+\cref{thm:greedy}(iii). For $k=1$, $(P^+_t,P^-_t)=\pi^\star_t\,(p^\star_{t,1},p^\star_{t,2})$, and (iii) is \cref{thm:greedy-seq}.
+\item (The cut gap cannot be replaced by the output's own gaps.) Let $k=2$, $T=2$ and $\cV=\{a,b,c\}$. Take
+first-token probabilities $(0.36,0.33,0.31)$ and prefix probabilities $aa:0.30$, $ab:0.059$, $ac:0.001$,
+$ba:0.20$, $bb:0.10$, $bc:0.03$, $ca:0.309$ and $cb=cc:0.0005$. The teacher keeps $\{a,b\}$, then $\{aa,ba\}$, and outputs
+$aa$. The cut gaps are $0.02$, $0.10$ and $0.10$, so $\omega^{(2)}_{\TV}=0.01$. The gaps between the ancestors of $aa$
+and their best competitors are $P(a)-P(c)=0.05$, $P(aa)-P(bb)=0.20$ and $P(aa)-P(ba)=0.10$, which would give
+the threshold $0.025$. Yet moving mass $0.01+\delta$ from the subtree of $b$ to that of $c$ makes the student keep
+$\{a,c\}$, then $\{ca,aa\}$, and output $ca$, at $\TV=0.01+\delta$. The student ``repairs'' a search error of the
+teacher, since $P(ca)=0.309>P(aa)$.
+\end{enumerate}
+\end{theorem}
+\begin{proof}
+(i) Let $t\le T$. The beams before level $t$ coincide, so the candidate sets $\mathcal C_t$ coincide. If every member
+of the teacher's beam had larger $Q$-mass than every non-member, the student would keep the same beam,
+whatever its tie rule. So $Q(a)\le Q(b)$ for some member $a$ and non-member $b$. Apply \cref{lem:merge} to the
+law of $y_{\le t}$ with $S_+=\mathcal B_t$ and $S_-=\mathcal C_t\setminus\mathcal B_t$. For $t=T+1$, apply it with $S_+$ the teacher's
+output and $S_-$ the rest of $\mathcal B_T$. The KL identity is \cref{thm:chain} applied to the first $t$ tokens.
+(ii) Map $y_{\le t}$ to its path through the teacher's beam tree: to $y_{\le t}$ itself if $y_{<t}\in\mathcal B_{t-1}$, and
+otherwise to $(j,y_{<j})$, where $j$ is the first level with $y_{\le j}\notin\mathcal B_j$. Candidates remain atoms, so
+(i) holds for the image laws. These are the laws of a sequential process on the beam tree. Its step from
+$u\in\mathcal B_{j-1}$ is $p_j(\cdot\mid u)$, with the non-beam children merged when $j<t$. The chain rule and the hybrid
+argument of \cref{thm:chain,prop:hybrid} hold for such processes, with visiting probabilities $\Pseq(u)$, and
+merging children can only decrease KL and TV.
+(iii) The lower bound follows from (i), because $D_f(P\|Q)\ge D_f(P_{\le t}\|Q_{\le t})$ and the outputs can differ
+only if the trajectories do. For attainment, take the law of \cref{lem:merge} at a minimising level and
+extend it as in the proof of \cref{thm:greedy-seq}. If the trajectory has not changed before that level,
+the candidate sets agree there, and the strict version reverses the $k$-th and $(k+1)$-th candidates.
+(iv) Direct computation (\texttt{check\_decoding.py}).
+\end{proof}
+
+\subsection{Speculative decoding}
+
+\begin{proposition}[Greedy versus sampled verification]\label{prop:spec}
+\Pv\Ck Let the student draft tokens that the teacher verifies.
+\begin{enumerate}[label=(\roman*),nosep]
+\item (Speculative sampling.) A token drafted at state $s$ is accepted with probability
+$\sum_a\min\{p_t(a\mid s),q_t(a\mid s)\}=1-\TV_t(s)$, and the output has exactly the teacher's law
+\citep{leviathan2023fast}.
+\item (Greedy verification.) Suppose the student drafts greedily and the teacher accepts the longest drafted
+prefix that agrees with its own greedy continuation. This is the verification rule of blockwise parallel
+decoding \citep{stern2018blockwise}, and the zero-temperature case of (i). Every verified prefix lies on the
+teacher's greedy path. A round started at $s^\star_t$ with $L$ drafted tokens accepts
+$N=\min\{j\ge0:\text{the student flips at }s^\star_{t+j}\}\wedge L$ of them. So
+$\E_\mu N=\sum_{j=1}^L\big(1-\P_\mu[\text{a flip at one of }s^\star_t,\dots,s^\star_{t+j-1}]\big)$, and
+\cref{thm:greedy,thm:greedy-seq}, applied to these windows, bound the expected acceptance length from below.
+\item (Pointwise comparison.) At a state $s$ with margin $\gamma(s)$, the greedy rejection indicator is at most
+$\min\{1,2\TV_t(s)/\gamma(s)\}$. This is $2/\gamma(s)$ times the rejection probability of speculative
+sampling, and the constant is attained.
+\end{enumerate}
+\end{proposition}
+\begin{proof}
+(i) The acceptance probability is $\sum_aq(a)\min\{1,p(a)/q(a)\}$. For exactness of the output law, see
+\citet{leviathan2023fast}. (ii) The teacher emits its greedy token at each position, whether it accepts the
+draft or corrects it. So each round starts at a teacher greedy state, and by \cref{lem:firstflip} the
+accepted run ends at the first flip. (iii) This is the TV row of \cref{prop:flip}(ii).
+\end{proof}
+
+\noindent
+Sampled verification rejects in proportion to the per-token TV, whatever the margins. Greedy verification
+is a threshold rule. It never rejects while $\TV_t<\gamma_t/2$ along the greedy path. But when errors concentrate on
+small-margin states, its worst-case rejection rate is of order $\eps^{\alpha/(1+\alpha)}$ (\cref{cor:rates}). This is a square
+root when the margins have a bounded density at $0$, and it exceeds the linear rate of speculative sampling
+for small $\eps$.
+
+\begin{remark}[Measuring the bounds]\label{rem:measure-decoding}
+All the quantities are cheap to compute. One greedy (or beam) decode of the teacher per input gives the
+states $s^\star_t$, the margins $\gamma_t$, the top-two masses $m_t$ and the weights $\pi^\star_t$, or the cut probabilities
+$P^\pm_t$. One student forward pass on the same prefixes gives the $e^\star_t$. The observed $\Ldec$ can then be
+compared with $\bar\Phi_{\bar\kappa}(\eps^\star)$, with its per-step version, and with the path-weighted bound of
+\cref{thm:greedy-seq} at the measured $T\eoff^{\KL}$. The ratio of the observed $\Ldec$ to the worst case shows how
+strongly the student's errors concentrate on small-margin states.
+\end{remark}

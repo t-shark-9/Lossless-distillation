@@ -170,7 +170,8 @@ but catastrophic at deployment scale.
 $\gamma(s)=p(a^\star\mid s)-\max_{a\ne a^\star}p(a\mid s)$. If $\TV(p_t(\cdot\mid s),q_t(\cdot\mid s))<\gamma(s)/2$
 at every state $s$ on the teacher's greedy path from $x$, then the student's greedy decoding of $x$
 equals the teacher's. The constant is tight: moving mass $\gamma/2$ from $a^\star$ to the runner-up
-creates a tie.
+creates a tie. \Cref{sec:decoding} turns this condition into sharp bounds on the probability that the
+outputs differ.
 \end{proposition}
 \begin{proof}
 $|p(a\mid s)-q(a\mid s)|\le\TV$ for every $a$, so
