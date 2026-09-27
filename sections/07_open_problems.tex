@@ -45,8 +45,9 @@ overparameterised students?
 \item \textbf{Representation matching in deep networks} (partly resolved in \cref{sec:repr-nonlinear,sec:repr-complexity}).
 Resolved: over-constraint persists for any nonlinear head and feature law (\cref{thm:nl-overconstraint}); the Fisher
 target, and a pointwise Jacobian target, cost nothing whenever the teacher's Fisher central subspace fits in the student
-(\cref{thm:fisher-central}); for linear read-outs the cost-free target averages the Jacobian rather than the Fisher
-(\cref{thm:stein}); in the lossy regime the cost of Fisher alignment is at most a Poincaré gap (\cref{thm:poincare}), and
+(\cref{thm:fisher-central}); for linear read-outs the cost-free target comes from the cross-covariance, which for Gaussian features averages the
+Jacobian rather than the Fisher (\cref{thm:stein}); in the lossy regime with Gaussian features the cost of Fisher
+alignment is at most a Poincaré gap (\cref{thm:poincare}), and
 no rule based on second moments of the Jacobian is exact (\cref{prop:no-moment-rule}). Staged supervision adds errors
 instead of compounding them (\cref{thm:composition}), attention-map supervision convexifies each layer
 (\cref{prop:attention-convex}), and the gains beyond parities are graded by the information exponent or hold against all

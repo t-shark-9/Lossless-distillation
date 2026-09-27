@@ -414,4 +414,46 @@ mid = e2e((qa + qb) / 2, (za[1] + zb[1]) / 2)
 report(f"prop:attention-convex (iii) E2E: two zeros, midpoint loss {mid:.2e} > 0 (not convex)",
        e2e(*za) < 1e-20 and e2e(*zb) < 1e-20 and mid > 1e-6)
 
+
+# ---------------------------------------------------------------------------
+# Remarks added after refereeing
+# ---------------------------------------------------------------------------
+# (1) Fisher alignment does not dominate full matching once k_F > d_S: h_T = diag(1,2) xi, teacher 2 in xi
+Sd = np.diag([1.0, 2.0])                                       # Sigma^{1/2}, Sigma = diag(1,4)
+K_h = np.diag([2.0, 0.5 / 4])                                  # K in h-coordinates: J_h = J_xi Sigma^{-1/2}
+K_w = Sd @ K_h @ Sd
+fisher_dir = int(np.argmax(np.diag(K_w)))                      # 0 -> xi_1
+pca_dir = int(np.argmax(np.diag(Sd @ Sd)))                     # 1 -> xi_2
+loss_of = {0: L2[-1], 1: L2[0]}                                # keep xi_1 (rho^2 = 1) or xi_2 (rho^2 = 0)
+report(f"remark: full matching keeps xi_2 (loss {loss_of[pca_dir]:.4f}, optimal) and beats Fisher alignment "
+       f"(keeps xi_1, loss {loss_of[fisher_dir]:.4f})",
+       fisher_dir == 0 and pca_dir == 1 and loss_of[pca_dir] < loss_of[fisher_dir] and abs(loss_of[pca_dir] - L2.min()) < 1e-12)
+
+# (2) discrete atoms: the penalised problem has no minimiser although Delta_inf = log 3
+H1, H2 = np.meshgrid([-2.0, 2.0], [-1.0, 0.0, 1.0]); Hd = np.stack([H1.ravel(), H2.ravel()], 1)   # uniform on 6 atoms
+Sd2 = Hd.T @ Hd / len(Hd)
+R0 = np.sort(np.linalg.eigvalsh(Sd2))[0]                       # PCA keeps h1 (variance 4 > 2/3)
+
+
+def R_LS_d(B):
+    u = Hd @ B
+    A = (u @ Hd) / (u @ u)
+    return np.mean(np.sum((np.outer(u, A) - Hd) ** 2, 1))
+
+
+ok_atoms = True
+for e in (1e-1, 1e-2, 1e-3):
+    u = Hd @ np.array([1.0, e])
+    ok_atoms &= len(np.unique(np.round(u, 12))) == 6            # injective: a universal head reads off h2, loss 0
+    ok_atoms &= 0 < R_LS_d(np.array([1.0, e])) - R0 < 1.0 * e ** 2
+report(f"remark: atoms: B=(1,eps) has output loss 0 and R_LS - R0 = O(eps^2), while Delta_inf = log 3 = {np.log(3):.4f}",
+       ok_atoms)
+
+# (3) R_J is vacuous after a normalisation layer: J(h) h = 0, so h_S = 0 gives R_J = 0
+Wn = rng.normal(size=(5, 4)); Cn = np.eye(5) - 1 / 5
+Hn = rng.normal(size=(4, 200))
+Jn = lambda h: Cn @ Wn @ (np.eye(4) / np.linalg.norm(h) - np.outer(h, h) / np.linalg.norm(h) ** 3)   # g(h) = C W h/|h|
+report("remark: with g(h) = C W h/|h|, J(h) h = 0, so the student h_S = 0 has R_J = 0",
+       max(np.abs(Jn(h) @ h).max() for h in Hn.T) < 1e-12)
+
 print("\nALL PASS" if all(results) else "\nSOME CHECKS FAILED")

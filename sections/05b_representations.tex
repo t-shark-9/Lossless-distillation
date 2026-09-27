@@ -36,9 +36,12 @@ Hence $\Delta_\infty\le\lim_n\Delta(\gamma_n)$, and (iii) gives equality. The se
 $\cL^\star+\Delta_\infty$ on it. If $\Delta_\infty=0$, the point where it does lies in both argmin sets.
 \end{proof}
 \noindent
-\Cref{prop:fisher-rep} is case (i), and \cref{thm:overconstraint}(b) computes $\Delta_\infty$ for $\cR_{\mathrm{LS}}$. So, for any
-architecture and any loss, the question ``does this constraint cost approximation?'' is the question ``is it
-compatible with some output-optimal student?''.
+\Cref{prop:fisher-rep} is case (i), and \cref{thm:overconstraint}(b) computes $\Delta_\infty$ for $\cR_{\mathrm{LS}}$. By (i), for any
+architecture and any loss, a constraint that is compatible with some output-optimal student costs nothing. The
+converse, and the convergence of the penalised cost to $\Delta_\infty$, need the hypotheses of (iv). Without them the
+penalised problem can fail to have minimisers. For example, with a universal head and discrete features, a slight
+tilt of a principal direction can make $Bh_\TT$ injective on the atoms, and the penalised infimum is then approached
+at no cost while $\Delta_\infty>0$. The results below are therefore stated for the hard constraint.
 
 \paragraph{Nonlinear heads and arbitrary feature laws.}
 Keep the linear bottleneck $h_\TS=Bh_\TT$ of \cref{thm:overconstraint}, and make everything else general. The teacher
@@ -57,9 +60,10 @@ is $\cA_{\mathrm{out}}=\inf_BI(Y;h_\TT\mid Bh_\TT)$. It depends on $B$ only thro
 $Bh_\TT=MU_{d_\TS}^\top h_\TT$ a.s.\ for an invertible $M$, where $U_{d_\TS}=(u_1,\dots,u_{d_\TS})$. Under full feature matching as a
 hard constraint, the best achievable loss is therefore $I(Y;h_\TT\mid U_{d_\TS}^\top h_\TT)$.
 \item The over-constraint cost $\Delta_\infty=I(Y;h_\TT\mid U_{d_\TS}^\top h_\TT)-\cA_{\mathrm{out}}$ is $\ge0$, and it is $0$ iff the
-principal subspace is output-optimal. It can equal $I(Y;h_\TT)$, which is the loss of a student that ignores its input
-and which tends to $\log V$ for a nearly deterministic teacher. Example: $d_\TT=2$, $d_\TS=1$, independent coordinates with
-$\Var h_1>\Var h_2$, $h_2$ uniform on $V$ values, and a teacher that reads only $h_2$.
+principal subspace is output-optimal. It can equal $I(Y;h_\TT)$, the loss of a student that ignores its input.
+Example: $d_\TT=2$, $d_\TS=1$, independent coordinates with $h_1\sim\cN(0,\sigma^2)$, $h_2$ uniform on $V$ values,
+$\sigma^2>\Var h_2$, and a teacher that reads only $h_2$. There the cost tends to $\log V$ as the teacher becomes
+deterministic.
 \end{enumerate}
 \end{theorem}
 \begin{proof}
@@ -74,8 +78,8 @@ $\tr(P\Sigma)\le\sum_{i\le d_\TS}\lambda_i$, with equality iff $\operatorname{ra
 $\lambda_{d_\TS}>0$. Then $\Sigma^{1/2}B^\top=U_{d_\TS}N$ with $N$ invertible, and writing $h_\TT=\Sigma^{1/2}\xi$ gives
 $Bh_\TT=N^\top\Lambda_{d_\TS}^{-1/2}U_{d_\TS}^\top h_\TT$ with $\Lambda_{d_\TS}=\diag(\lambda_1,\dots,\lambda_{d_\TS})$. Now apply (a).
 (c) Non-negativity is (a). In the example the principal direction is $e_1$. Keeping $h_2$ gives $I(Y;h_\TT\mid h_2)=0$, while
-$I(Y;h_\TT\mid h_1)=I(Y;h_2)=I(Y;h_\TT)$ by independence. This tends to $H(Y)=\log V$ when $\pi(h_2)$ is nearly a point mass on
-distinct tokens.
+$I(Y;h_\TT\mid h_1)=I(Y;h_2)=I(Y;h_\TT)$ by independence. This tends to $H(Y)=\log V$ when $\pi(h_2)$ tends to point masses on
+distinct tokens, because $Y$ is then uniform.
 \end{proof}
 \noindent
 Neither Gaussianity nor linearity was needed. Full feature matching can destroy \emph{all} the information that the
@@ -109,7 +113,7 @@ top-$k_F$ eigenvectors of $\Sigma^{1/2}K\Sigma^{1/2}$ is an invertible linear im
 \[
 \cR_J(\theta):=\min_{A\in\R^{d_\TT\times d_\TS}}\E\big\|F(h_\TT)^{1/2}J(h_\TT)\big(Ah_\TS(s)-h_\TT(s)\big)\big\|^2 .
 \]
-This constraint depends on $s$ through the Jacobian. It is the second-order expansion of the head-transplant loss
+This constraint depends on $s$ through the Jacobian. It is twice the second-order term of the head-transplant loss
 $\min_A\E\,\KL(\pi(h_\TT)\,\|\,\pi(Ah_\TS))$, which feeds the student's mapped features through the teacher's head
 \citep[cf.][]{chen2022reused}. It needs only Jacobian--vector products through the teacher's upper network, not $K$.
 \end{enumerate}
@@ -135,10 +139,15 @@ derivative vanishes at both. The remedy is to compute $K$ under a smoothed law, 
 $h_\TT(s)+\sigma\varepsilon$ with Gaussian $\varepsilon$, whose density is positive on an open convex set containing the support.
 Then (i) holds on that set, and (ii) and (iii) hold for the original state law.
 
+The expansion in (iii) is local, and at the realisable student the displacement $(I-U_FU_F^\top)h_\TT$ is not small, so
+$\cR_J$ should be read as a constraint in its own right. It is weaker than $\cR_{\mathrm F}$ and can be vacuous: if the upper
+network begins with a normalisation layer, then $J(h)h=0$, and the useless student $h_\TS\equiv0$ already has $\cR_J=0$.
+Such a constraint costs nothing, but it also guides little.
+
 So the answer to the first question of P7 is \emph{yes} whenever the teacher's Fisher central subspace fits in the
 student. The average $K$ over states does not blur alignment: its range is exactly the set of directions that the
 nonlinear head ever uses, and full feature matching can still cost everything (\cref{thm:nl-overconstraint}(c)). When
-$k_F>d_\TS$ no student is lossless, and the right target depends on the student's head.
+$k_F>d_\TS$ no student of the form $h_\TS=Bh_\TT$ is lossless, and the right target depends on the student's head.
 
 \paragraph{Lossy regime I: linear read-outs, and which average of the Jacobian.}
 Use the quadratic loss $\cL=\frac12\E\|F^{1/2}(\tilde z_\TS-\tilde z_\TT)\|^2$ with a constant $F\succeq0$, as in
@@ -210,7 +219,7 @@ The mechanism is the Gaussian Poincaré inequality. A degree-$k$ Hermite compone
 variance to $\tr K$ in whitened coordinates, so $K$ over-weights high-frequency, low-variance nonlinearities; $\bar K$
 ignores every nonlinear component. The two still bracket the truth.
 
-\begin{theorem}[Fisher alignment is nearly free: a Poincaré sandwich]\label{thm:poincare}
+\begin{theorem}[A Poincaré bound on the cost of Fisher alignment]\label{thm:poincare}
 \Mo\Ck Let $h_\TT\sim\cN(0,\Sigma)$ with $\Sigma\succ0$, let $g$ be weakly differentiable with $\E\|J\|^2<\infty$, let the loss be quadratic
 with constant $F$, and let the student head be universal. Put $K_w:=\Sigma^{1/2}K\Sigma^{1/2}$ and $\bar K_w:=\Sigma^{1/2}\bar K\Sigma^{1/2}$, with
 $K$ and $\bar K$ built from this $F$, and write $\mu_1(\cdot)\ge\mu_2(\cdot)\ge\cdots$ for eigenvalues. For every subspace $\mathcal S$,
@@ -242,7 +251,10 @@ By Ky Fan, the lower bound for any $\mathcal S$ of dimension $\le d_\TS$ is at l
 \noindent
 The upper bound is the gradient-based dimension-reduction bound of \citet{zahm2020gradient}, applied to $F^{1/2}g$. The
 lower bound is the linear (Stein) part. The gap between them is the only obstruction to a cost-free spectral target,
-and \cref{prop:no-moment-rule} shows that the gap can be crossed in either direction.
+and \cref{prop:no-moment-rule} shows that the gap can be crossed in either direction. Nor does Fisher alignment
+dominate full matching once $k_F>d_\TS$. Take $h_\TT=\diag(1,2)\,\xi$ and teacher~2 of \cref{prop:no-moment-rule} written in
+the whitened coordinates $\xi$. Full matching keeps the high-variance coordinate $\xi_2$, which is optimal (cost $\approx0.111$),
+while the Fisher target keeps $\xi_1$ (cost $\frac14$).
 
 % ---------------------------------------------------------------------------
 \subsection{Sample complexity and computation of intermediate supervision}\label{sec:repr-complexity}
@@ -263,8 +275,10 @@ $\hat c_\ell=\hat\phi_\ell(s,\hat c_{<\ell})$.
 probability $\ge1-\delta$, $\P[\hat y\neq y]\le\frac1n\sum_\ell\log\frac{L|\cH_\ell|}{\delta}$. The running time is $\sum_\ell T_\ell(n)$,
 where $T_\ell$ is the time of a consistent learner for $\cH_\ell$.
 \item E2E, any hypothesis in the composed class $\cH_\circ$ that is consistent with the outputs satisfies
-$\P[\hat y\neq y]\le\frac1n\big(\sum_\ell\log|\cH_\ell|+\log\frac1\delta\big)$. Finding one can be intractable even when every $\cH_\ell$
-has a polynomial-time consistent learner (\cref{prop:parity,prop:graded}(b)).
+$\P[\hat y\neq y]\le\frac1n\big(\sum_\ell\log|\cH_\ell|+\log\frac1\delta\big)$. Finding one can be hard for statistical-query and gradient
+learners (\cref{prop:parity}) and, under lattice assumptions, for every polynomial-time learner (\cref{prop:graded}(b)),
+even when every $\cH_\ell$ has a polynomial-time consistent learner. Noiseless parities themselves are learnable in
+polynomial time, by Gaussian elimination.
 \end{enumerate}
 \end{theorem}
 \begin{proof}
@@ -305,8 +319,8 @@ unconstrained (the merged parametrisation). The teacher uses $(Q^\circ,V^\circ)$
 $\sum_c\KL\big(\alpha_{Q^\circ}(\cdot\mid X_c)\,\|\,\alpha_Q(\cdot\mid X_c)\big)$ is convex in $Q$. Given the attention maps, fitting the
 outputs is least squares in $V$.
 \item If the matrices $x_{q,c}(x_{j,c}-x_{j',c})^\top$ span $\R^{d\times d}$, every minimiser of the first objective reproduces the
-teacher's attention on \emph{every} context. For contexts drawn from a law with a density this holds almost surely once
-$n\ge d\,\lceil d/\min(N-1,d)\rceil$. If the vectors $X_c\alpha_c$ span $\R^d$, which holds almost surely once $n\ge d$, then $V=V^\circ$.
+teacher's attention on \emph{every} context. For contexts and query tokens drawn from a law with a density, this holds almost surely once
+$n\ge d\,\lceil d/\min(N-1,d)\rceil$, a sufficient but not sharp count. If the vectors $X_c\alpha_c$ span $\R^d$, which holds almost surely once $n\ge d$, then $V=V^\circ$.
 \item The end-to-end objective $\sum_c\|VX_c\alpha_Q(\cdot\mid X_c)-o_c\|^2$ is not convex in $(Q,V)$: its zero set is not convex.
 \end{enumerate}
 \end{proposition}
@@ -314,8 +328,9 @@ $n\ge d\,\lceil d/\min(N-1,d)\rceil$. If the vectors $X_c\alpha_c$ span $\R^d$, 
 (i) The attention logits $\langle Q,x_qx_j^\top\rangle$ are linear in $Q$, and $z\mapsto\KL(p\|\softmax z)$ is convex
 (\cref{prop:convexity}(i)). (ii) The minimum value is $0$, attained at $Q^\circ$. A zero means that the logits agree up to a
 per-context constant, that is, $\langle Q-Q^\circ,x_{q,c}(x_{j,c}-x_{j',c})^\top\rangle=0$ for all $c,j,j'$, and spanning forces $Q=Q^\circ$.
-The Gram determinant of the spanning family is a polynomial in the context entries, so it vanishes on a null set unless
-it vanishes identically. It does not: let the queries run through $e_1,\dots,e_d$, each repeated $\lceil d/m\rceil$ times with
+Let $M_1,M_2,\dots$ enumerate the family. Then $\det\sum_k\operatorname{vec}(M_k)\operatorname{vec}(M_k)^\top$ is a polynomial in the
+entries of the contexts and queries, and it is non-zero iff the family spans. So it vanishes only on a null set unless it
+vanishes identically. It does not: let the queries run through $e_1,\dots,e_d$, each repeated $\lceil d/m\rceil$ times with
 $m=\min(N-1,d)$, and let the key differences run through a basis of $\R^d$ in blocks of $m$. The map
 $(X_c)_c\mapsto\det(X_1\alpha_1,\dots,X_d\alpha_d)$ is real-analytic and equals $1$ when every token of $X_c$ is $e_c$, so it too is
 nonzero almost surely. (iii) Take $d=d'=1$, $N=2$, $x_q=1$, one context $(1,2)$ and $o\neq0$. The zero set is the curve
@@ -323,8 +338,10 @@ $V=o/m(Q)$ with $m(Q)=2-\sigma(-Q)$, which is strictly monotone and not affine, 
 \end{proof}
 \noindent
 With every layer's attention maps, residual stream and MLP pre-activations supervised, a student with the teacher's
-architecture is therefore distilled exactly by $L$ rounds of convex programs; the rank constraint $d_h<d$ of a smaller
-head dimension is what breaks convexity. \Cref{thm:composition}(i) is the discrete analogue of the fact that exact
+architecture is therefore distilled exactly by $L$ rounds of convex programs, provided the spanning conditions of (ii)
+hold at every layer. The density argument does not carry over automatically to deeper layers, whose inputs need not
+have a density on $\R^d$ (for example after LayerNorm). A student whose head dimension is below $\rank Q^\circ$ must fit
+a rank-constrained $Q$, and that constraint breaks convexity. \Cref{thm:composition}(i) is the discrete analogue of the fact that exact
 stages compose exactly. To quantify gains \emph{beyond parities} we need end-to-end lower bounds that grade with the
 target, or that hold for all efficient algorithms.
 
@@ -348,10 +365,13 @@ time by linear programming, and \cref{thm:composition}(i) bounds the end-to-end 
 \end{enumerate}
 \end{proposition}
 \noindent
-Intermediate supervision by chain-of-thought tokens also changes the approximation term. Constant-depth,
+Intermediate supervision by chain-of-thought tokens can also change the approximation term. Constant-depth,
 log-precision transformers compute only functions in uniform $\mathsf{TC}^0$ \citep{merrill2023parallelism}, while with
-polynomially many intermediate tokens they can simulate polynomial-time computation
-\citep{feng2023towards,merrill2024expressive,li2024chain}. Distilling a teacher's intermediate tokens can therefore lower
-$\cA$ from $\Omega(1)$ to $0$ for a fixed-depth student. Learning to emit them is then a realisable sequence-level problem, with
+polynomially many intermediate tokens they can simulate polynomial-time computation \citep{merrill2024expressive,li2024chain}.
+\citet{feng2023towards} give concrete tasks, such as arithmetic and linear equations, that constant-size transformers
+solve with chain of thought but, assuming $\mathsf{TC}^0\neq\mathsf{NC}^1$, not without it. So, assuming $\mathsf{TC}^0\neq\mathsf P$,
+there are teachers that no fixed-depth student reproduces on every input, while a student that emits the teacher's
+intermediate tokens can. Turning this worst-case separation into an $\Omega(1)$ gap in $\cA$ under $\cD$ would need
+average-case hardness, which we do not claim. Learning to emit the tokens is a realisable sequence-level problem with
 the horizon-free rate of \cref{thm:mle}; \citet{malach2024autoregressive} develops this learnability view for next-token
 predictors trained on such data.
