@@ -103,7 +103,10 @@ which DAgger-type no-regret arguments deliver relative to the best student \emph
 distribution}. In the non-recoverable cliff of \cref{thm:quadratic}, $u=T$, and no training distribution
 avoids $\Theta(T^2\eps)$. For language models, $u$ is the worst-case cost of one bad token followed by
 the teacher taking over. It is small for fluency-type costs and can be $\Theta(T)$ for commitments such
-as a wrong early step in a proof. Related analyses of exposure bias include \citet{bengio2015scheduled},
+as a wrong early step in a proof. \Cref{sec:recoverability} makes this precise. $u$ is the best uniform constant,
+it can be replaced by its average over the states where the student errs, and it is $O(1)$ when a
+cost-sufficient latent chain of the teacher mixes, for example when the teacher repairs its own errors at a
+constant rate. Related analyses of exposure bias include \citet{bengio2015scheduled},
 \citet{ranzato2016sequence} and \citet{arora2022exposure}. On-policy distillation is studied by
 \citet{lin2020autoregressive}, \citet{gu2024minillm}, \citet{agarwal2024gkd} and \citet{ko2024distillm}.
 \end{remark}
@@ -154,6 +157,8 @@ $\cE_{\mathrm{cov}}\le G\,\TV(\mu,\cD)$ (\cref{prop:covshift}). Pointwise non-ne
 can be negative at some inputs, and then the first bound fails.
 \end{proposition}
 
+\input{sections/02c_recoverability}
+
 \subsection{Assembling the bound, and which term dominates}
 
 \begin{corollary}[End-to-end bound for off-policy soft-label forward-KL distillation]\label{cor:e2e-offpolicy}
@@ -177,7 +182,8 @@ undertrained students.
 (3)~$\cA$ is the floor. It dominates for small students (\cref{thm:bottleneck}; \cref{sec:lower}) and, at
 sequence level, grows linearly in $T$ (\cref{cor:approx-T}).
 (4)~$\cE_{\mathrm{shift}}$ is zero for the exact pairings, but for mismatched pairings and cumulative
-criteria it \emph{amplifies} $\cA$ by up to $O(T)$ (\cref{thm:quadratic,prop:exposure}).
+criteria it \emph{amplifies} $\cA$ by up to $O(T)$ (\cref{thm:quadratic,prop:exposure}). On-policy training removes
+this amplification only for the part of the student's error made at recoverable states (\cref{thm:local-u}).
 Hence in the capacity-limited regime the dominant term is \emph{approximation error as seen by the
 deployment criterion}: the irreducible floor, amplified by prefix shift and \emph{misallocated} by the
 choice of divergence (\cref{prop:agnostic}). \Cref{sec:objectives} designs an objective against exactly

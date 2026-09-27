@@ -1,0 +1,212 @@
+\subsection{Recoverability: when is \texorpdfstring{$u=O(1)$}{u=O(1)}?}\label{sec:recoverability}
+
+\Cref{thm:pdl} controls on-policy compounding through one worst-case number, $u$. This subsection shows that
+$u$ is the right worst-case constant, replaces it by averages that can be measured, and gives conditions on
+the teacher under which $u=O(1)$. The conditions are stated through the teacher's value functions and the
+mixing of a Markov chain that it induces. Costs, $Q^p_t$ and $V^p_t$ are as in \cref{sec:shift}. The
+\emph{local recoverability}
+\[
+u_t(s):=\max_aQ^p_t(s,a)-\min_aQ^p_t(s,a)=\max_aA^p_t(s,a)-\min_aA^p_t(s,a),\qquad A^p_t:=Q^p_t-V^p_t,
+\]
+is the range of the teacher's advantage at $s$, and $u=\max_t\sup_su_t(s)$. Let
+$\TV_t(s):=\TV(p_t(\cdot\mid s),q_t(\cdot\mid s))$ and $\Delta_t(s):=\sum_a\big(q_t(a\mid s)-p_t(a\mid s)\big)Q^p_t(s,a)$. By
+\cref{thm:pdl}, $\Delta J:=J_c(q_\theta)-J_c(p)=\sum_t\E_{\dstud t}\Delta_t$. Let $\nu^\theta$ (resp.\ $\nu^p$) be the law of $(t,s_t)$
+when $t$ is uniform on $\{1,\dots,T\}$ and $s_t\sim\dstud t$ (resp.\ $s_t\sim\dteach t$). Then $\eon^{\TV}=\E_{\nu^\theta}\TV$.
+
+\begin{theorem}[Recoverability where the student errs]\label{thm:local-u}
+\Pv\Ck The following hold for every autoregressive student.
+\begin{enumerate}[label=(\roman*),nosep]
+\item \emph{Localisation.} $\Delta J=\bar a_{\mathrm{on}}\,T\eon^{\TV}$ and
+$|\Delta J|\le\sum_t\E_{\dstud t}[u_t\TV_t]=\bar u_{\mathrm{on}}\,T\eon^{\TV}$, where, with $0/0:=0$,
+\[
+\bar a_{\mathrm{on}}:=\frac{\E_{\nu^\theta}\Delta}{\E_{\nu^\theta}\TV},\qquad
+\bar u_{\mathrm{on}}:=\frac{\E_{\nu^\theta}[u\,\TV]}{\E_{\nu^\theta}\TV}\le u,\qquad
+|\bar a_{\mathrm{on}}|\le\bar u_{\mathrm{on}}.
+\]
+So $\bar u_{\mathrm{on}}$ is the recoverability on the student's own prefixes, weighted by where the student errs.
+\item \emph{Moments.} For $r\in[1,\infty]$ and $\frac1r+\frac1{r'}=1$,
+\[
+|\Delta J|\le T\,\|u\|_{L^r(\nu^\theta)}\,\|\TV\|_{L^{r'}(\nu^\theta)}\le T\,\|u\|_{L^r(\nu^\theta)}\,(\eon^{\TV})^{1-1/r}.
+\]
+\item \emph{Commitment states.} Fix $U\ge0$ and sets $B_t\supseteq\{s:u_t(s)>U\}$. Let
+$\eps^B_{\mathrm{on}}:=\frac1T\sum_t\E_{\dstud t}[\TV_t\ind_{B_t}]$ be the on-policy error made on them, and
+$\zeta:=\eps^B_{\mathrm{on}}/\eon^{\TV}$. Then
+\[
+|\Delta J|\le U\,T\eon^{\TV}+\sum_{t=1}^T(T-t+1)\,\E_{\dstud t}[\TV_t\ind_{B_t}]\le(U+\zeta T)\,T\eon^{\TV}.
+\]
+\item \emph{Sharpness.} Let $u_\cD:=\max_t\sup\{u_t(s):s=(x,y_{<t}),\ \cD(x)>0\}\le u$. \Cref{thm:pdl} holds with $u_\cD$ in
+place of $u$. If every $p_t(\cdot\mid s)$ has full support, no smaller constant does:
+$\sup|\Delta J|/(T\eon^{\TV})=u_\cD$ over autoregressive students with $\eon^{\TV}>0$. For each $(t,s)$ the ratio $u_t(s)$ is
+attained by students with arbitrarily small $\eon^{\TV}$.
+\end{enumerate}
+\end{theorem}
+\begin{proof}
+(i) For any $f$ and laws $p,q$, $|\E_qf-\E_pf|\le\TV(p,q)(\max f-\min f)$, so $|\Delta_t|\le u_t\TV_t$. Sum over $t$, and
+note that $\sum_t\E_{\dstud t}h_t=T\,\E_{\nu^\theta}h$.
+(ii) Hölder's inequality, and $\TV^{r'}\le\TV$ because $\TV\le1$.
+(iii) Split each expectation on $B_t$, and use $u_t\le T-t+1$, which holds because $Q^p_t\in[0,T-t+1]$.
+(iv) See \cref{app:recoverability}.
+\end{proof}
+
+\noindent
+By (iv), a bound that holds for every student cannot improve on $u$, even for students that are nearly
+lossless. Any improvement must use \emph{where} the student errs, as (i)--(iii) do. Part (iii) makes
+\cref{rem:onpolicy} quantitative. On-policy training is linear in $T$ when the student errs at states where
+one token cannot cost much. It is quadratic when a fixed fraction $\zeta$ of its error falls on commitment
+states. The average in (i) must be taken over the student's prefixes. An average over the teacher's
+prefixes does not suffice:
+
+\begin{proposition}[Teacher-side averages do not suffice]\label{prop:trap}
+\Pv\Ck Let $\cV=\{0,1\}$, and let the prefix determine a latent state $z_t\in\{O,D,X\}$. Start at $z_1=O$. At $O$, token $0$
+stays and token $1$ moves to $D$. At $D$, token $0$ returns to $O$ and token $1$ moves to $X$, which is absorbing. Step $t$
+costs $\ind\{z_{t+1}\ne O\}$. The teacher always emits $0$. The student emits $1$ with probability $\eps\in(0,1]$ at $O$, always
+at $D$, and never at $X$. Then $u_t=1$ at every prefix the teacher visits, so $\E_{\dteach t}u_t=1$ for all $t$ and
+$\E_{\nu^p}[u\,\TV]/\E_{\nu^p}\TV=1$. But $u_t=T-t+1$ at $D$. Moreover $\eoff^{\TV}=\eps$ and
+\[
+\Delta J=\sum_{t=1}^T\big[1-(1-\eps)^t\big],\qquad T\eon^{\TV}=2-(1-\eps)^T-(1-\eps)^{T-1}.
+\]
+If $T\eps\le1$, then $\Delta J\ge\frac{T+1}8\,T\eon^{\TV}$, so $\bar u_{\mathrm{on}}\ge\frac{T+1}8$. By continuity, the same holds, up to factors
+arbitrarily close to $1$, for a full-support teacher that emits $1$ with small enough probability.
+\end{proposition}
+\begin{proof}
+See \cref{app:recoverability}.
+\end{proof}
+
+\noindent
+The student never learned to leave $D$, a state the teacher never visits. This is exposure bias in its
+purest form. Recoverability must therefore hold on the states that the student reaches. The next theorem
+gives conditions on the teacher that guarantee this uniformly.
+
+\begin{theorem}[Recoverability from forgetting]\label{thm:forgetting}
+\Pv\Ck Each part relates $u$ to a property of the teacher alone.
+\begin{enumerate}[label=(\roman*),nosep]
+\item \emph{Value-function form.} For $k>t$ let $V^{(k)}_{t+1}(s'):=\E_p[c_k(s_k,y_k)\mid s_{t+1}=s']$ be the teacher's value
+function for the single check $c_k$. Let $\iota_{t,k}(s):=\max_{a,a'}|V^{(k)}_{t+1}(s\,a)-V^{(k)}_{t+1}(s\,a')|$ be the largest
+influence of the token emitted at $s$ on that value. Then
+$u_t(s)\le\max_{a,a'}|c_t(s,a)-c_t(s,a')|+\sum_{k>t}\iota_{t,k}(s)$, and hence $u\le1+\max_t\sup_s\sum_{k>t}\iota_{t,k}(s)$.
+\item \emph{Forgetting and coupling.} If $c_k(s_k,y_k)$ is a function of some statistic of $s_{k+1}$, then $\iota_{t,k}(s)$ is at
+most the largest total variation between the teacher's laws of that statistic started from $s\,a$ and from
+$s\,a'$. For any coupling of the teacher's continuations from $s\,a$ and $s\,a'$,
+$|Q^p_t(s,a)-Q^p_t(s,a')|\le|c_t(s,a)-c_t(s,a')|+\E N$, where $N$ counts the steps $k>t$ at which the two
+continuations incur different costs.
+\item \emph{Mixing of a cost-sufficient chain.} Suppose there are maps $\phi_t:\cS_t\to\cZ_t$, with $\cZ_t$ countable, and $f_t$ with
+$\phi_{t+1}(s\,a)=f_t(\phi_t(s),a)$, such that $p_t(\cdot\mid s)$ and $c_t(s,\cdot)$ depend on $s$ only through $z=\phi_t(s)$. The
+teacher then induces a Markov chain on the latent states, with kernels
+$K_t(z,z'):=\sum_ap_t(a\mid z)\ind\{f_t(z,a)=z'\}$. Let $\delta(K):=\sup_{z,z'}\TV(K(z,\cdot),K(z',\cdot))$ be Dobrushin's
+contraction coefficient, and $\delta_m:=\max_{t\le T-m+1}\delta(K_t\cdots K_{t+m-1})$. For every $m$ with $\delta_m<1$,
+\[
+u\le1+\frac m{1-\delta_m}.
+\]
+If $c_t(s,a)$ depends on $(s,a)$ only through $\phi_{t+1}(s\,a)$, the cost of a step is a function of the latent state
+it leads to, and then $u\le m/(1-\delta_m)$. Consequently $u\le1+2m_{1/2}$, where $m_{1/2}:=\min\{m:\delta_m\le\frac12\}$. For a time-homogeneous chain,
+$m_{1/2}\le t_{\mathrm{mix}}(\frac14)$, its mixing time. Under a Doeblin condition,
+$K_t\cdots K_{t+m-1}(z,\cdot)\ge\alpha\,\omega_t$ for all $t$ and $z$ and some probability laws $\omega_t$, one has $\delta_m\le1-\alpha$
+and $u\le1+m/\alpha$.
+\item \emph{The prefix chain itself never mixes.} For $\phi_t=\mathrm{id}$, $\delta(K_t\cdots K_{t+m-1})=1$ whenever $\cS_t$ has two
+elements, because distinct prefixes have disjoint continuations. So $\delta_m=1$ for every $m<T$.
+\end{enumerate}
+\end{theorem}
+\begin{proof}
+(i) $Q^p_t(s,a)=c_t(s,a)+\sum_{k>t}V^{(k)}_{t+1}(s\,a)$, and the range of a sum is at most the sum of the ranges.
+(ii) A function with values in $[0,1]$ changes its mean by at most the total variation. Under a coupling,
+$Q^p_t(s,a)-Q^p_t(s,a')$ equals $c_t(s,a)-c_t(s,a')$ plus the expected sum of the later cost differences. Each
+difference lies in $[-1,1]$ and vanishes unless $N$ counts it.
+(iii) See \cref{app:recoverability}.
+(iv) $K_t\cdots K_{t+m-1}(s,\cdot)$ is supported on extensions of $s$.
+\end{proof}
+
+\noindent
+Part (i) says that $u$ is small when no single token moves the teacher's probability of failing a later
+check by much, summed over the later checks. Part (ii) makes this measurable. Force $a$ and $a'$ at $s$, roll
+the teacher out from both with shared sampling noise, and count the steps whose costs differ. Part (iii)
+turns the condition into mixing. The chain must live on a \emph{cost-sufficient} summary $z$ of the prefix, for
+example the state of a format or unit-test checker together with whatever the teacher's next-token law
+depends on. By (iv), the prefix tree itself never mixes. Doeblin's condition says the following. From every
+latent state, including erroneous ones, the teacher reaches within $m$ tokens, with probability at least $\alpha$,
+a state whose law does not depend on where it started. This is \emph{self-correction}. Then $u-1$ is at most
+$m/\alpha$, which bounds the expected time that self-correction takes.
+
+\begin{example}[Commitment versus self-correction]\label{ex:selfcorrect}
+\Pv\Ck Take two latent states, $C$ (on track) and $E$ (in error), and let each step that ends in $E$ cost $1$. From $C$ the
+teacher moves to $E$ with probability $\eta$. From $E$ it repairs, moving to $C$, with probability $\alpha$. Let
+$\alpha+\eta\le1$, and let some token lead from each state to each state. Then $\delta_1=\lambda_2:=1-\alpha-\eta$, the second
+eigenvalue of $K$, and
+\[
+u=\frac{1-\lambda_2^T}{1-\lambda_2}\ \nearrow\ \frac1{\alpha+\eta}\qquad(T\to\infty).
+\]
+So the bound of \cref{thm:forgetting}(iii) for costs that depend only on the next latent state is attained in
+the limit. Here $u$ is the relaxation time of the teacher's error process, close to the expected repair time
+$1/\alpha$ when $\eta\ll\alpha$. Without repair and without teacher errors ($\alpha=\eta=0$), this is the cliff of
+\cref{thm:quadratic}: $\delta_m=1$ for all $m$, and $u=T$.
+\end{example}
+\begin{proof}[Computation]
+Let $\bar W_j(z)$ be the expected cost of the step that ends in $z$ at time $j$, plus that of all later steps. Then
+$u_t(s)=D_{t+1}:=\bar W_{t+1}(E)-\bar W_{t+1}(C)$, with $D_{T+1}=1$ and $D_{t+1}=1+\lambda_2D_{t+2}$. So
+$D_{t+1}=\sum_{j=0}^{T-t}\lambda_2^j$, which is largest at $t=1$.
+\end{proof}
+
+\begin{proposition}[The value martingale, and a teacher-side bound]\label{prop:valmart}
+\Pv\Ck Let $C:=\sum_{t=1}^Tc_t(s_t,y_t)$, $\Var_p(C):=\E_{x\sim\cD}\Var_{y\sim\Pseq}(C)$, and
+$\sigma_t^2(s):=\Var_{a\sim p_t(\cdot\mid s)}Q^p_t(s,a)\le u_t(s)^2/4$.
+\begin{enumerate}[label=(\roman*),nosep]
+\item Under the teacher, $G_t:=\sum_{k<t}c_k(s_k,y_k)+V^p_t(s_t)$ is the Doob martingale of $C$. Its increments are
+$A^p_t(s_t,y_t)$, so
+\[
+\Var_p(C)=\sum_{t=1}^T\E_{\dteach t}\sigma_t^2=T\,\E_{\nu^p}\sigma^2 .
+\]
+\item For a terminal reward $r$ (costs $0$ before step $T$, and $c_T=1-r$), $Q^p_t(s,a)=1-\E_p[r\mid s_{t+1}=s\,a]$. So $u_t(s)$
+is the largest one-token swing of the teacher's expected reward, which is its success probability for
+$0/1$ rewards. Hence $u\le1$ and $|J_r(p)-J_r(q_\theta)|\le\sum_t\E_{\dstud t}[u_t\TV_t]\le T\eon^{\TV}$. Also
+$\Var_p(C)\le\E_x[\bar r(x)(1-\bar r(x))]\le\frac14$, where $\bar r(x):=\E_p[r\mid x]$.
+\item $|\Delta J|\le\sqrt{\E_x\chi^2(\Qseq\|\Pseq)\,\Var_p(C)}$. If $\chi^2(q_t(\cdot\mid s)\|p_t(\cdot\mid s))\le\chi^2_\infty$ for all $t$ and $s$, then
+$\E_x\chi^2(\Qseq\|\Pseq)\le(1+\chi^2_\infty)^T-1$. If moreover $T\chi^2_\infty\le1$, then
+\[
+|\Delta J|\le T\sqrt{2\chi^2_\infty\,\E_{\nu^p}\sigma^2}.
+\]
+\end{enumerate}
+\end{proposition}
+\begin{proof}
+(i) $G_{t+1}-G_t=c_t(s_t,y_t)+V^p_{t+1}(s_{t+1})-V^p_t(s_t)=A^p_t(s_t,y_t)$. Given $s_t$, it has mean $0$ and variance
+$\sigma_t^2(s_t)$. Also $G_1=\E_p[C\mid x]$ and $G_{T+1}=C$, and martingale increments are orthogonal. The bound
+$\sigma_t\le u_t/2$ is Popoviciu's inequality.
+(ii) The formula for $Q^p_t$ is the definition; then apply \cref{thm:local-u}(i). Moreover
+$\Var(r\mid x)\le\bar r(1-\bar r)$ because $r^2\le r$.
+(iii) For each $x$, $\E_{\Qseq}C-\E_{\Pseq}C=\E_{\Pseq}\big[(\Qseq/\Pseq-1)(C-\E_{\Pseq}C)\big]$. Apply Cauchy--Schwarz, and then again over $x$.
+Summing out the last token gives $\sum_y\Qseq(y)^2/\Pseq(y)\le(1+\chi^2_\infty)\sum_{y_{<T}}\Qseq(y_{<T})^2/\Pseq(y_{<T})$; induct on $T$.
+Finally, $(1+\chi^2_\infty)^T-1\le e^{T\chi^2_\infty}-1\le2T\chi^2_\infty$ when $T\chi^2_\infty\le1$, and $\Var_p(C)=T\,\E_{\nu^p}\sigma^2$ by (i).
+\end{proof}
+
+\begin{remark}[Where the average is taken]\label{rem:where-avg}
+The results above settle when $u$ can be replaced by an average.
+\begin{center}\small
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.27\linewidth}>{\raggedright\arraybackslash}p{0.22\linewidth}>{\raggedright\arraybackslash}p{0.43\linewidth}@{}}
+\toprule
+recoverability measured & student's error & bound on $|\Delta J|$\\\midrule
+worst case, $u$ & on-policy mean, $\eon^{\TV}$ & $uT\eon^{\TV}$; sharp (\cref{thm:local-u}(iv))\\
+student's prefixes, $\bar u_{\mathrm{on}}$ & on-policy mean & $\bar u_{\mathrm{on}}T\eon^{\TV}$ (\cref{thm:local-u}(i))\\
+teacher's prefixes, $\E_{\nu^p}\sigma^2$ & uniform, $\chi^2_\infty$ & $T\sqrt{2\chi^2_\infty\E_{\nu^p}\sigma^2}$ if $T\chi^2_\infty\le1$ (\cref{prop:valmart})\\
+teacher's prefixes & on-policy mean & none (\cref{prop:trap})\\\bottomrule
+\end{tabular}
+\end{center}
+A teacher-side average suffices when the student is accurate everywhere, including at states the teacher
+avoids (\cref{prop:valmart}). Accuracy on the teacher's own prefixes is not enough (\cref{prop:trap}). The
+teacher-side quantity is $\Var_p(C)$, the variance of the teacher's own total cost, which can be estimated by
+sampling from the teacher alone. $\Var_p(C)=O(T)$ is a weak-dependence condition on
+the teacher's cost process. It holds whenever $u=O(1)$, because $\Var_p(C)\le Tu^2/4$. By contrast, an absorbing
+error that the teacher enters with probability of order $1/T$ per step makes $\Var_p(C)$ of order $T^2$.
+\end{remark}
+
+\begin{remark}[Turning the bound into a prediction]\label{rem:measure-u}
+$\bar u_{\mathrm{on}}$ and $\bar a_{\mathrm{on}}$ can be estimated from the two models and teacher roll-outs. Sample $y\sim\Qseq$, compute $\TV_t(s_t)$
+exactly at every position, and draw one position $t$ with probability proportional to $\TV_t(s_t)$. Let
+$S:=\sum_{t'}\TV_{t'}(s_{t'})$. Then $S\,u_t(s_t)$ is unbiased for $\bar u_{\mathrm{on}}T\eon^{\TV}$, and $S\,\Delta_t(s_t)/\TV_t(s_t)$ is unbiased for
+$\Delta J$. At the drawn $s_t$, estimate $Q^p_t(s_t,a)$ for the $k$ tokens that carry most of the mass of $|q_t-p_t|$, from
+$n$ teacher continuations each. By Hoeffding's inequality and a union bound, all $k$ estimates are within
+$(T-t+1)\sqrt{\log(2k/\delta)/(2n)}$ with probability at least $1-\delta$. Let $m_t$ be the mass of $|q_t-p_t|$ on the
+other tokens. Then $|\Delta_t|$ is at most $\TV_t$ times the range of $Q^p_t(s_t,\cdot)$ over the $k$ tokens, plus
+$(T-t+1)\,m_t$. So that range can replace $u_t(s_t)$ at the cost of the residual, and the same roll-outs
+estimate $\Delta_t(s_t)$ up to the Monte Carlo error plus $(T-t+1)\,m_t$. The
+prediction is $\Delta J\approx\bar a_{\mathrm{on}}T\eon^{\TV}$. Its growth with $T$ follows $\bar u_{\mathrm{on}}$: it is linear while $\bar u_{\mathrm{on}}$
+stays bounded, and quadratic when the commitment fraction $\zeta$ of \cref{thm:local-u}(iii) stays bounded away
+from $0$.
+\end{remark}

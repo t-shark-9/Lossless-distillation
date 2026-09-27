@@ -31,11 +31,19 @@ softmax read-out, or random-feature models with a power-law spectrum. The model 
 soft-versus-hard data exponents (\cref{heur:data}) and the finite-sample capacity gap (\cref{heur:gap}).
 Determine whether the transition to exponential decay (\cref{prop:phase}) survives realistic spectra.
 
-\item \textbf{Recoverability of language models.} Give conditions on the teacher under which the
-recoverability constant $u$ of \cref{thm:pdl} is $O(1)$, or bounded in expectation rather than in the worst case.
-Relate $u$ to measurable properties of the teacher, such as its value function under task rewards or the
-mixing of its induced Markov chain on prefixes. A distribution-dependent $u$ would turn the $O(uT\eon)$
-bound into a usable prediction.
+\item \textbf{Recoverability of language models: what remains.} The original question asked when the
+recoverability constant $u$ of \cref{thm:pdl} is $O(1)$ or bounded in expectation, and how it relates to measurable
+properties of the teacher. \Cref{sec:recoverability} answers it. $u$ is the best uniform constant
+(\cref{thm:local-u}(iv)). It can be replaced by its average $\bar u_{\mathrm{on}}$ over the states where the student errs, which is
+measurable (\cref{rem:measure-u}). It cannot be replaced by an average over the teacher's prefixes unless the
+student is uniformly accurate (\cref{prop:trap,prop:valmart}). It is $O(1)$ when no token has a lasting influence on
+the teacher's value functions. In particular $u\le1+2m_{1/2}$ when a cost-sufficient latent chain of the teacher
+mixes (\cref{thm:forgetting}). Three questions remain. (a)~Do trained teachers satisfy a Doeblin condition for
+natural task costs, with $\alpha$ bounded below uniformly in $T$? Does training for self-correction raise $\alpha$?
+(b)~\Cref{prop:trap} lets the student behave arbitrarily at states the teacher avoids. Which assumptions on the
+student class, controlling its behaviour there, make a teacher-side average of $u$ suffice together with the
+on-policy error $\eon$? (c)~Can on-policy training be made commitment-aware, so that the commitment fraction $\zeta$
+of \cref{thm:local-u}(iii) provably vanishes? One candidate weights the per-token loss by an estimate of $u_t(s)$.
 
 \item \textbf{Fixed points of stop-gradient on-policy distillation.} Characterise the fixed points of the
 DAgger-type map in \cref{prop:rb-reverse}. When do they coincide with minimisers of a sequence-level

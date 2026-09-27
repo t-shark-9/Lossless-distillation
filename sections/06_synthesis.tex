@@ -54,7 +54,7 @@ $O(\sqrt{\mathrm{TV}^\star})$, whereas KL objectives carry no such guarantee.
 \begin{tabular}{@{}p{0.2\linewidth}p{0.74\linewidth}@{}}
 \toprule
 status & results\\\midrule
-proved, unconditional & TV as worst-case regret (\ref{prop:tv-task}); $\JSD_\beta$ sandwich (\ref{prop:jsd}); local equivalence (\ref{prop:local}); event bounds (\ref{prop:events}); margins (\ref{prop:margin}); chain rules (\ref{thm:chain}); hybrid bounds (\ref{prop:hybrid}, \ref{prop:hybrid-div}); master decomposition (\ref{thm:master}); compounding theorems (\ref{thm:terminal}--\ref{prop:exposure}); curvature (\ref{prop:convexity}); gradient formulas and unbiased estimators (\ref{prop:grad}, \ref{prop:seq-grad}--\ref{prop:jsd-est}); temperature limits (\ref{prop:temperature}); bounded mixture estimator (\ref{prop:mix-est}); agnostic competitiveness (\ref{prop:agnostic}); facts floors and metric entropy (\ref{cor:facts}--\ref{cor:metric}); one-shot converse (\ref{thm:rd}); CCA/CKA facts (\ref{prop:cca})\\
+proved, unconditional & TV as worst-case regret (\ref{prop:tv-task}); $\JSD_\beta$ sandwich (\ref{prop:jsd}); local equivalence (\ref{prop:local}); event bounds (\ref{prop:events}); margins (\ref{prop:margin}); chain rules (\ref{thm:chain}); hybrid bounds (\ref{prop:hybrid}, \ref{prop:hybrid-div}); master decomposition (\ref{thm:master}); compounding theorems (\ref{thm:terminal}--\ref{prop:exposure}); recoverability: sharpness, localisation, the trap, forgetting and mixing, the value martingale (\ref{thm:local-u}--\ref{prop:valmart}); curvature (\ref{prop:convexity}); gradient formulas and unbiased estimators (\ref{prop:grad}, \ref{prop:seq-grad}--\ref{prop:jsd-est}); temperature limits (\ref{prop:temperature}); bounded mixture estimator (\ref{prop:mix-est}); agnostic competitiveness (\ref{prop:agnostic}); facts floors and metric entropy (\ref{cor:facts}--\ref{cor:metric}); one-shot converse (\ref{thm:rd}); CCA/CKA facts (\ref{prop:cca})\\
 proved under assumptions & capacity floor (\ref{as:finite}); softmax-bottleneck floor (\ref{as:linear}); uniform deviation (\ref{as:bounded}); horizon-free MLE (\ref{as:real}, \ref{as:finite}); PA-JSD estimation (\ref{as:finite}); end-to-end bounds; last-layer redundancy (\ref{as:linear})\\
 proved within a stylised model & power-law and exponential floors (\ref{prop:powerlaw}, \ref{prop:phase}); no capacity gap under optimal allocation (\ref{prop:nogap}); no identifiability gain and preconditioning (\ref{prop:noidgain}, \ref{prop:precond}); over-constraint and Fisher alignment (\ref{thm:overconstraint}, \ref{prop:fisher-rep})\\
 known results cited & Pinsker/BH; SGD rates; $k/2n$ asymptotics; SQ lower bounds for parities\\
@@ -72,7 +72,8 @@ intervals. Per-position curves $e_t^{\mathrm{off},\KL}$, $e_t^{\mathrm{on},\math
 exactly over the vocabulary at sampled prefixes.
 
 \paragraph{E1. Horizon, exposure and recoverability.}
-\emph{Hypotheses:} \cref{cor:seq-tv}, \cref{thm:quadratic,thm:pdl,thm:kl-compounding}, and \cref{prop:pajsd}.
+\emph{Hypotheses:} \cref{cor:seq-tv}, \cref{thm:quadratic,thm:pdl,thm:kl-compounding,thm:local-u,thm:forgetting}, and
+\cref{prop:valmart,prop:pajsd}.
 \emph{Protocol:} one teacher; two student sizes; five objectives: off-policy soft forward KL; on-policy
 reverse KL with the full estimator of \cref{prop:rb-reverse}; the same with stop-gradient; token-level GKD
 $\JSD_\beta$; PA-JSD.
@@ -82,12 +83,15 @@ locates the task in the diffuse or concentrated regime of \cref{ex:regimes}.
 (b)~Cumulative cost growth. With $c_t=\ind\{\text{step }t\text{ violates a checkable constraint}\}$, for example a
 format, unit-test or arithmetic-step check, fit $J_c(q_\theta;T')-J_c(p;T')\propto T'^{\kappa}$. The predictions
 are $\kappa\approx2$ for TV-type off-policy training on non-recoverable tasks, $\kappa\le1.5$ for off-policy
-forward KL, and $\kappa\approx1$ for on-policy training when $u=O(1)$.
-(c)~Recoverability. At student-visited prefixes, force each of the top-$k$ tokens and estimate
-$\hat u_t(s)=\max_a\hat Q^p_t(s,a)-\min_a\hat Q^p_t(s,a)$ from teacher continuations.
+forward KL, and $\kappa\approx1$ for on-policy training when $\bar u_{\mathrm{on}}=O(1)$ (\cref{thm:local-u}).
+(c)~Recoverability. At each $T'$, estimate $\bar u_{\mathrm{on}}$, $\bar a_{\mathrm{on}}$ and the commitment fraction $\zeta$ as in
+\cref{rem:measure-u}. From the teacher alone, estimate $\Var_p(C)$ as a function of $T'$ (\cref{prop:valmart}), and the
+number of steps whose costs differ after a forced token, under shared sampling noise (\cref{thm:forgetting}(ii)).
+The predictions are $\Delta J\approx\bar a_{\mathrm{on}}T'\eon^{\TV}$, $\kappa\approx1$ when $\bar u_{\mathrm{on}}$ stays bounded in $T'$, and $\kappa\approx2$ when
+$\zeta$ does not vanish.
 (d)~The prefix-weight process $w_t(s)$ of \cref{prop:pajsd}: the fraction of positions where
 $|w_t-\beta|>0.1$, which is where token-level GKD departs from sequence-level JSD.
-\emph{Falsifier:} on-policy gains that do not correlate with small $\hat u$, or $\kappa$ unaffected by the prefix
+\emph{Falsifier:} on-policy gains that do not correlate with small $\bar u_{\mathrm{on}}$, or $\kappa$ unaffected by the prefix
 law, would refute the performance-difference account of exposure bias.
 
 \paragraph{E2. Capacity floors and exponents.}

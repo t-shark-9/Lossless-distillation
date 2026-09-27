@@ -63,6 +63,7 @@
 \newcommand{\cN}{\mathcal{N}}
 \newcommand{\cF}{\mathcal{F}}
 \newcommand{\cG}{\mathcal{G}}
+\newcommand{\cZ}{\mathcal{Z}}
 \newcommand{\TS}{\mathsf{S}}
 \newcommand{\TT}{\mathsf{T}}
 \newcommand{\KL}{\mathrm{KL}}
@@ -107,7 +108,10 @@ reverse KL, total variation, $\JSD_\beta$, Hellinger and task-level excess risk,
 chain-rule identities that pair each KL direction with a specific prefix distribution;
 (ii)~decompose the student's gap into approximation, estimation, optimisation, prefix-shift (exposure
 bias) and covariate-shift terms and bound each, recovering the $O(\eps T)$ versus $O(\eps T^2)$
-compounding dichotomy and showing exactly when on-policy training removes it; (iii)~prove
+compounding dichotomy and showing exactly when on-policy training removes it. The recoverability constant
+that governs on-policy compounding is sharp. It can be replaced by its average over the states where the
+student errs, but not by its average over the teacher's own prefixes. It is at most one plus twice the mixing
+time of a cost-sufficient latent chain of the teacher; (iii)~prove
 information-theoretic (rate--distortion) lower bounds on the achievable divergence as a function of
 the student's description length, together with a softmax-bottleneck rank bound, and derive the
 power-law forms they predict; (iv)~analyse the logit gradients of the standard objectives, the
