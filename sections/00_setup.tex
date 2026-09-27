@@ -1,0 +1,91 @@
+% ===========================================================================
+\section*{Setting, notation and standing assumptions}\label{sec:setup}
+\addcontentsline{toc}{section}{Setting, notation and standing assumptions}
+% ===========================================================================
+
+\paragraph{Context.}
+Distillation in its modern form goes back to \citet{bucilua2006model}, \citet{ba2014do} and
+\citet{hinton2015distilling}. The sequence-level variant for autoregressive models is due to
+\citet{kim2016sequence}. \citet{xu2024survey} survey methods for large language models. Here we care
+about the theory: what ``lossless'' should mean, what limits it, and which objectives provably approach it.
+
+\paragraph{Objects.}
+$\cX$ is a countable input space and $\cV$ a finite vocabulary, $|\cV|=V$. Outputs are sequences
+$y=(y_1,\dots,y_T)\in\cY:=\cV^T$. Variable-length outputs are handled by an absorbing end-of-sequence
+token: after it, every model emits it again with probability one. This does not change any divergence
+between sequence laws, so a fixed horizon $T$ loses no generality. To avoid a clash with the
+horizon $T$, we write the \emph{teacher} as
+\[
+p(y\mid x):=p_{\TT}(y\mid x)=\prod_{t=1}^T p(y_t\mid x,y_{<t}),
+\qquad
+q_\theta(y\mid x)=\prod_{t=1}^T q_\theta(y_t\mid x,y_{<t}),\quad \theta\in\Theta_{\TS}.
+\]
+The \emph{state} (context) at step $t$ is $s_t=(x,y_{<t})\in\cS_t$. We abbreviate the next-token conditionals as
+$p_t(\cdot\mid s):=p(\cdot\mid s)$ and $q_t(\cdot\mid s):=q_\theta(\cdot\mid s)$. The sequence laws are
+$\Pseq:=p(\cdot\mid x)$ and $\Qseq:=q_\theta(\cdot\mid x)$ on $\cY$.
+Inputs follow a \emph{training} distribution $\cD$. Behaviour is evaluated under a \emph{deployment}
+distribution $\mu$, which may differ from $\cD$.
+
+\paragraph{Prefix (state) distributions.}
+For a policy $\pi\in\{p,q_\theta\}$, $d^{\,\pi}_t$ is the law of $s_t=(x,y_{<t})$ when $x\sim\cD$ and
+$y\sim\pi(\cdot\mid x)$. We write $\dteach t$ for the teacher and $\dstud t$ for the student. Distillation on
+teacher-generated prefixes (``teacher forcing'') trains on $\dteach t$. \emph{On-policy} distillation
+trains on $\dstud t$.
+
+\paragraph{Per-token errors.}
+For a divergence $\mathsf D$ between next-token distributions, define the off- and on-policy
+average per-token errors
+\begin{equation}\label{eq:per-token-errors}
+\eoff^{\mathsf D}:=\frac1T\sum_{t=1}^T \E_{s\sim\dteach t}\,\mathsf D\big(p_t(\cdot\mid s)\,\|\,q_t(\cdot\mid s)\big),
+\qquad
+\eon^{\mathsf D}:=\frac1T\sum_{t=1}^T \E_{s\sim\dstud t}\,\mathsf D\big(p_t(\cdot\mid s)\,\|\,q_t(\cdot\mid s)\big).
+\end{equation}
+For reverse KL, ``$\mathsf D(p\|q)$'' in \eqref{eq:per-token-errors} means $\KL(q\|p)$. We write
+$e_t^{\mathrm{off}}$ and $e_t^{\mathrm{on}}$ for the individual summands, so that
+$\eoff=\frac1T\sum_t e_t^{\mathrm{off}}$.
+
+\paragraph{Logits.}
+The student's next-token distribution is $q_t(\cdot\mid s)=\softmax(z_\theta(s))$ with logits
+$z_\theta(s)\in\R^V$. The teacher's logits are $v(s)$. $C:=I-\frac1V\one\one^\top$ is the centring
+projector and $\tilde z:=Cz$ denotes centred logits.
+
+\paragraph{Conventions.}
+$\log$ is natural. Rates $R$ are in bits unless stated otherwise, so a class of $2^R$ students has
+$\log|\Theta_\TS|=R\ln 2$ nats. $a\lesssim b$ hides absolute constants. $h(\beta)=-\beta\ln\beta-(1-\beta)\ln(1-\beta)$
+is the binary entropy in nats.
+
+\paragraph{Standing assumptions.}
+Each result states exactly which of the following it uses.
+\begin{assumption}[Bounded student log-probabilities]\label{as:bounded}
+There is $B<\infty$ with $\log q_\theta(a\mid s)\ge -B$ for all $\theta,s,a$. This can be enforced, for
+example, by mixing with the uniform distribution: $q=(1-\eta)q'+\eta/V$ gives $B\le\log(V/\eta)$.
+\end{assumption}
+\begin{assumption}[Bounded covariate shift]\label{as:shift}
+$\mu\ll\cD$ and $\rho:=\|\mathrm d\mu/\mathrm d\cD\|_\infty<\infty$.
+\end{assumption}
+\begin{assumption}[Realisability]\label{as:real}
+There is $\theta^\circ\in\Theta_\TS$ with $q_{\theta^\circ}(\cdot\mid x)=p(\cdot\mid x)$ for $\cD$-a.e.\ $x$.
+\end{assumption}
+\begin{assumption}[Finite description length]\label{as:finite}
+$|\Theta_\TS|\le 2^R$, for example $P$ parameters stored with $b$ bits each, so that $R=Pb$. Alternatively
+$\Theta_\TS$ has $\eps$-covering number $\cN(\eps)$ in the metric
+$\|\log q_\theta-\log q_{\theta'}\|_\infty$.
+\end{assumption}
+\begin{assumption}[Linear read-out]\label{as:linear}
+$z_\theta(s)=W h_\theta(s)+b$ with $W\in\R^{V\times d_\TS}$, $h_\theta(s)\in\R^{d_\TS}$. The same form holds for
+the teacher, with width $d_\TT$.
+\end{assumption}
+\begin{assumption}[Stochastic optimisation]\label{as:opt}
+The training objective $F$ is $L$-smooth and bounded below. The optimiser sees unbiased stochastic
+gradients with variance at most $\sigma^2$.
+\end{assumption}
+
+\paragraph{Status labels.}
+Each result carries one of these tags:
+\textsf{[proved]} means proved here with no assumption beyond the definitions;
+\textsf{[proved under \ldots]} means proved under the listed assumptions;
+\textsf{[known result; proof sketch]} means a result from the literature with a pointer to its key lemma;
+\textsf{[proved within the stated model]} means an exact calculation inside a stylised model, whose
+relevance to real networks is itself an assumption.
+Conjectures and heuristics are labelled as such. Several inequalities are additionally
+\textsf{[numerically checked]} by the scripts in \texttt{verification/}.

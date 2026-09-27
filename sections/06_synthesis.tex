@@ -1,0 +1,120 @@
+% ===========================================================================
+\section{Synthesis}\label{sec:synthesis}
+% ===========================================================================
+
+\subsection{The full pipeline}
+
+\begin{theorem}[End-to-end sandwich]\label{thm:sandwich}
+\begin{enumerate}[label=(\roman*),leftmargin=*]
+\item \emph{Necessity} \Pa{\cref{as:finite}}. For any prior $\pi$ over teachers, if $R\ln2<I_\infty(\pi,\cD)$ then
+\[
+\E_\pi\min_\theta\E_\cD\KL(P\|Q_\theta)\ \ge\ \sup_{N,m}\frac{I(\mathbf T;Y\mid X_{1:N})-R\ln2}{mN}>0 .
+\]
+In the $K$-facts model, the behavioural error is also bounded below:
+$\E\TV\ge1-(R\ln2/K+\ln2)/\ln(V-1)$ (\cref{thm:capacity}, \cref{cor:facts-tv}).
+\item \emph{Sufficiency, realisable} \Pa{\cref{as:real,as:finite}}. Sequence-level hard-label KD with
+$n\ge2(R\ln2+\log\frac1\delta)/\eps^2$ teacher sequences achieves $\E_\cD\TV(P,Q_{\htheta})\le\eps$ with
+probability $\ge1-\delta$, \emph{for every horizon} $T$. Under input shift, $\E_\mu\TV\le\min\{\rho\eps,\eps+\TV(\mu,\cD)\}$
+(\cref{thm:mle}, \cref{prop:covshift}). With exact soft labels and a linear-softmax student, $n\ge d$ states
+in general position give exact recovery (\cref{prop:exact}).
+\item \emph{Misspecified, behavioural} \Pa{\cref{as:finite}}. Let $\htheta$ minimise the empirical PA-JSD
+objective, with per-prompt divergences evaluated exactly, up to optimisation error $\cE_{\mathrm{opt}}$.
+Let $\mathrm{TV}^\star=\min_\theta\E_\cD\TV(P,Q_\theta)$ and $\Delta_n=h(\beta)\sqrt{(R\ln2+\log\frac2\delta)/(2n)}$. With
+probability $\ge1-\delta$,
+\[
+\E_\mu\TV(P,Q_{\htheta})\ \le\ \sqrt{\frac{h(\beta)\,\mathrm{TV}^\star+2\Delta_n+\cE_{\mathrm{opt}}}{2\beta(1-\beta)}}\ +\ \TV(\mu,\cD).
+\]
+There is no dependence on $T$ and no exposure-bias term. For $\beta=\frac12$ the leading term is
+$\sqrt{2\ln2\,\mathrm{TV}^\star}$.
+\item \emph{Misspecified, likelihood} \Pa{\cref{as:bounded,as:shift}}. Off-policy soft-label forward KL gives
+\cref{cor:e2e-offpolicy}. The approximation term obeys $\cA\ge T\eps_0$ (\cref{cor:approx-T}), and for students
+with a linear read-out $\eps_0$ is at least the softmax-bottleneck floor (\cref{thm:bottleneck}).
+\end{enumerate}
+\end{theorem}
+\begin{proof}
+(i), (ii) and (iv) collect earlier results. For (iii), write $\hat\cJ$ for the empirical objective. Then
+$\cJ(\htheta)\le\hat\cJ(\htheta)+\Delta_n\le\hat\cJ(\theta_\TV)+\cE_{\mathrm{opt}}+\Delta_n\le\cJ(\theta_\TV)+\cE_{\mathrm{opt}}+2\Delta_n$ and
+$\cJ(\theta_\TV)\le h(\beta)\mathrm{TV}^\star$ (\cref{prop:jsd}(i)). Then apply \cref{thm:pajsd}(ii) and
+\cref{prop:covshift} with $G=1$.
+\end{proof}
+
+\noindent\textbf{Reading the sandwich.} Near-lossless distillation is possible essentially iff the
+student's \emph{usable} description length exceeds the teacher's \emph{functional} information on the
+deployment distribution. When it is possible, the sample complexity of behavioural $\eps$-losslessness
+is $\tilde O(R/\eps^2)$ sequences \emph{independent of the horizon}. Exposure bias is not a fundamental
+obstacle: it is an artefact of pairing a divergence with the wrong prefix law. When it is impossible,
+the best achievable behavioural error is $\mathrm{TV}^\star$, and PA-JSD is guaranteed to reach
+$O(\sqrt{\mathrm{TV}^\star})$, whereas KL objectives carry no such guarantee.
+
+\subsection{Status of the results}
+
+\begin{center}
+\begin{tabular}{@{}p{0.2\linewidth}p{0.74\linewidth}@{}}
+\toprule
+status & results\\\midrule
+proved, unconditional & TV as worst-case regret (\ref{prop:tv-task}); $\JSD_\beta$ sandwich (\ref{prop:jsd}); local equivalence (\ref{prop:local}); event bounds (\ref{prop:events}); margins (\ref{prop:margin}); chain rules (\ref{thm:chain}); hybrid bounds (\ref{prop:hybrid}, \ref{prop:hybrid-div}); master decomposition (\ref{thm:master}); compounding theorems (\ref{thm:terminal}--\ref{prop:exposure}); curvature (\ref{prop:convexity}); gradient formulas and unbiased estimators (\ref{prop:grad}, \ref{prop:seq-grad}--\ref{prop:jsd-est}); temperature limits (\ref{prop:temperature}); agnostic competitiveness (\ref{prop:agnostic}); capacity floor and its corollaries (\ref{thm:capacity}--\ref{cor:metric}, \ref{thm:rd}); CCA/CKA facts (\ref{prop:cca})\\
+proved under assumptions & softmax-bottleneck floor (\ref{as:linear}); uniform deviation (\ref{as:bounded}); horizon-free MLE (\ref{as:real}, \ref{as:finite}); PA-JSD estimation (\ref{as:finite}); end-to-end bounds; last-layer redundancy (\ref{as:linear})\\
+proved within a stylised model & power-law and exponential floors (\ref{prop:powerlaw}, \ref{prop:phase}); no capacity gap under optimal allocation (\ref{prop:nogap}); over-constraint and Fisher alignment (\ref{thm:overconstraint}, \ref{prop:fisher-rep})\\
+known results cited & Pinsker/BH; SGD rates; $k/2n$ asymptotics; SQ lower bounds for parities\\
+heuristics & dominant term (\ref{heur:dominant}); size and data exponents (\ref{heur:size}, \ref{heur:data}); capacity gap as aliasing (\ref{heur:gap}); deep-network representation matching (\ref{heur:repr-deep})\\
+conjecture & distillation gap law (\ref{conj:law})\\\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Experiments that test the key assumptions}\label{sec:experiments}
+
+Several quantities recur below. Sequence-level TV has the unbiased, $[0,1]$-bounded estimator
+$\widehat{\TV}=\frac1n\sum_i\big(1-Q_\theta(y_i\mid x_i)/P(y_i\mid x_i)\big)_+$ with $y_i\sim P^{x_i}$. It requires only exact
+sequence log-probabilities under both models (\texttt{check\_sequences.py}), and admits Hoeffding
+intervals. Per-position curves $e_t^{\mathrm{off},\KL}$, $e_t^{\mathrm{on},\mathrm{rKL}}$ and $e_t^{\cdot,\TV}$ are computed
+exactly over the vocabulary at sampled prefixes.
+
+\paragraph{E1. Horizon, exposure and recoverability.}
+\emph{Hypotheses:} \cref{cor:seq-tv}, \cref{thm:quadratic,thm:pdl,thm:kl-compounding}, and \cref{prop:pajsd}.
+\emph{Protocol:} one teacher; two student sizes; five objectives: off-policy soft forward KL; on-policy
+reverse KL with the full estimator of \cref{prop:rb-reverse}; the same with stop-gradient; token-level GKD
+$\JSD_\beta$; PA-JSD.
+\emph{Measure:} (a)~$\widehat{\TV}(T')$ on prefixes truncated at $T'\in\{16,\dots,2048\}$, against
+$\sqrt{\frac12\sum_{t\le T'}e_t^{\mathrm{off},\KL}}$ and $\sum_{t\le T'}e_t^{\mathrm{off},\TV}$. The ratio of $\widehat{\TV}$ to each bound
+locates the task in the diffuse or concentrated regime of \cref{ex:regimes}.
+(b)~Cumulative cost growth. With $c_t=\ind\{\text{step }t\text{ violates a checkable constraint}\}$, for example a
+format, unit-test or arithmetic-step check, fit $J_c(q_\theta;T')-J_c(p;T')\propto T'^{\kappa}$. The predictions
+are $\kappa\approx2$ for TV-type off-policy training on non-recoverable tasks, $\kappa\le1.5$ for off-policy
+forward KL, and $\kappa\approx1$ for on-policy training when $u=O(1)$.
+(c)~Recoverability. At student-visited prefixes, force each of the top-$k$ tokens and estimate
+$\hat u_t(s)=\max_a\hat Q^p_t(s,a)-\min_a\hat Q^p_t(s,a)$ from teacher continuations.
+(d)~The prefix-weight process $w_t(s)$ of \cref{prop:pajsd}: the fraction of positions where
+$|w_t-\beta|>0.1$, which is where token-level GKD departs from sequence-level JSD.
+\emph{Falsifier:} on-policy gains that do not correlate with small $\hat u$, or $\kappa$ unaffected by the prefix
+law, would refute the performance-difference account of exposure bias.
+
+\paragraph{E2. Capacity floors and exponents.}
+\emph{Hypotheses:} \cref{thm:bottleneck}, \cref{prop:powerlaw,prop:phase}, \cref{heur:size,heur:gap}.
+\emph{Protocol:} compute the teacher's centred log-probability matrix on $N\approx10^5$ held-out contexts,
+row-weighted by $\Pi^{1/2}$ and, separately, by per-context Fisher square roots. Estimate its spectrum and
+a decay exponent $\hat\alpha$. Train students across widths $d_\TS$, parameter counts $N_\TS$ and quantisation
+levels $b$, at a token budget large enough that $\cE_{\mathrm{est}}+\cE_{\mathrm{opt}}$ is negligible. Check this by
+doubling the budget.
+\emph{Measure:} (a)~$\eoff^{\KL}$ against the bottleneck floor for each $d_\TS$ (the floor must never be
+violated, and its tightness is informative); (b)~the slope of $\log\eoff^{\KL}$ against $\log(N_\TS b_{\mathrm{eff}})$,
+compared with $-(\hat\alpha-1)$; (c)~curvature of that curve as $N_\TS$ approaches the teacher's size (the
+predicted power-law-to-exponential transition); (d)~for a fixed student, the ground-truth cross-entropy as a
+function of teacher size at several token budgets $n$. The optimal teacher size should grow with $n$, and
+the penalty for a too-strong teacher should shrink roughly as $k/n$.
+\emph{Falsifier:} capacity gaps that persist undiminished as $n$ grows would contradict \cref{heur:gap} and
+point to optimisation, not aliasing.
+
+\paragraph{E3. Soft versus hard labels, and representation matching.}
+\emph{Hypotheses:} \cref{prop:rb}, \cref{heur:data}, \cref{prop:lastlayer,prop:precond,thm:overconstraint,prop:fisher-rep}.
+\emph{Protocol:} fixed student; supervision by full logits, top-$k$ logits ($k\in\{1,8,64\}$), or sampled tokens;
+token budgets over three orders of magnitude. Representation terms at depths $\{L/4,L/2,3L/4,L\}$: none,
+$\cR_{\mathrm{LS}}$, $\cR_{\mathrm{CKA}}$, or $\cR_{\mathrm F}$, with $K$ estimated by Hutchinson probes.
+\emph{Measure:} (a)~fitted data exponents $b$ in $\eoff^{\KL}\approx A+Bn^{-b}$. The prediction is
+$b_{\mathrm{soft}}>b_{\mathrm{top}k}>b_{\mathrm{hard}}$, with $b_{\mathrm{soft}}/b_{\mathrm{hard}}\approx\hat\alpha$.
+(b)~Per-step gradient variance for soft versus hard labels, against the predicted gap $\E_\nu\tr\mathcal I(s)$.
+(c)~The alignment score $a=\|P_{\mathrm{PCA}}U_F\|_F^2/d_\TS$ at each layer, and the over-constraint cost
+$\Delta\cA(\gamma)=\eoff^{\KL}(\gamma)-\eoff^{\KL}(0)$. Prediction: $\Delta\cA$ is decreasing in $a$, and $\approx0$ for $\cR_{\mathrm F}$.
+(d)~Steps to reach a target KL, against the condition-number ratio $\kappa_0/\kappa_\gamma$ of \cref{prop:precond}.
+(e)~Whether last-layer matching adds anything on top of full logits at high $\tau$. It should not.
+\emph{Falsifier:} benefits of $\cR_{\mathrm{LS}}$ under full-logit supervision that are uncorrelated with both
+conditioning and alignment would indicate a mechanism outside this theory.

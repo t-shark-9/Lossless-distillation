@@ -1,0 +1,64 @@
+% ===========================================================================
+\section{Deferred proofs}\label{app:proofs}
+% ===========================================================================
+
+\subsection{Proof of \cref{thm:mle} (horizon-free MLE bound)}\label{app:mle}
+
+Write $D_\Hel^2(P,Q)=\sum_y(\sqrt{P(y)}-\sqrt{Q(y)})^2=2\Hel^2(P,Q)$. For any $P,Q$ on $\cY$,
+\begin{equation}\label{eq:bc}
+\E_{y\sim P}\sqrt{Q(y)/P(y)}=\sum_y\sqrt{P(y)Q(y)}=1-\tfrac12D_\Hel^2(P,Q)\le\exp\!\big(-\tfrac12D_\Hel^2(P,Q)\big).
+\end{equation}
+Fix $\theta\in\Theta_\TS$ and let $Z_i(\theta)=\frac12\log\big(Q^{x_i}_\theta(y^{(i)})/P^{x_i}(y^{(i)})\big)$. The pairs
+$(x_i,y^{(i)})$ are i.i.d., so by \eqref{eq:bc} and Jensen,
+\[
+\E\exp\Big(\sum_iZ_i(\theta)\Big)=\Big(\E_{x\sim\cD}\big[1-\tfrac12D_\Hel^2(\Pseq,\Qseq)\big]\Big)^n\le\exp\Big(-\tfrac n2\E_xD_\Hel^2(\Pseq,\Qseq)\Big).
+\]
+Markov's inequality gives, for each $\theta$, with probability $\ge1-\delta/|\Theta_\TS|$,
+\[
+\sum_iZ_i(\theta)\le-\tfrac n2\E_xD_\Hel^2(\Pseq,\Qseq)+\log(|\Theta_\TS|/\delta).
+\]
+A union bound makes this hold for all $\theta$ simultaneously. By realisability and the definition of
+the MLE, $\sum_iZ_i(\htheta)\ge\sum_iZ_i(\theta^\circ)=0$. Hence
+$\E_xD_\Hel^2(\Pseq,Q^x_{\htheta})\le2\log(|\Theta_\TS|/\delta)/n$, that is,
+$\E_x\Hel^2\le\log(|\Theta_\TS|/\delta)/n$. Finally,
+$\TV\le\Hel\sqrt{2-\Hel^2}\le\sqrt2\,\Hel$ (\cref{prop:pinsker}), and Jensen gives
+$\E_x\TV\le\sqrt{2\E_x\Hel^2}$. The horizon $T$ never enters: $y$ is treated as a single symbol from $\cY$,
+and only $\log|\Theta_\TS|$ appears \citep{zhang2006epsilon,foster2024behavior}. \qed
+
+\subsection{Proof of the performance-difference identity (\cref{thm:pdl})}
+
+Let $V^p_t(s)=\E_{a\sim p_t(\cdot\mid s)}Q^p_t(s,a)$, with $V^p_{T+1}\equiv0$. Then
+$Q^p_t(s,a)=c_t(s,a)+\E[V^p_{t+1}(s_{t+1})\mid s_t=s,y_t=a]$, and the transition $s_{t+1}=(s,a)$ is the same
+under both policies. Along a student trajectory,
+\[
+\sum_{t=1}^Tc_t(s_t,y_t)-V^p_1(s_1)=\sum_{t=1}^T\big[c_t(s_t,y_t)+V^p_{t+1}(s_{t+1})-V^p_t(s_t)\big].
+\]
+Take expectations under $q_\theta$. The $t$-th summand has conditional expectation
+$\E_{a\sim q_t(\cdot\mid s_t)}Q^p_t(s_t,a)-V^p_t(s_t)$ given $s_t$. Moreover $\E V^p_1(s_1)=J_c(p)$, since
+$s_1=x\sim\cD$ under both policies. This yields the identity. For the bound, note that for $f$ with
+$\max f-\min f\le u$, $|\E_qf-\E_pf|\le u\,\TV(p,q)$. \qed
+
+\subsection{Reverse water-filling asymptotics (\cref{prop:powerlaw,prop:phase})}
+
+For a Gaussian vector with independent coordinates of variances $\lambda_i$ and squared-error distortion,
+the distortion--rate function is $D(R)=\sum_i\min(w,\lambda_i)$, with $w$ fixed by
+$\sum_i\frac12\log_+(\lambda_i/w)=R$ nats \citep[Thm.~10.3.3]{cover2006elements}. Take $\lambda_i=ci^{-\alpha}$, $\alpha>1$, and
+let $k=\max\{i:\lambda_i>w\}$, so that $w\in(\lambda_{k+1},\lambda_k]$. Then
+$R=\frac\alpha2\sum_{i\le k}\log\frac ki+\frac k2\log\frac{\lambda_k}w$. The last term lies in
+$[0,\frac k2\alpha\log(1+\frac1k))\subseteq[0,\frac\alpha2)$. By Stirling,
+$\sum_{i\le k}\log\frac ki=k-\frac12\log(2\pi k)+o(1)$. Hence $k=\frac{2R}\alpha(1+o(1))$. The distortion
+is $kw+\sum_{i>k}ci^{-\alpha}=ck^{1-\alpha}\big(1+\frac1{\alpha-1}\big)(1+o(1))$. Substituting $k$, and halving for the
+$\frac12\|\cdot\|^2$ form of the local KL, gives the constant in \cref{prop:powerlaw}. For a finite spectrum of length
+$k_\TT$, once $w<\lambda_{k_\TT}$ all components are active. Then
+$R=\frac12\sum_{i\le k_\TT}\log(\lambda_i/w)$ gives $w=(\prod_i\lambda_i)^{1/k_\TT}e^{-2R/k_\TT}$ and $D=k_\TT w$, which is
+\cref{prop:phase} after the change of units $R\mapsto R\ln2$ and halving. \qed
+
+\subsection{Numerical verification}
+
+The scripts in \texttt{verification/} check, by random search, exact enumeration or optimisation, every
+result marked \textsf{[numerically checked]}. \texttt{check\_divergences.py} covers
+\cref{prop:pinsker,prop:jsd,prop:local,prop:events,prop:grad,prop:convexity,prop:temperature} and \cref{lem:logratio}.
+\texttt{check\_sequences.py} enumerates a $V=3$, $T=4$ autoregressive pair and verifies
+\cref{thm:chain,prop:hybrid,thm:quadratic,thm:pdl,prop:exposure,prop:rb-reverse,prop:seq-grad}, the TV estimator, and the
+bias of the stop-gradient estimator. \texttt{check\_capacity.py} verifies
+\cref{prop:powerlaw,prop:phase,thm:bottleneck,cor:facts}. All checks pass.

@@ -1,0 +1,62 @@
+% ===========================================================================
+\section{Open mathematical problems}\label{sec:open}
+% ===========================================================================
+
+These are ordered by how much their solution would advance near-lossless distillation.
+
+\begin{enumerate}[leftmargin=*,label=\textbf{P\arabic*.}]
+\item \textbf{The functional information of trained teachers.} Characterise, or give computable bounds on,
+$I_\infty(\pi,\cD)$ from \cref{thm:capacity} for realistic priors, for example the distribution of networks
+produced by a training procedure. Is there a data-dependent estimator of the \emph{functional}
+description length of a single trained teacher, such as the minimal $R$ at which some $R$-bit student
+achieves $\eps$-losslessness, with matching upper and lower bounds? This is the quantity that decides
+whether lossless distillation is possible at all.
+
+\item \textbf{Horizon-free agnostic guarantees with tractable estimators.} PA-JSD is horizon-free at the
+population level (\cref{thm:sandwich}(iii)), but its gradient estimator has sequence-level score-function
+variance. Is there an objective that is simultaneously (a)~an exact sequence-level divergence, (b)~agnostically
+TV-competitive with a constant (not square-root) factor, and (c)~has a gradient estimator whose variance is
+bounded uniformly in $T$? For deterministic experts, \citet{foster2024behavior} suggest that log-loss
+behaviour cloning is already horizon-free; the stochastic, misspecified case is open.
+
+\item \textbf{The optimal agnostic exponent.} \Cref{prop:agnostic} gives $\TV(\htheta)=O(\sqrt{\mathrm{TV}^\star})$. Is
+the square root necessary for \emph{any} smooth, tractable surrogate? Equivalently, what is the best
+$\phi$ with $\TV(\argmin\mathsf D)\le\phi(\mathrm{TV}^\star)$ over divergences $\mathsf D$ that admit unbiased
+per-token gradients? A lower bound of the form $\phi(t)\gtrsim\sqrt t$ for all $f$-divergences with $f''(1)>0$ would be
+a clean impossibility result.
+
+\item \textbf{A first-principles distillation scaling law.} Prove \cref{conj:law}, or a corrected form, in a model
+rich enough to exhibit both the softmax bottleneck and depth. Examples are deep linear networks with a
+softmax read-out, or random-feature models with a power-law spectrum. The model should include the
+soft-versus-hard data exponents (\cref{heur:data}) and the finite-sample capacity gap (\cref{heur:gap}).
+Determine whether the transition to exponential decay (\cref{prop:phase}) survives realistic spectra.
+
+\item \textbf{Recoverability of language models.} Give conditions on the teacher under which the
+recoverability constant $u$ of \cref{thm:pdl} is $O(1)$, or bounded in expectation rather than in the worst case.
+Relate $u$ to measurable properties of the teacher, such as its value function under task rewards or the
+mixing of its induced Markov chain on prefixes. A distribution-dependent $u$ would turn the $O(uT\eon)$
+bound into a usable prediction.
+
+\item \textbf{Fixed points of stop-gradient on-policy distillation.} Characterise the fixed points of the
+DAgger-type map in \cref{prop:rb-reverse}. When do they coincide with minimisers of a sequence-level
+divergence? Is there a Lyapunov function? Under what conditions does the iteration converge for
+overparameterised students?
+
+\item \textbf{Representation matching in deep networks.} Extend \cref{thm:overconstraint,prop:fisher-rep} beyond the
+linear-Gaussian model. Is there a Fisher-aligned target, depending on $s$ through the Jacobian, whose
+constraint provably has zero approximation cost for a nonlinear teacher--student pair? Can one quantify
+sample-complexity and computational gains of intermediate supervision for transformer students, beyond
+parity-type separations?
+
+\item \textbf{Optimal input design for distillation.} The teacher can be queried anywhere. Which input
+distribution $\cD$, possibly adaptive, minimises the deployment risk under $\mu$ for a fixed query budget,
+given the covariate-shift terms of \cref{prop:covshift}? This is an active-learning or optimal-design problem
+with a known labelling function. Minimax rates for it are unknown in the sequence setting.
+
+\item \textbf{Decoding-level losslessness.} Beyond the margin condition of \cref{prop:margin}, give sharp
+bounds on the probability that greedy or beam-search outputs of teacher and student differ, in terms
+of per-token divergences and the teacher's margin distribution along its greedy paths. The analogous
+problem for speculative decoding, whose per-token acceptance probability is exactly $1-\TV$
+\citep{leviathan2023fast}, suggests
+that such bounds are within reach.
+\end{enumerate}

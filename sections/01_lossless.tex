@@ -1,0 +1,180 @@
+% ===========================================================================
+\section{Formalising ``lossless''}\label{sec:lossless}
+% ===========================================================================
+
+\subsection{Divergences, distillation risk and task-level excess risk}
+
+\begin{definition}[$f$-divergences used throughout]\label{def:fdiv}
+For convex $f:(0,\infty)\to\R$ with $f(1)=0$, set
+$D_f(P\|Q)=\sum_{y}Q(y)\,f\!\big(P(y)/Q(y)\big)$. We use the conventions $0f(0/0)=0$ and
+$Qf(P/0)=P\,f^*(0)$, where $f^*(0):=\lim_{u\to\infty}f(u)/u$. The instances we use are:
+\begin{center}\small
+\begin{tabular}{@{}llll@{}}
+\toprule
+divergence & $f(u)$ & $f''(1)$ & bounded?\\\midrule
+forward KL, $\KL(P\|Q)$ & $u\log u$ & $1$ & no\\
+reverse KL, $\KL(Q\|P)$ & $-\log u$ & $1$ & no\\
+total variation $\TV=\frac12\|P-Q\|_1$ & $\frac12|u-1|$ & -- & $\le1$\\
+Hellinger$^2$, $\Hel^2=\frac12\sum(\sqrt P-\sqrt Q)^2$ & $\frac12(\sqrt u-1)^2$ & $\frac14$ & $\le 1$\\
+$\chi^2(P\|Q)$ & $(u-1)^2$ & $2$ & no\\
+$\JSD_\beta(P\|Q)$ & $\beta u\log u-m\log m$, $m=\beta u+1-\beta$ & $\beta(1-\beta)$ & $\le h(\beta)$\\\bottomrule
+\end{tabular}
+\end{center}
+Here $\JSD_\beta(P\|Q):=\beta\,\KL(P\|M_\beta)+(1-\beta)\,\KL(Q\|M_\beta)$ with $M_\beta=\beta P+(1-\beta)Q$.
+This follows the convention of \citet{agarwal2024gkd}; $\beta=\frac12$ is the classical
+Jensen--Shannon divergence \citep{lin1991divergence}. Conventions differ between papers (some swap
+$\beta$ and $1-\beta$), so we fix this one. A direct computation gives
+$f_\beta''(u)=\beta(1-\beta)/(u\,m)>0$. The Rényi divergence of order $\alpha>1$ is
+$D_\alpha(P\|Q)=\frac{1}{\alpha-1}\log\sum_y P(y)^\alpha Q(y)^{1-\alpha}$ \citep{vanerven2014renyi}.
+\end{definition}
+
+\begin{definition}[Distillation risk; $(\eps,\mathsf D,\mu)$-lossless]\label{def:risk}
+For a divergence $\mathsf D$ on $\Delta(\cY)$ and an input law $\mu$, the \emph{sequence-level
+distillation risk} is
+$\cL_{\mathsf D}(\theta;\mu):=\E_{x\sim\mu}\,\mathsf D\big(\Pseq\,\|\,\Qseq\big)$.
+The student is \emph{$(\eps,\mathsf D,\mu)$-lossless} if $\cL_{\mathsf D}(\theta;\mu)\le\eps$.
+For a family of prefix laws $\nu=(\nu_t)_{t\le T}$, the \emph{token-level risk} is
+$\ell_{\mathsf D}(\theta;\nu):=\sum_{t=1}^T\E_{s\sim\nu_t}\mathsf D\big(p_t(\cdot\mid s)\|q_t(\cdot\mid s)\big)$.
+\end{definition}
+
+\begin{definition}[Task-level excess risk]\label{def:task}
+A task is a measurable reward $r:\cX\times\cY\to[0,1]$; a loss $\ell$ is handled as $r=1-\ell$.
+Its excess risk under sampling is
+$\Delta_r(\theta;\mu):=\E_{x\sim\mu}\big[\E_{y\sim\Pseq}r(x,y)-\E_{y\sim\Qseq}r(x,y)\big]$.
+For a class $\cR$ of tasks, $\Delta_{\cR}(\theta;\mu):=\sup_{r\in\cR}|\Delta_r(\theta;\mu)|$.
+\end{definition}
+
+\subsection{Relations between the definitions}
+
+\begin{proposition}[TV is the worst-case task regret]\label{prop:tv-task}
+\Pv
+\begin{enumerate}[label=(\alph*),nosep]
+\item $\sup_{r:\cX\times\cY\to[0,1]}\Delta_r(\theta;\mu)=\sup_{r}|\Delta_r(\theta;\mu)|=\E_{x\sim\mu}\TV(\Pseq,\Qseq)$.
+\item If the task sees $y$ only through a statistic $\phi(x,y)$, for example the final answer, so that
+$r=g(x,\phi(x,y))$, then
+$\sup_g|\Delta_r|=\E_{x\sim\mu}\TV(\phi_\#\Pseq,\phi_\#\Qseq)\le\E_{x\sim\mu}\TV(\Pseq,\Qseq)$.
+\item For each $x$, the minimum error probability of any test that tells, from one draw, whether the
+draw came from $\Pseq$ or from $\Qseq$ (equal priors) is $\frac12\big(1-\TV(\Pseq,\Qseq)\big)$.
+\end{enumerate}
+\end{proposition}
+\begin{proof}
+(a) For fixed $x$, $\sum_y r(x,y)(\Pseq(y)-\Qseq(y))\le\sum_y(\Pseq(y)-\Qseq(y))_+=\TV$, with equality at
+$r=\ind\{\Pseq>\Qseq\}$. This pointwise maximiser is measurable because $\cX\times\cY$ is countable.
+Taking $1-r$ covers the absolute value. Integrate over $x\sim\mu$.
+(b) Apply (a) to the push-forward laws, then use data processing for $\TV$.
+(c) This is Le Cam's two-point identity: the Bayes test is $\ind\{\Pseq>\Qseq\}$.
+\end{proof}
+
+\begin{proposition}[Pinsker, Bretagnolle--Huber, Hellinger]\label{prop:pinsker}
+\Kn For any $P,Q$ and $\mathsf K\in\{\KL(P\|Q),\KL(Q\|P)\}$:
+(i)~$\TV\le\sqrt{\mathsf K/2}$ \citep{pinsker1964information,tsybakov2009introduction};
+(ii)~$\TV\le\sqrt{1-e^{-\mathsf K}}$ \citep{bretagnolle1979estimation}, which is the informative bound when
+$\mathsf K>2$;
+(iii)~$\Hel^2\le\TV\le\Hel\sqrt{2-\Hel^2}$;
+(iv)~$\mathsf K\ge-2\log(1-\Hel^2)\ge2\Hel^2$.
+\end{proposition}
+\begin{proof}[Proof of (iv)]
+By Jensen, $\KL(P\|Q)=-2\,\E_P\log\sqrt{Q/P}\ge-2\log\E_P\sqrt{Q/P}=-2\log(1-\Hel^2)$. The same argument
+applies with $P$ and $Q$ exchanged. The other parts are textbook; see \citet[Lemmas~2.3--2.6]{tsybakov2009introduction}.
+\end{proof}
+
+\begin{lemma}[$f$-divergences are at most linear in TV]\label{lem:vajda}
+\Pv For convex $f$ with $f(1)=0$, $D_f(P\|Q)\le\big(f(0)+f^*(0)\big)\,\TV(P,Q)$.
+\end{lemma}
+\begin{proof}
+Write $u=P/Q$. On $[0,1]$, convexity gives $f(u)\le(1-u)f(0)+uf(1)=(1-u)f(0)$. For $u>1$ the slope
+$(f(u)-f(1))/(u-1)$ is non-decreasing in $u$ and tends to $f^*(0)$, so $f(u)\le(u-1)f^*(0)$. Hence
+$D_f\le f(0)\sum_y(Q-P)_++f^*(0)\sum_y(P-Q)_+=(f(0)+f^*(0))\TV$. This is classical; see
+\citet{sason2016fdivergence}.
+\end{proof}
+
+\begin{proposition}[Properties of $\JSD_\beta$]\label{prop:jsd}
+\Pv\Ck For all $P,Q$ and $\beta\in(0,1)$:
+\begin{enumerate}[label=(\roman*),nosep]
+\item $2\beta(1-\beta)\,\TV^2\le\JSD_\beta(P\|Q)\le h(\beta)\,\TV\le h(\beta)$;
+\item $\JSD_\beta(P\|Q)\le\beta(1-\beta)\big[\KL(P\|Q)+\KL(Q\|P)\big]$;
+\item if $\operatorname{supp}P=\operatorname{supp}Q$ is finite, then
+$\JSD_\beta/\beta\to\KL(P\|Q)$ as $\beta\to0$ and $\JSD_\beta/(1-\beta)\to\KL(Q\|P)$ as $\beta\to1$.
+\end{enumerate}
+\end{proposition}
+\begin{proof}
+(i) Since $\TV(P,M_\beta)=(1-\beta)\TV(P,Q)$ and $\TV(Q,M_\beta)=\beta\,\TV(P,Q)$, Pinsker applied to each
+term gives $\JSD_\beta\ge2\beta(1-\beta)^2\TV^2+2(1-\beta)\beta^2\TV^2$. For the upper bound, apply
+\cref{lem:vajda} with $f_\beta(0)=(1-\beta)\log\frac1{1-\beta}$ and
+$f_\beta^*(0)=\lim_u[\beta\log u-\beta\log(\beta u)]=\beta\log\frac1\beta$, whose sum is $h(\beta)$.
+(ii) KL is convex in its second argument, so $\KL(P\|\beta P+(1-\beta)Q)\le(1-\beta)\KL(P\|Q)$ and
+$\KL(Q\|M_\beta)\le\beta\,\KL(Q\|P)$.
+(iii) As $\beta\to0$, $M_\beta\to Q$, so $\KL(P\|M_\beta)\to\KL(P\|Q)$. Also
+$\KL(Q\|Q+\beta(P-Q))=\frac{\beta^2}2\chi^2(P\|Q)+O(\beta^3)$ on a finite common support. Hence
+$\JSD_\beta=\beta\KL(P\|Q)+O(\beta^2)$. The case $\beta\to1$ is symmetric.
+\end{proof}
+
+\begin{proposition}[No global comparison; local equivalence]\label{prop:local}
+\Pv\Ck
+\begin{enumerate}[label=(\roman*),nosep]
+\item Forward and reverse KL are not comparable in general. For $P=\mathrm{Bern}(\delta)$ and
+$Q=\mathrm{Bern}(0)$, $\KL(P\|Q)=\infty$ while $\KL(Q\|P)=\log\frac1{1-\delta}\to0$. Exchanging the
+roles gives the opposite.
+\item Suppose $a\le P(y)/Q(y)\le b$ for all $y$ (necessarily $a\le1\le b$). For every twice
+differentiable $f$ with $f(1)=0$,
+\[
+\tfrac12\inf_{[a,b]}f''\cdot\chi^2(P\|Q)\;\le\;D_f(P\|Q)\;\le\;\tfrac12\sup_{[a,b]}f''\cdot\chi^2(P\|Q).
+\]
+In particular $\frac{\chi^2}{2b}\le\KL(P\|Q)\le\frac{\chi^2}{2a}$ and
+$\frac{\chi^2}{2b^2}\le\KL(Q\|P)\le\frac{\chi^2}{2a^2}$. Hence $\KL(P\|Q)\le\frac{b^2}{a}\KL(Q\|P)$ and
+$\KL(Q\|P)\le\frac{b}{a^2}\KL(P\|Q)$. Also $\JSD_\beta=\frac{\beta(1-\beta)}2\chi^2(1+O(b-a))$.
+\end{enumerate}
+\end{proposition}
+\begin{proof}
+(ii) Replacing $f$ by $\tilde f(u)=f(u)-f'(1)(u-1)$ leaves $D_f$ unchanged, because $\sum_yQ(u-1)=0$.
+Taylor's theorem gives $\tilde f(u)=\frac12f''(\xi_u)(u-1)^2$ with $\xi_u\in[a,b]$. Multiply by $Q$ and sum.
+For forward KL, $f''(u)=1/u$; for reverse KL, written as $D_{-\log}(P\|Q)$, $f''(u)=1/u^2$.
+\end{proof}
+
+\begin{remark}[What \cref{prop:local} means for ``near-lossless'']\label{rem:local}
+In the near-lossless regime with bounded likelihood ratios, every smooth $f$-divergence equals
+$\frac12f''(1)\chi^2$ to leading order. So forward KL, reverse KL and $\JSD_\beta$ (rescaled by
+$\beta(1-\beta)$) \emph{agree} when the student is nearly lossless. The choice of divergence matters
+only (a)~in the lossy, capacity-limited regime, (b)~through tails and support mismatch, where likelihood
+ratios are unbounded, and (c)~through \emph{which prefix law} the per-token divergence is averaged over
+(\cref{sec:chain}).
+\end{remark}
+
+\begin{proposition}[Coverage versus precision: event bounds]\label{prop:events}
+\Pv\Ck For every event $A\subseteq\cY$:
+\begin{enumerate}[label=(\roman*),nosep]
+\item (coverage) $P(A)\le\dfrac{\KL(P\|Q)+\log2}{\log(1/Q(A))}$;
+\item (precision) $Q(A)\le\dfrac{\KL(Q\|P)+\log2}{\log(1/P(A))}$;
+\item (Rényi, $\alpha>1$) $Q(A)\le\big(e^{D_\alpha(Q\|P)}P(A)\big)^{(\alpha-1)/\alpha}$;
+\item (additive) $|P(A)-Q(A)|\le\TV(P,Q)$.
+\end{enumerate}
+\end{proposition}
+\begin{proof}
+(ii) By data processing onto $\{A,A^c\}$, $\KL(Q\|P)\ge\mathrm{kl}(Q(A)\|P(A))$, and
+$\mathrm{kl}(a\|b)\ge a\log\frac1b-h(a)\ge a\log\frac1b-\log2$. Part (i) is (ii) with the roles
+exchanged. (iii) By Hölder with exponents $\alpha$ and $\alpha/(\alpha-1)$,
+$Q(A)=\sum_AP\,(Q/P)\le P(A)^{(\alpha-1)/\alpha}\big(\sum_yP(Q/P)^\alpha\big)^{1/\alpha}$, and
+$\sum_yP(Q/P)^\alpha=e^{(\alpha-1)D_\alpha(Q\|P)}$ \citep[Prop.~10]{mironov2017renyi}.
+(iv) is the definition of TV.
+\end{proof}
+\noindent
+Forward KL guarantees \emph{coverage}: the student cannot give negligible probability to events the
+teacher finds likely. Reverse KL, and Rényi divergences of $Q$ from $P$, guarantee \emph{precision}: the
+student cannot put appreciable mass on events the teacher considers essentially impossible (for example
+hallucinated or unsafe continuations). TV controls neither multiplicatively. A student at
+$\TV=10^{-2}$ may emit a teacher-impossible output with probability $10^{-2}$, which is invisible to TV
+but catastrophic at deployment scale.
+
+\begin{proposition}[Greedy decoding needs margins]\label{prop:margin}
+\Pv Let $a^\star(s)=\argmax_a p(a\mid s)$ have margin
+$\gamma(s)=p(a^\star\mid s)-\max_{a\ne a^\star}p(a\mid s)$. If $\TV(p_t(\cdot\mid s),q_t(\cdot\mid s))<\gamma(s)/2$
+at every state $s$ on the teacher's greedy path from $x$, then the student's greedy decoding of $x$
+equals the teacher's. The constant is tight: moving mass $\gamma/2$ from $a^\star$ to the runner-up
+creates a tie.
+\end{proposition}
+\begin{proof}
+$|p(a\mid s)-q(a\mid s)|\le\TV$ for every $a$, so
+$q(a^\star\mid s)-q(a\mid s)\ge\gamma(s)-2\TV>0$. Induct along the path.
+\end{proof}
+
+\input{sections/01b_lossless}

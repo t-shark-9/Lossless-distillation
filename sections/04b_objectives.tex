@@ -1,0 +1,176 @@
+\subsection{Sequence-level objectives and unbiased gradient estimators}
+
+\begin{proposition}[Sequence-level $f$-divergence gradients]\label{prop:seq-grad}
+\Pv\Ck For sequence laws $P$ and $Q_\theta$,
+$\nabla_\theta D_f(P\|Q_\theta)=\E_{y\sim Q_\theta}\big[\nabla_\theta\log Q_\theta(y)\,\psi_f\big(P(y)/Q_\theta(y)\big)\big]$.
+This gives
+$\nabla\KL(Q_\theta\|P)=\E_{Q_\theta}[\nabla\log Q_\theta\cdot\log\frac{Q_\theta}P]$,
+$\nabla\JSD_\beta(P\|Q_\theta)=(1-\beta)\E_{Q_\theta}[\nabla\log Q_\theta\cdot\log\frac{Q_\theta}{M_\beta}]$ with $M_\beta$
+held fixed inside the logarithm, and $\nabla\KL(P\|Q_\theta)=-\E_P[\nabla\log Q_\theta]$ (off-policy).
+\end{proposition}
+\begin{proof}
+$\nabla D_f=\sum_y\nabla Q_\theta(y)\,\partial_{Q(y)}D_f$ with $\partial_{Q(y)}D_f=\psi_f(u_y)$ as in \cref{prop:grad}.
+Constants integrate to zero against $\nabla Q_\theta$. The divergence-minimisation view of imitation
+learning is developed by \citet{ghasemipour2019divergence} and \citet{ke2020imitation}, and for sequence-level
+distillation by \citet{wen2023fdivergence}.
+\end{proof}
+
+\begin{proposition}[Rao--Blackwellised unbiased estimator for sequence-level reverse KL]\label{prop:rb-reverse}
+\Pv\Ck Let $y\sim Q^x_\theta$, $g_t(s):=\KL(q_\theta(\cdot\mid s)\|p(\cdot\mid s))$, and let $b_t$ be any function of $s_t$
+(a baseline). Then
+\[
+\hat g=\sum_{t=1}^T\Big[\nabla_\theta g_t(s_t)\big|_{s_t\ \text{fixed}}+\nabla_\theta\log q_\theta(y_t\mid s_t)\Big(\sum_{k>t}g_k(s_k)-b_t(s_t)\Big)\Big]
+\]
+satisfies $\E\hat g=\nabla_\theta\KL(Q^x_\theta\|\Pseq)$. The ``stop-gradient'' estimator that keeps only the first
+term is \emph{biased}. Its bias is $-\sum_t\E[\nabla\log q_\theta(y_t\mid s_t)\sum_{k>t}g_k(s_k)]$, the effect of the
+student's actions on its own future prefixes. Under \cref{as:real} both estimators vanish in expectation
+at $\theta^\circ$. In general the stop-gradient fixed points are those of the DAgger-type map
+$\theta\mapsto\argmin_{\theta'}\sum_t\E_{\dstud t}\KL(q_{\theta'}\|p)$, not stationary points of the sequence-level KL.
+\end{proposition}
+\begin{proof}
+$F(\theta)=\sum_t\E_{s\sim\dstud t}g_t(\theta;s)$ by \cref{thm:chain}. Differentiating gives a direct term and a
+score term through $\dstud t$:
+$\sum_t\E[(\sum_{k<t}\nabla\log q(y_k\mid s_k))g_t(s_t)]=\sum_k\E[\nabla\log q(y_k\mid s_k)\sum_{t>k}g_t(s_t)]$.
+Replacing the sampled per-token log-ratios by $g_k$ is exact by the tower property, since
+$\E[\log\frac{q}{p}(y_k\mid s_k)\mid s_k]=g_k(s_k)$, and $s_k$ contains $y_t$ for $k>t$. Baselines are unbiased
+because $\E[\nabla\log q(y_t\mid s_t)\mid s_t]=0$. The analytic per-token term is itself the
+Rao--Blackwellisation of $\nabla\log q(y_t\mid s_t)\log\frac q p(y_t\mid s_t)$.
+\citet{gu2024minillm} use a policy gradient for this objective (with further variance-reduction
+devices). \citet{agarwal2024gkd} do not differentiate through the student's sampling; we believe this is
+their stated choice, but we have not re-verified the exact wording.
+\end{proof}
+
+\begin{proposition}[Sequence-level $\JSD_\beta$ decomposes with prefix-adaptive mixtures]\label{prop:pajsd}
+\Pv The mixture $M_\beta=\beta P+(1-\beta)Q_\theta$ is autoregressive, with conditionals
+\[
+m_t(\cdot\mid s)=w_t(s)\,p_t(\cdot\mid s)+(1-w_t(s))\,q_t(\cdot\mid s),\qquad
+w_t(s)=\sigma\Big(\log\tfrac\beta{1-\beta}+\log P(s)-\log Q_\theta(s)\Big),
+\]
+where $P(s)=\prod_{k<t}p(y_k\mid s_k)$ and $Q_\theta(s)$ are prefix probabilities. Consequently
+\[
+\JSD_\beta(\Pseq\|\Qseq)=\beta\sum_{t=1}^T\E_{s\sim\Pseq}\KL\big(p_t(s)\,\|\,m_t(s)\big)+(1-\beta)\sum_{t=1}^T\E_{s\sim\Qseq}\KL\big(q_t(s)\,\|\,m_t(s)\big).
+\]
+The token-level $\JSD_\beta$ of \citet{agarwal2024gkd} is the case $w_t\equiv\beta$. It coincides with the
+sequence-level divergence on prefixes with $P(s)=Q_\theta(s)$, so it is its \emph{near-lossless linearisation}.
+Because $\log P(s_t)-\log Q_\theta(s_t)$ is a sum of $t-1$ per-token log-ratios, the two diverge along long
+prefixes unless the student is already nearly lossless there.
+\end{proposition}
+\begin{proof}
+$M_\beta(y_{\le t})=\beta P(y_{\le t})+(1-\beta)Q_\theta(y_{\le t})$. Dividing by $M_\beta(y_{<t})$ gives $m_t$. Now
+apply the chain rule (\cref{thm:chain}), which holds for any pair of autoregressive laws, to $\KL(P\|M_\beta)$
+and to $\KL(Q_\theta\|M_\beta)$.
+\end{proof}
+
+\begin{proposition}[Unbiased per-token estimator for sequence-level $\JSD_\beta$]\label{prop:jsd-est}
+\Pv Let $y\sim\Qseq$, let $\rho_t(a;s):=\log\frac{q_t(a\mid s)}{m_t(a\mid s)}$ be evaluated with \emph{stop-gradient}
+on $m_t$ and $w_t$, and let $b_t$ be any function of $s_t$. Then
+\begin{multline*}
+\hat g_{\JSD}=(1-\beta)\sum_{t=1}^T\Big[\sum_{a\in\cV}\nabla_\theta q_\theta(a\mid s_t)\,\rho_t(a;s_t)\\
++\nabla_\theta\log q_\theta(y_t\mid s_t)\Big(\sum_{k>t}\KL\big(q_k(s_k)\|m_k(s_k)\big)-b_t(s_t)\Big)\Big]
+\end{multline*}
+is unbiased for $\nabla_\theta\JSD_\beta(\Pseq\|\Qseq)$. It uses student samples only. The teacher enters through $m_t$.
+\end{proposition}
+\begin{proof}
+By \cref{prop:seq-grad} and \cref{prop:pajsd},
+$\nabla\JSD_\beta=(1-\beta)\E_Q[\sum_t\nabla\log q(y_t\mid s_t)\sum_k\rho_k(y_k;s_k)]$. Terms with $k<t$ vanish, because
+$\rho_k$ is $s_t$-measurable. The $k=t$ term is replaced by its conditional expectation over $y_t$, and
+$k>t$ terms by $\E[\rho_k\mid s_k]=\KL(q_k\|m_k)$. Baselines are unbiased as before.
+\end{proof}
+
+\subsection{Bounded divergences are agnostically TV-competitive; KL is not}
+
+\begin{proposition}[Agnostic TV-competitiveness]\label{prop:agnostic}
+\Pv
+\begin{enumerate}[label=(\alph*),nosep]
+\item For any student class, every $\theta_\beta\in\argmin_\theta\E_x\JSD_\beta(\Pseq\|\Qseq)$ satisfies
+\[
+\E_x\TV(\Pseq,Q^x_{\theta_\beta})\le\sqrt{\frac{h(\beta)}{2\beta(1-\beta)}\;\inf_\theta\E_x\TV(\Pseq,\Qseq)} .
+\]
+The constant is minimised at $\beta=\frac12$, giving $\sqrt{2\ln2\cdot\mathrm{TV}^\star}\approx1.18\sqrt{\mathrm{TV}^\star}$.
+\item No bound of the form $\TV(\theta_{\KL})\le\phi(\inf_\theta\TV)$ with $\phi(0^+)=0$ holds for either KL
+direction. Let $P=(1-\eta)\delta_a+\eta\delta_b$.
+\emph{Forward:} for the class $\{\delta_a,\mathrm{Unif}(\cV)\}$, the KL minimiser is the uniform law, with
+$\TV\ge1-\eta-\frac1V$, while $\inf\TV=\eta$.
+\emph{Reverse:} for the class $\{(1-\eta')\delta_a+\eta'\delta_c,\ \delta_b\}$ with $c\notin\operatorname{supp}P$, the
+reverse-KL minimiser is $\delta_b$ (value $\log\frac1\eta$), with $\TV=1-\eta$, while $\inf\TV\le\eta+\eta'$.
+\end{enumerate}
+\end{proposition}
+\begin{proof}
+(a) Let $\theta_\TV$ attain (or approach) $\inf\E\TV$. Using \cref{prop:jsd}(i) twice and Jensen,
+\[
+\E\TV(\theta_\beta)\le\sqrt{\frac{\E\JSD_\beta(\theta_\beta)}{2\beta(1-\beta)}}\le\sqrt{\frac{\E\JSD_\beta(\theta_\TV)}{2\beta(1-\beta)}}\le\sqrt{\frac{h(\beta)\,\E\TV(\theta_\TV)}{2\beta(1-\beta)}}.
+\]
+The function $h(\beta)/\beta(1-\beta)$ is symmetric about $\frac12$ and is minimised there (direct check).
+(b) Direct computation. $\KL(P\|\delta_a)=\infty$, and $\KL(\cdot\|P)=\infty$ for any law charging $c$.
+\end{proof}
+
+\noindent
+\Cref{prop:agnostic} is the formal reason to prefer a bounded divergence when the student is
+capacity-limited. KL-based objectives can place their unavoidable error where TV, and hence every bounded
+downstream task, is maximally hurt.
+
+\subsection{Proposed objective}\label{sec:proposal}
+
+\begin{definition}[Prefix-adaptive sequence-level JSD distillation, PA-JSD]\label{def:pajsd}
+\[
+\cJ_\beta(\theta):=\E_{x\sim\cD}\JSD_\beta\big(\Pseq\,\|\,\Qseq\big),\qquad\beta=\tfrac12\text{ by default},
+\]
+computed through the exact decomposition of \cref{prop:pajsd}. The first sum is estimated on
+teacher-sampled prefixes with the teacher's soft labels. The second is estimated on student roll-outs.
+Gradients use \cref{prop:jsd-est}, optionally plus the pathwise gradient of the teacher-prefix term.
+Optionally add $\gamma\,\cR_{\mathrm{F}}$, the Fisher-aligned representation term of \cref{def:fisher-rep}.
+\end{definition}
+
+\begin{theorem}[Properties of PA-JSD]\label{thm:pajsd}
+\Pv (except where marked)
+\begin{enumerate}[label=(\roman*),nosep]
+\item \emph{Exactness (no exposure bias).} $\cJ_\beta$ is a sequence-level divergence, and its per-token form
+is an identity (\cref{prop:pajsd}). With $\cE=\E\JSD_\beta$, \cref{thm:master} holds with
+$\cE_{\mathrm{shift}}\equiv0$.
+\item \emph{Behavioural control.} $\E_\cD\TV(P,Q_\theta)\le\sqrt{\cJ_\beta(\theta)/(2\beta(1-\beta))}$. Under
+input shift, $\E_\mu\JSD_\beta\le\cJ_\beta+h(\beta)\TV(\mu,\cD)$; no density-ratio assumption is needed.
+\item \emph{Agnostic competitiveness.} The population minimiser is TV-competitive (\cref{prop:agnostic}).
+\item \emph{Fisher consistency.} $\cJ_\beta(\theta)=0$ iff $\Qseq=\Pseq$ for $\cD$-a.e.\ $x$. Under \cref{as:real},
+the minimisers are exactly the lossless students.
+\item \emph{No loss in the near-lossless regime.} If $a\le\Pseq/\Qseq\le b$, then
+$\cJ_\beta=\frac{\beta(1-\beta)}2\E\chi^2(1+O(b-a))=\beta(1-\beta)\,\E\KL(P\|Q_\theta)(1+O(b-a))$.
+\item \emph{Unbiased, Rao--Blackwellised gradients} (\cref{prop:jsd-est}).
+\item \emph{Horizon-free estimation} \Pa{\cref{as:finite}}. Per-prompt values lie in $[0,h(\beta)]$.
+If the per-prompt divergences are evaluated exactly, then with probability $\ge1-\delta$ the empirical
+objective deviates uniformly by at most $h(\beta)\sqrt{(R\ln2+\log(2/\delta))/(2n)}$, with no factor $T$.
+Compare the factor $TB$ in \cref{thm:unif}.
+\end{enumerate}
+\end{theorem}
+\begin{proof}
+(i) \cref{prop:pajsd}. (ii) \cref{prop:jsd}(i) with Jensen, and \cref{prop:covshift} with $G=h(\beta)$.
+(iii) \cref{prop:agnostic}. (iv) $\JSD_\beta\ge2\beta(1-\beta)\TV^2$. (v) \cref{prop:local}(ii) applied to
+sequence laws, and $f_\beta''(1)=\beta(1-\beta)$. (vi) \cref{prop:jsd-est}. (vii) Hoeffding for $[0,h(\beta)]$-valued
+losses and a union bound over $2^R$ students.
+\end{proof}
+
+\begin{remark}[Why this targets the dominant term]
+By \cref{heur:dominant}, the dominant term under capacity limits is approximation error as seen by the
+deployment criterion. PA-JSD attacks all three ways that term is inflated. Exactness removes its
+amplification by prefix shift. Agnostic competitiveness prevents its misallocation. Boundedness makes
+the estimation and covariate-shift terms horizon-free and additive. In the near-lossless regime it
+reduces to KL up to the constant $\beta(1-\beta)$, so nothing is lost when losslessness is reachable. The
+price is on-policy sampling and the variance of a sequence-level score function. The saturation
+$w_t\in\{0,1\}$ on prefixes that are already distinguishable limits the effective horizon of that
+variance, but does not remove it.
+\end{remark}
+
+\begin{proposition}[Likelihood-critical alternative: skew-Jeffreys]\label{prop:sj}
+\Pv Let $\cJ^{\mathrm{SJ}}_\lambda(\theta):=(1-\lambda)\sum_t\E_{\dteach t}\KL(p_t\|q_t)+\lambda\sum_t\E_{\dstud t}\KL(q_t\|p_t)$. It is
+estimated by off-policy soft-label forward KL plus on-policy reverse KL (\cref{prop:rb-reverse}). Then
+$\cJ^{\mathrm{SJ}}_\lambda=\E[(1-\lambda)\KL(P\|Q_\theta)+\lambda\KL(Q_\theta\|P)]$ exactly, and
+$\E\TV\le\sqrt{\cJ^{\mathrm{SJ}}_\lambda/2}$. The log-loss regret is at most $\cJ^{\mathrm{SJ}}_\lambda/(1-\lambda)$.
+Both event bounds of \cref{prop:events} hold with $\KL$ replaced by $\cJ^{\mathrm{SJ}}_\lambda/(1-\lambda)$
+(coverage) and $\cJ^{\mathrm{SJ}}_\lambda/\lambda$ (precision), per input. It is not agnostically
+TV-competitive (\cref{prop:agnostic}(b)).
+\end{proposition}
+\noindent
+\textbf{Recommendation.} If two-sided losslessness is within reach, the two objectives agree to second
+order (\cref{prop:local}), and skew-Jeffreys additionally \emph{certifies} likelihood-level guarantees.
+If the student is capacity-limited, use PA-JSD to allocate its error where the deployment criterion is
+least hurt. A natural schedule is PA-JSD to convergence followed by a skew-Jeffreys fine-tune, monitoring
+both sequence-level quantities (\cref{sec:experiments}).

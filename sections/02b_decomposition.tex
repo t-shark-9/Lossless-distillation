@@ -1,0 +1,162 @@
+\subsection{Optimisation error}\label{sec:optimisation}
+
+\begin{proposition}[Curvature in logit space]\label{prop:convexity}
+\Pv\Ck
+\begin{enumerate}[label=(\roman*),nosep]
+\item $z\mapsto\KL(p\|\softmax z)$ is convex. Its Hessian satisfies
+$0\preceq\diag(q)-qq^\top\preceq\frac12C$ \citep{bohning1992multinomial}, so it is $\frac12$-smooth.
+\item $z\mapsto\KL(\softmax z\|p)$ is not convex. With $V=2$, $f(z)=\KL(\sigma(z)\|\mathrm{Bern}(p))$ has
+$f''(z)=\sigma'(z)\,[1+(1-2\sigma(z))(z-z_p)]$ with $z_p=\operatorname{logit}p$, which is negative whenever
+$(2\sigma(z)-1)(z-z_p)>1$. For example $p=0.3$, $z=z_p+3$.
+\item For $\beta$ close to $1$, $z\mapsto\JSD_\beta(p\|\softmax z)$ is not convex: $\JSD_\beta/(1-\beta)\to\KL(q\|p)$
+with its second derivatives, uniformly on compacts.
+\end{enumerate}
+Consequently, for any student whose logits are linear in $\theta$ (for example, training only the
+read-out of \cref{as:linear}), off-policy forward-KL distillation is a convex problem. Reverse-KL and
+$\JSD_\beta$ objectives can have plateaus and spurious stationary points even then.
+\end{proposition}
+\begin{proof}
+(i) The Hessian of $\mathrm{lse}$ is $\diag(q)-qq^\top$; Böhning's bound gives the smoothness constant.
+(ii) $f'(z)=\sigma(z)(1-\sigma(z))(z-z_p)$, because $\log\frac{q}{1-q}=z$; differentiate once more.
+(iii) follows from \cref{prop:jsd}(iii) and dominated convergence for the derivatives.
+\end{proof}
+
+\begin{theorem}[Stochastic optimisation]\label{thm:sgd}
+\Kn Under \cref{as:opt}, SGD with a tuned constant step size satisfies
+$\min_{k<K}\E\|\nabla F(\theta_k)\|^2\lesssim\frac{L\Delta}K+\sigma\sqrt{\frac{L\Delta}K}$ with
+$\Delta=F(\theta_0)-\inf F$ \citep{ghadimi2013stochastic}. If $F$ is convex (\cref{prop:convexity}), then
+$\E F(\bar\theta_K)-\min F\lesssim\frac{L\|\theta_0-\theta^\star\|^2}K+\frac{\sigma\|\theta_0-\theta^\star\|}{\sqrt K}$.
+In both cases $\sigma^2$ enters, so the Rao--Blackwell gap of \cref{prop:rb} translates directly into
+lower optimisation error at fixed compute.
+\end{theorem}
+\begin{remark}
+No non-convex guarantee beyond stationarity is available for deep students. Empirically, optimisation
+is often the binding constraint on fidelity. \citet{stanton2021does} find that students frequently fail to
+match their teachers even when they have the capacity to do so. \citet{beyer2022knowledge} find that long,
+``patient and consistent'' schedules are needed. We treat $\cE_{\mathrm{opt}}$ as measurable
+(\cref{sec:experiments}), not as provably small.
+\end{remark}
+
+\subsection{Distribution shift and exposure bias}\label{sec:shift}
+
+Let $c_t:\cS_t\times\cV\to[0,1]$ be per-step costs and $J_c(\pi):=\E_{x\sim\cD}\E_{y\sim\pi}\sum_{t=1}^Tc_t(s_t,y_t)$.
+Let $r:\cX\times\cY\to[0,1]$ be a terminal reward and $J_r(\pi):=\E\,r(x,y)$. The teacher's cost-to-go is
+$Q^p_t(s,a):=c_t(s,a)+\E_p[\sum_{k>t}c_k\mid s_t=s,y_t=a]$, and its \emph{recoverability constant} is
+\[
+u:=\max_t\sup_s\big[\max_aQ^p_t(s,a)-\min_aQ^p_t(s,a)\big]\in[0,T].
+\]
+
+\begin{theorem}[Terminal rewards: linear in $T$]\label{thm:terminal}
+\Pv $|J_r(p)-J_r(q_\theta)|\le\E_\cD\TV(P,Q_\theta)\le T\min\{\eoff^{\TV},\eon^{\TV}\}$. Also
+$|J_r(p)-J_r(q_\theta)|\le\sqrt{T\eoff^{\KL}/2}$.
+\end{theorem}
+\begin{proof}
+\cref{prop:tv-task,prop:hybrid,cor:seq-tv}.
+\end{proof}
+
+\begin{theorem}[Cumulative costs, off-policy: quadratic, and tight]\label{thm:quadratic}
+\Pv\Ck
+\[
+|J_c(p)-J_c(q_\theta)|\le\sum_{t=1}^T(T-t+1)\,e^{\mathrm{off},\TV}_t\le T^2\eoff^{\TV}.
+\]
+The order is attained. Take a deterministic teacher emitting $a^\star$ in every ``on-track'' state. Let
+every deviation lead to absorbing off-track states that cost $1$ per step. Let the student deviate with
+probability $\eps$ on track. Then $\eoff^{\TV}=\eps$ and
+$J_c(q_\theta)-J_c(p)=\sum_{t=1}^T[1-(1-\eps)^t]=\eps\frac{T(T+1)}2(1+O(\eps T))$.
+\end{theorem}
+\begin{proof}
+$|\E_pc_t-\E_{q}c_t|\le\TV$ between the laws of $y_{\le t}$, which is at most
+$\sum_{k\le t}e^{\mathrm{off},\TV}_k$ by the hybrid argument (\cref{prop:hybrid}) applied to the first $t$
+tokens. Sum over $t$. In the example, the student is on track at step $t$ with probability $(1-\eps)^{t-1}$.
+\end{proof}
+
+\begin{theorem}[On-policy: linear with recoverability]\label{thm:pdl}
+\Pv\Ck The performance-difference identity \citep{kakade2002approximately} holds:
+\[
+J_c(q_\theta)-J_c(p)=\sum_{t=1}^T\E_{s\sim\dstud t}\Big[\E_{a\sim q_t(\cdot\mid s)}Q^p_t(s,a)-V^p_t(s)\Big],\qquad V^p_t(s):=\E_{a\sim p_t(\cdot\mid s)}Q^p_t(s,a).
+\]
+Hence $|J_c(q_\theta)-J_c(p)|\le u\,T\,\eon^{\TV}$ and, by Pinsker per token and Jensen,
+$|J_c(q_\theta)-J_c(p)|\le u\,T\sqrt{\eon^{\mathrm{rKL}}/2}$.
+\end{theorem}
+\begin{proof}
+Telescope $V^p_t(s):=\E_{a\sim p}Q^p_t(s,a)$ along the student's trajectory. For any $f$ with range at most
+$u$, $|\E_qf-\E_pf|\le u\,\TV(p,q)$.
+\end{proof}
+\begin{remark}[What on-policy training buys]\label{rem:onpolicy}
+\cref{thm:quadratic,thm:pdl} are the distillation versions of \citet{ross2010efficient} and
+\citet{ross2011reduction}. On-policy training replaces $T^2\eoff$ by $uT\eon$. It removes compounding
+only if (a)~the teacher is \emph{recoverable} ($u=O(1)$), and (b)~training actually makes $\eon$ small,
+which DAgger-type no-regret arguments deliver relative to the best student \emph{on its own state
+distribution}. In the non-recoverable cliff of \cref{thm:quadratic}, $u=T$, and no training distribution
+avoids $\Theta(T^2\eps)$. For language models, $u$ is the worst-case cost of one bad token followed by
+the teacher taking over. It is small for fluency-type costs and can be $\Theta(T)$ for commitments such
+as a wrong early step in a proof. Related analyses of exposure bias include \citet{bengio2015scheduled},
+\citet{ranzato2016sequence} and \citet{arora2022exposure}. On-policy distillation is studied by
+\citet{lin2020autoregressive}, \citet{gu2024minillm}, \citet{agarwal2024gkd} and \citet{ko2024distillm}.
+\end{remark}
+
+\begin{theorem}[KL chain rules remove most of the compounding]\label{thm:kl-compounding}
+\Pv
+\begin{enumerate}[label=(\roman*),nosep]
+\item Off-policy forward KL has $\cE_{\mathrm{shift}}=0$ for $\cE=\KL(P\|Q_\theta)$, and $\E\TV(P,Q_\theta)\le\sqrt{T\eoff^{\KL}/2}$.
+\item For cumulative costs,
+$|J_c(p)-J_c(q_\theta)|\le\sum_{t=1}^T\sqrt{\tfrac12\sum_{k\le t}e^{\mathrm{off},\KL}_k}\le T^{3/2}\sqrt{\eoff^{\KL}/2}$.
+\item On-policy reverse KL has $\cE_{\mathrm{shift}}=0$ for $\cE=\KL(Q_\theta\|P)$. With recoverability,
+$|J_c(q_\theta)-J_c(p)|\le uT\sqrt{\eon^{\mathrm{rKL}}/2}$.
+\end{enumerate}
+\end{theorem}
+\begin{proof}
+(i) and (iii) are \cref{thm:chain}. (ii) The law of $y_{\le t}$ has KL $\sum_{k\le t}e^{\mathrm{off},\KL}_k$ by
+the truncated chain rule; apply Pinsker per $t$. The last claim is \cref{thm:pdl}.
+\end{proof}
+
+\begin{proposition}[Exposure-bias gap for mismatched pairings]\label{prop:exposure}
+\Pv\Ck Let $g_t:\cS_t\to[0,G]$ be any bounded per-state loss, for example per-token TV ($G=1$),
+$\JSD_\beta$ ($G=h(\beta)$), or clipped KL. Then
+\[
+\Big|\sum_{t=1}^T\big(\E_{\dstud t}-\E_{\dteach t}\big)g_t\Big|\le G\sum_{t=1}^T\TV(\dstud t,\dteach t)
+\le G\sum_{t=1}^T\sum_{k<t}e^{\mathrm{off},\TV}_k\le G\,\tfrac{T(T-1)}2\max_ke^{\mathrm{off},\TV}_k.
+\]
+Also $\le G\sum_t\sqrt{\frac12\sum_{k<t}e^{\mathrm{off},\KL}_k}$. For a mixture prefix law
+$\nu_t=\lambda\dstud t+(1-\lambda)\dteach t$, the gap is multiplied by $1-\lambda$. For \emph{unbounded} $g_t$,
+for example reverse KL on teacher prefixes, no bound exists: the student can have zero training loss and
+infinite on-policy loss on states the teacher never visits.
+\end{proposition}
+\begin{proof}
+Bounded-function duality for TV, then the hybrid argument for $\TV(\dstud t,\dteach t)$ as in \cref{prop:hybrid}.
+\end{proof}
+
+\begin{proposition}[Covariate-shift term]\label{prop:cov-term}
+\Pv Under \cref{as:shift}, $\cE_{\mathrm{cov}}\le(\rho-1)\cE_\cD(\ttheta)$ for any non-negative $\cE$. For
+criteria bounded by $G$, $\cE_{\mathrm{cov}}\le G\,\TV(\mu,\cD)$ (\cref{prop:covshift}).
+\end{proposition}
+
+\subsection{Assembling the bound, and which term dominates}
+
+\begin{corollary}[End-to-end bound for off-policy soft-label forward-KL distillation]\label{cor:e2e-offpolicy}
+\Pa{\cref{as:bounded,as:shift}} Let $\cA=\min_\theta\E_\cD\KL(P\|Q_\theta)$. With probability $\ge1-\delta$,
+\[
+\E_\mu\TV(\Pseq,Q^x_{\ttheta})\le\sqrt{\frac\rho2\Big[\cA+2\Big(2\Rad_n+TB\sqrt{\tfrac{\log(2/\delta)}{2n}}\Big)+\cE_{\mathrm{opt}}\Big]}.
+\]
+Under \cref{as:real,as:finite}, with hard labels and exact ERM, instead
+$\E_\mu\TV\le\min\big\{\rho\,\eta_n,\ \eta_n+\TV(\mu,\cD)\big\}$ with $\eta_n=\sqrt{2(R\ln2+\log(1/\delta))/n}$.
+\end{corollary}
+\begin{proof}
+\cref{thm:master} with $\cE_{\mathrm{shift}}=0$ (\cref{thm:chain}), \cref{thm:unif}, \cref{prop:cov-term},
+and Pinsker. For the second claim use \cref{thm:mle} and \cref{prop:covshift}.
+\end{proof}
+
+\begin{heuristic}[The dominant term in large-scale LLM distillation]\label{heur:dominant}
+(1)~$\cE_{\mathrm{est}}$ is small. Teacher data is effectively unlimited, soft labels remove label noise
+(\cref{prop:rb,prop:exact}), and realisable rates are horizon-free (\cref{thm:mle}).
+(2)~$\cE_{\mathrm{opt}}$ is real but shrinks with compute (\cref{thm:sgd}); it dominates only for
+undertrained students.
+(3)~$\cA$ is the floor. It dominates for small students (\cref{thm:bottleneck}; \cref{sec:lower}) and, at
+sequence level, grows linearly in $T$ (\cref{cor:approx-T}).
+(4)~$\cE_{\mathrm{shift}}$ is zero for the exact pairings, but for mismatched pairings and cumulative
+criteria it \emph{amplifies} $\cA$ by up to $O(T)$ (\cref{thm:quadratic,prop:exposure}).
+Hence in the capacity-limited regime the dominant term is \emph{approximation error as seen by the
+deployment criterion}: the irreducible floor, amplified by prefix shift and \emph{misallocated} by the
+choice of divergence (\cref{prop:agnostic}). \Cref{sec:objectives} designs an objective against exactly
+this term.
+\end{heuristic}

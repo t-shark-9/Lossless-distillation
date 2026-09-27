@@ -1,0 +1,143 @@
+\documentclass[11pt]{article}
+
+\usepackage[a4paper,margin=2.6cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{amsmath,amssymb,amsthm,mathtools,bm}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage[round,authoryear]{natbib}
+\usepackage[dvipsnames]{xcolor}
+\usepackage[colorlinks=true,linkcolor=MidnightBlue,citecolor=OliveGreen,urlcolor=MidnightBlue]{hyperref}
+\usepackage[capitalise,noabbrev]{cleveref}
+\emergencystretch=3em
+
+% ---------------------------------------------------------------------------
+% Theorem environments (shared counter within sections)
+% ---------------------------------------------------------------------------
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{conjecture}[theorem]{Conjecture}
+\newtheorem{heuristic}[theorem]{Heuristic}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{assumption}{Assumption}
+\renewcommand{\theassumption}{A\arabic{assumption}}
+\newtheorem{example}[theorem]{Example}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+\crefname{heuristic}{Heuristic}{Heuristics}
+\crefname{conjecture}{Conjecture}{Conjectures}
+\crefname{assumption}{Assumption}{Assumptions}
+
+% Status tags printed at the start of each result
+\newcommand{\Pv}{\textsf{\small[proved]}\ }
+\newcommand{\Pa}[1]{\textsf{\small[proved under #1]}\ }
+\newcommand{\Kn}{\textsf{\small[known result; proof sketch]}\ }
+\newcommand{\Mo}{\textsf{\small[proved within the stated model]}\ }
+\newcommand{\Ck}{\textsf{\small[numerically checked]}\ }
+
+% ---------------------------------------------------------------------------
+% Notation
+% ---------------------------------------------------------------------------
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\E}{\mathbb{E}}
+\renewcommand{\P}{\mathbb{P}}
+\newcommand{\cX}{\mathcal{X}}
+\newcommand{\cY}{\mathcal{Y}}
+\newcommand{\cV}{\mathcal{V}}
+\newcommand{\cS}{\mathcal{S}}
+\newcommand{\cD}{\mathcal{D}}
+\newcommand{\cL}{\mathcal{L}}
+\newcommand{\cR}{\mathcal{R}}
+\newcommand{\cE}{\mathcal{E}}
+\newcommand{\cA}{\mathcal{A}}
+\newcommand{\cJ}{\mathcal{J}}
+\newcommand{\cN}{\mathcal{N}}
+\newcommand{\cF}{\mathcal{F}}
+\newcommand{\cG}{\mathcal{G}}
+\newcommand{\TS}{\mathsf{S}}
+\newcommand{\TT}{\mathsf{T}}
+\newcommand{\KL}{\mathrm{KL}}
+\newcommand{\TV}{\mathrm{TV}}
+\newcommand{\JSD}{\mathrm{JSD}}
+\newcommand{\Hel}{\mathrm{H}}
+\newcommand{\Var}{\operatorname{Var}}
+\newcommand{\Cov}{\operatorname{Cov}}
+\newcommand{\tr}{\operatorname{tr}}
+\newcommand{\rank}{\operatorname{rank}}
+\newcommand{\diag}{\operatorname{diag}}
+\newcommand{\softmax}{\operatorname{softmax}}
+\newcommand{\argmin}{\operatorname*{arg\,min}}
+\newcommand{\argmax}{\operatorname*{arg\,max}}
+\newcommand{\ind}{\mathbf{1}}
+\newcommand{\one}{\mathbf{1}}
+\newcommand{\eps}{\varepsilon}
+\newcommand{\ttheta}{\tilde\theta}
+\newcommand{\htheta}{\hat\theta}
+\newcommand{\dd}{\,\mathrm{d}}
+\newcommand{\Rad}{\mathfrak{R}}
+\newcommand{\eoff}{\eps_{\mathrm{off}}}
+\newcommand{\eon}{\eps_{\mathrm{on}}}
+\newcommand{\Pseq}{P^{x}}
+\newcommand{\Qseq}{Q^{x}_{\theta}}
+\newcommand{\dteach}[1]{d^{\,p}_{#1}}
+\newcommand{\dstud}[1]{d^{\,\theta}_{#1}}
+
+\title{Near-Lossless Knowledge Distillation:\\
+Definitions, Error Decompositions, Capacity Lower Bounds and Objective Design}
+\author{A theoretical treatment}
+\date{September 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We give a mathematically explicit account of distilling a teacher $p_{\TT}(y\mid x)$ into a smaller
+autoregressive student $q_\theta(y\mid x)$. We (i)~formalise ``lossless'' through divergences between
+sequence-level laws under a deployment input distribution and prove the relations among forward KL,
+reverse KL, total variation, $\JSD_\beta$, Hellinger and task-level excess risk, including exact
+chain-rule identities that pair each KL direction with a specific prefix distribution;
+(ii)~decompose the student's gap into approximation, estimation, optimisation, prefix-shift (exposure
+bias) and covariate-shift terms and bound each, recovering the $O(\eps T)$ versus $O(\eps T^2)$
+compounding dichotomy and showing exactly when on-policy training removes it; (iii)~prove
+information-theoretic (rate--distortion) lower bounds on the achievable divergence as a function of
+the student's description length, together with a softmax-bottleneck rank bound, and derive the
+power-law forms they predict; (iv)~analyse the logit gradients of the standard objectives, the
+role of temperature, and the Fisher-information content of soft labels, and propose a
+sequence-level, prefix-adaptive $\JSD_\beta$ objective with proven exactness, boundedness,
+agnostic total-variation competitiveness, consistency, and an unbiased Rao--Blackwellised gradient
+estimator; (v)~analyse intermediate-representation matching, proving when it is redundant,
+when it helps (noisy supervision, conditioning, compositional hardness) and when it over-constrains,
+and propose a Fisher-aligned variant with no approximation cost in a linear-Gaussian model;
+(vi)~assemble an end-to-end bound, separate what is proved from what is conjectured, and specify
+experiments and open problems. Every inequality marked \emph{numerically checked} is verified by the
+scripts in \texttt{verification/}.
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+\input{sections/00_setup}
+\input{sections/01_lossless}
+\input{sections/02_decomposition}
+\input{sections/03_lower_bounds}
+\input{sections/04_objectives}
+\input{sections/05_representations}
+\input{sections/06_synthesis}
+\input{sections/07_open_problems}
+
+\appendix
+\input{sections/A_proofs}
+
+\bibliographystyle{plainnat}
+\bibliography{refs}
+
+\end{document}

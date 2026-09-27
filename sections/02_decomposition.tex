@@ -1,0 +1,191 @@
+% ===========================================================================
+\section{Decomposing the student's gap}\label{sec:decomposition}
+% ===========================================================================
+
+\subsection{Pipeline and master decomposition}
+
+\paragraph{Pipeline.}
+We draw $n$ prompts $x_i\sim\cD$ i.i.d. For each prompt the teacher generates $y^{(i)}\sim P^{x_i}$ and
+supplies either soft labels $p_t(\cdot\mid s^{(i)}_t)$ at every position, or only the sampled tokens (hard
+labels). On-policy variants additionally sample $y\sim Q^{x_i}_\theta$. Training uses a prefix law
+$\nu(\theta)=(\nu_t(\theta))_t$: $\nu_t=\dteach t$ (off-policy), $\nu_t=\dstud t$ (on-policy), or a mixture
+$\nu_t=\lambda\dstud t+(1-\lambda)\dteach t$ \citep{agarwal2024gkd}. The per-state loss is
+$\ell_\theta(s)=\mathsf D(p_t(\cdot\mid s)\|q_t(\cdot\mid s))$. The population and empirical training
+objectives are
+\[
+F(\theta):=\E_{x\sim\cD}\sum_{t=1}^T\E_{s\sim\nu_t(\theta)\mid x}\ell_\theta(s),\qquad
+\hat F_n(\theta):=\frac1n\sum_{i=1}^n\sum_{t=1}^T\ell_\theta(s^{(i)}_t).
+\]
+For on-policy terms, $\hat F_n$ is defined with fixed sampling noise (for example Gumbel-max
+reparametrisation), so that it is a fixed random function of $\theta$. Let
+$\theta^\star\in\argmin_{\Theta_\TS}F$, $\htheta\in\argmin\hat F_n$, and let $\ttheta$ be the output of the
+optimiser. The \emph{evaluation functional} $\cE_\mu(\theta)$ is a sequence-level criterion under the
+deployment law, for example $\E_\mu\KL(\Pseq\|\Qseq)$ or a task regret. $\cE_\cD$ is the same functional
+under $\cD$.
+
+\begin{theorem}[Master decomposition]\label{thm:master}
+\Pv
+\begin{equation}\label{eq:master}
+\cE_\mu(\ttheta)=\underbrace{F(\theta^\star)}_{\cA\ \text{approximation}}
++\underbrace{F(\ttheta)-F(\theta^\star)}_{\text{estimation}+\text{optimisation}}
++\underbrace{\cE_\cD(\ttheta)-F(\ttheta)}_{\cE_{\mathrm{shift}}\ \text{prefix shift}}
++\underbrace{\cE_\mu(\ttheta)-\cE_\cD(\ttheta)}_{\cE_{\mathrm{cov}}\ \text{covariate shift}},
+\end{equation}
+\begin{equation}\label{eq:est-opt}
+F(\ttheta)-F(\theta^\star)\le\underbrace{2\sup_{\theta}|\hat F_n(\theta)-F(\theta)|}_{\cE_{\mathrm{est}}}
++\underbrace{\hat F_n(\ttheta)-\hat F_n(\htheta)}_{\cE_{\mathrm{opt}}}.
+\end{equation}
+\end{theorem}
+\begin{proof}
+\eqref{eq:master} telescopes. For \eqref{eq:est-opt}, write
+$F(\ttheta)-F(\theta^\star)=[F-\hat F_n](\ttheta)+[\hat F_n(\ttheta)-\hat F_n(\htheta)]+[\hat F_n(\htheta)-\hat F_n(\theta^\star)]+[\hat F_n-F](\theta^\star)$,
+and note that the third bracket is $\le0$. This is the approximation--estimation--optimisation split of
+\citet{bottou2008tradeoffs} with two shift terms added.
+\end{proof}
+
+\noindent
+When $\cE$ is a KL, the behavioural criterion follows from Pinsker:
+$\E_\mu\TV(\Pseq,Q^x_{\ttheta})\le\sqrt{\cE_\mu(\ttheta)/2}$.
+The key structural fact is that $\cE_{\mathrm{shift}}\equiv0$ for exactly two pairings (\cref{thm:chain}):
+\begin{center}\small
+\begin{tabular}{@{}p{0.2\linewidth}p{0.12\linewidth}p{0.22\linewidth}p{0.2\linewidth}p{0.15\linewidth}@{}}
+\toprule
+per-token loss & prefix law & $F$ equals & $\cE_{\mathrm{shift}}$ & $T$-factor in the TV bound\\\midrule
+forward KL & teacher & $\E_\cD\KL(P\|Q_\theta)$ & $0$ & $\sqrt T$ (\cref{cor:seq-tv})\\
+reverse KL & student & $\E_\cD\KL(Q_\theta\|P)$ & $0$ & $\sqrt T$\\
+forward KL & student & hybrid (\cref{prop:hybrid-div}) & $\neq0$ & $T$\\
+reverse KL, $\JSD_\beta$, TV & teacher & hybrid & $\neq0$, up to $O(T^2)$ (\cref{prop:exposure}) & $T$\\\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Approximation error}\label{sec:approx}
+
+\begin{lemma}[Log-ratio variance]\label{lem:logratio}
+\Pv\Ck Let $\delta=\log(p/q)$ on $\operatorname{supp}p$ and $M:=\max\{0,\max_y\delta(y)\}$. Then
+$\KL(p\|q)\ge\frac{e^{-M}}2\E_p[\delta^2]\ge\frac{e^{-M}}2\Var_p(\delta)$.
+\end{lemma}
+\begin{proof}
+$\E_p[e^{-\delta}]=q(\operatorname{supp}p)\le1$. Taylor expansion gives $e^{-\delta}=1-\delta+\frac{\delta^2}2e^{-\xi}$
+with $\xi$ between $0$ and $\delta$, so $e^{-\xi}\ge e^{-M}$. Taking $\E_p$:
+$1\ge1-\KL(p\|q)+\frac{e^{-M}}2\E_p\delta^2$.
+\end{proof}
+
+\begin{theorem}[Softmax-bottleneck approximation floor]\label{thm:bottleneck}
+\Pa{\cref{as:linear}}\Ck Let $s_1,\dots,s_N$ be contexts at which the teacher has full support. Let
+$A\in\R^{N\times V}$ have rows $\log p(\cdot\mid s_i)$, let $\pi_i:=\min_yp(y\mid s_i)$, and let
+$\Pi=\diag(\pi_i)$. For every student of width $d_\TS$ with $\max_{i,y}\log\frac{p(y\mid s_i)}{q_\theta(y\mid s_i)}\le M$,
+\[
+\frac1N\sum_{i=1}^N\KL\big(p(\cdot\mid s_i)\,\|\,q_\theta(\cdot\mid s_i)\big)\;\ge\;\frac{e^{-M}}{2N}\sum_{j>d_\TS+1}\sigma_j^2\big(\Pi^{1/2}AC\big).
+\]
+\end{theorem}
+\begin{proof}
+By \cref{lem:logratio}, $\KL_i\ge\frac{e^{-M}}2\Var_{p_i}(\delta_i)$. Also
+$\Var_{p_i}(\delta_i)=\min_c\E_{p_i}(\delta_i-c)^2\ge\pi_i\min_c\|\delta_i-c\one\|^2=\pi_i\|C\delta_i\|^2$.
+The student's log-probability rows are $Wh_i+b-\mathrm{lse}_i\one$, so the centred matrix $ZC$ has rows
+$C(Wh_i+b)$ and rank at most $d_\TS+1$. Left-multiplication by the diagonal $\Pi^{1/2}$ does not
+increase rank. Hence
+$\sum_i\pi_i\|C\delta_i\|^2=\|\Pi^{1/2}(A-Z)C\|_F^2\ge\min_{\rank(Y)\le d_\TS+1}\|\Pi^{1/2}AC-Y\|_F^2$, which
+equals the tail sum by Eckart--Young--Mirsky \citep{eckart1936approximation}.
+\end{proof}
+
+\begin{remark}\label{rem:bottleneck}
+(i)~If the teacher also has a linear read-out of width $d_\TT$, then $\rank(AC)\le d_\TT+1$. The floor is
+then a sum over the teacher's singular values with indices in $(d_\TS+1,d_\TT+1]$, and it vanishes if
+$d_\TS\ge d_\TT$. This quantifies the ``softmax bottleneck'' \citep{yang2018breaking}. Its relevance to
+small language models was studied empirically by \citet{godey2024small}; we are fairly, but not fully,
+confident of that reference's exact claims.
+(ii)~The factor $\pi_i$ is crude. Replacing $\Pi^{1/2}C$ by any common lower bound $\Gamma^{1/2}$ on the
+Fisher matrices $\diag(p_i)-p_ip_i^\top$ gives the tail spectrum of $A\Gamma^{1/2}$. In the check of
+\texttt{verification/check\_capacity.py}, the row-weighted floor is within a factor $15$ of a fitted
+student's loss.
+(iii)~The floor is a statement about the \emph{read-out}. When $d_\TS\ge d_\TT$ it is silent;
+information-theoretic floors (\cref{sec:lower}) take over.
+\end{remark}
+
+\begin{corollary}[Approximation grows linearly with the horizon]\label{cor:approx-T}
+\Pv If the per-token approximation floor on teacher prefixes is $\ge\eps_0$ at every $t$, then
+$\min_\theta\E_\cD\KL(P\|Q_\theta)\ge T\eps_0$. Likelihood losslessness at level $\eps$ therefore requires
+$\eps_0\le\eps/T$. For TV, \cref{prop:hybrid} gives only $\E\TV(P,Q_\theta)\ge\frac12\max_t\E_{\dteach t}\TV_t$.
+Whether TV grows with $T$ depends on how the errors are structured (\cref{ex:regimes}).
+\end{corollary}
+
+\subsection{Estimation error}\label{sec:estimation}
+
+\begin{theorem}[Uniform deviation, soft-label off-policy KD]\label{thm:unif}
+\Pa{\cref{as:bounded}} With soft labels, $\ell(x,y;\theta)=\sum_t\KL(p_t(s_t)\|q_t(s_t))\in[0,TB]$, since
+$\KL(p\|q)\le\E_p[-\log q]\le B$. With probability $\ge1-\delta$,
+\[
+\sup_\theta|\hat F_n(\theta)-F(\theta)|\le2\,\Rad_n(\ell\circ\Theta_\TS)+TB\sqrt{\tfrac{\log(2/\delta)}{2n}}.
+\]
+For a finite class (\cref{as:finite}), $\Rad_n\le TB\sqrt{2R\ln2/n}$ by Massart's lemma.
+\end{theorem}
+\begin{proof}
+Symmetrisation and McDiarmid \citep{bartlett2002rademacher}.
+\end{proof}
+\noindent
+This bound is pessimistic: a slow rate, and linear in $T$. For the realisable case, a
+horizon-free fast rate holds even with \emph{hard} labels. The logic is due to
+\citet{zhang2006epsilon} and \citet{wong1995probability}; its horizon-independence in imitation learning
+was emphasised by \citet{foster2024behavior}.
+
+\begin{theorem}[Horizon-free rate for sequence-level hard-label KD]\label{thm:mle}
+\Pa{\cref{as:real,as:finite}} Let $\htheta$ maximise $\sum_{i=1}^n\log Q_\theta(y^{(i)}\mid x_i)$ over
+$\Theta_\TS$, with $y^{(i)}\sim P^{x_i}$. With probability $\ge1-\delta$,
+\begin{gather*}
+\E_{x\sim\cD}\Hel^2\big(\Pseq,Q^x_{\htheta}\big)\le\frac{\log(|\Theta_\TS|/\delta)}n\le\frac{R\ln2+\log(1/\delta)}n,\\
+\E_{x\sim\cD}\TV\big(\Pseq,Q^x_{\htheta}\big)\le\sqrt{\frac{2(R\ln2+\log(1/\delta))}n}.
+\end{gather*}
+Neither bound depends on $T$.
+\end{theorem}
+\noindent\emph{Proof.} See \cref{app:mle}. The key lemma is
+$\E_{y\sim P}\sqrt{Q(y)/P(y)}=1-\Hel^2(P,Q)\le e^{-\Hel^2}$, combined with a Chernoff bound and a union
+bound over $\Theta_\TS$.
+
+\begin{proposition}[Soft labels Rao--Blackwellise hard labels]\label{prop:rb}
+\Pv Fix a state law $\nu$ with states drawn independently of labels. Let $\hat h=-\log q_\theta(y\mid s)$ and
+$\hat s=\mathrm{CE}(p(\cdot\mid s),q_\theta(\cdot\mid s))$, where $s\sim\nu$ and $y\sim p(\cdot\mid s)$. Then
+$\E\hat h=\E\hat s$ and
+\begin{gather*}
+\Var\hat h-\Var\hat s=\E_{s\sim\nu}\Var_{y\sim p(\cdot\mid s)}\log q_\theta(y\mid s)\ \ge0,\\
+\E\|\nabla\hat h-\nabla\E\hat h\|^2-\E\|\nabla\hat s-\nabla\E\hat s\|^2=\E_\nu\tr\Cov_{y\sim p(\cdot\mid s)}\nabla_\theta\log q_\theta(y\mid s).
+\end{gather*}
+At $\theta=\theta^\circ$ (\cref{as:real}), the gradient gap equals $\E_\nu\tr\mathcal I(s)$. Here
+$\mathcal I(s)=J(s)^\top(\diag p-pp^\top)J(s)$ is the per-state Fisher information and $J=\partial z/\partial\theta$.
+The gap vanishes wherever $p(\cdot\mid s)$ is a point mass.
+\end{proposition}
+\begin{proof}
+$\hat s=\E[\hat h\mid s]$, so the law of total variance applies; likewise for the gradient, since
+$\nabla\hat s=\E[\nabla\hat h\mid s]$. At $\theta^\circ$,
+$\Cov_{y\sim p}\nabla\log q=J^\top\Cov_{y\sim p}(e_y)J=J^\top(\diag p-pp^\top)J$.
+\end{proof}
+\begin{remark}
+For whole teacher-sampled sequences, later states depend on earlier labels. Position-wise
+Rao--Blackwellisation still holds, but cross-time covariances can in principle make the variance of the
+\emph{sum} larger. We therefore claim no sequence-level variance ordering. The variance-reduction view of
+distillation is developed by \citet{menon2021statistical}. Related analyses include
+\citet{lopezpaz2016unifying}, \citet{phuong2019towards}, \citet{dao2021knowledge} and
+\citet{harutyunyan2023supervision}.
+\end{remark}
+
+\begin{proposition}[Soft labels: exact recovery versus $k/2n$]\label{prop:exact}
+Let $q_\Theta(\cdot\mid s)=\softmax(\Theta\phi(s))$ with $\Theta\in\R^{V\times d}$, and let $p=q_{\Theta^\circ}$.
+\begin{enumerate}[label=(\alph*),nosep]
+\item \Pv If $\phi(s_1),\dots,\phi(s_n)$ span $\R^d$ (so $n\ge d$), every minimiser of
+$\sum_i\KL(p(\cdot\mid s_i)\|q_\Theta(\cdot\mid s_i))$ satisfies $q_\Theta=p$ at \emph{every} $s$.
+Estimation error is zero.
+\item \Kn The hard-label MLE from $n$ i.i.d.\ pairs $(s_i,y_i)$ satisfies
+$n\,\E\KL(p\|q_{\hat\Theta})\to\frac{(V-1)d}2$. This is the classical $k/2n$ law for a regular
+well-specified model with $k$ free parameters \citep{white1982maximum}.
+\end{enumerate}
+\end{proposition}
+\begin{proof}[Proof of (a)]
+The objective is $0$ at $\Theta^\circ$. It vanishes at $\Theta$ iff $(\Theta-\Theta^\circ)\phi(s_i)\in\operatorname{span}(\one)$
+for all $i$, which means $C(\Theta-\Theta^\circ)\phi(s_i)=0$. By spanning, $C(\Theta-\Theta^\circ)=0$. So the
+logits differ by a constant vector at every $s$, and the softmax is unchanged.
+\end{proof}
+\noindent
+In the realisable case, a soft label is therefore worth ``infinitely many'' hard labels at its state.
+Once the teacher's labels are exact, what remains is extrapolation, which is controlled by coverage of
+the feature space and by approximation, not by label noise.
+
+\input{sections/02b_decomposition}

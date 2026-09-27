@@ -1,0 +1,219 @@
+% ===========================================================================
+\section{Lower bounds: is lossless even possible?}\label{sec:lower}
+% ===========================================================================
+
+\paragraph{Framing.}
+For a \emph{fixed} teacher, whether lossless distillation is possible is purely a question of
+approximation theory: is $p$ in the closure of $\{q_\theta\}$? Information theory enters once we ask
+what a class of $2^R$ students can do \emph{uniformly over teachers}, either on average under a prior
+$\pi$ over teachers or in the worst case over a class. We then view the student as a code of $R$ bits for
+the teacher's conditional law, with distortion $\E_x\KL(p(\cdot\mid x)\|q_\theta(\cdot\mid x))$. The random
+teacher is denoted $\mathbf T\sim\pi$, and its conditionals $p_{\mathbf T}(\cdot\mid x)$.
+
+\subsection{An information-theoretic capacity floor}
+
+\begin{theorem}[Capacity floor]\label{thm:capacity}
+\Pa{\cref{as:finite}}\Ck Let $\theta^\star(\mathbf T)$ be any measurable choice of student from a class
+of at most $2^R$ elements. Fix a design $x_{1:N}\in\cX^N$ and a replication number $m\ge1$. Let
+$Y=(Y_{ij})_{i\le N,j\le m}$ with $Y_{ij}\sim p_{\mathbf T}(\cdot\mid x_i)$ independent given $\mathbf T$. Then
+\[
+\E_\pi\,\frac1N\sum_{i=1}^N\KL\big(p_{\mathbf T}(\cdot\mid x_i)\,\|\,q_{\theta^\star(\mathbf T)}(\cdot\mid x_i)\big)\;\ge\;\frac{I(\mathbf T;Y)-R\ln2}{mN}.
+\]
+In particular:
+(a)~if $\cD$ is uniform on $\{x_1,\dots,x_N\}$, the left side is $\E_\pi\E_{x\sim\cD}\KL$;
+(b)~for general $\cD$,
+$\E_\pi\E_{x\sim\cD}\KL\ge\sup_{N,m}\frac{I(\mathbf T;Y\mid X_{1:N})-R\ln2}{mN}$ with $X_i\overset{\text{iid}}\sim\cD$.
+\end{theorem}
+\begin{proof}
+Write $\Theta=\theta^\star(\mathbf T)$. KL tensorises, so
+$m\sum_i\KL(p_{\mathbf T}(\cdot\mid x_i)\|q_\Theta(\cdot\mid x_i))=\KL(\otimes_{ij}p_{\mathbf T}(\cdot\mid x_i)\,\|\,\otimes_{ij}q_\Theta(\cdot\mid x_i))
+=\E[-\log q_\Theta(Y)\mid\mathbf T]-H(Y\mid\mathbf T)$.
+Average over $\mathbf T$. Since $q_\Theta$ is a valid conditional law of $Y$ given $\Theta$, the
+cross-entropy satisfies $\E[-\log q_\Theta(Y)]\ge H(Y\mid\Theta)$. Hence
+\[
+m\,\E\sum_i\KL_i\ge H(Y\mid\Theta)-H(Y\mid\mathbf T)=I(Y;\mathbf T)-I(Y;\Theta)\ge I(Y;\mathbf T)-H(\Theta)\ge I(Y;\mathbf T)-R\ln2,
+\]
+where the equality uses $H(Y)$ on both sides and the fact that $\Theta$ is a function of $\mathbf T$.
+For (b), apply the bound conditionally on $X_{1:N}$ and average, since
+$\E_{X_{1:N}}\frac1N\sum_i\KL(\cdot;X_i)=\E_{x\sim\cD}\KL$.
+\end{proof}
+
+\noindent
+Let $I_\infty:=\sup_{N,m}I(\mathbf T;Y\mid X_{1:N})$ be the \emph{functional information} of the teacher
+on $\cD$: how much its input--output behaviour reveals about which teacher it is. \Cref{thm:capacity}
+says that on average over $\pi$, lossless distillation is \emph{impossible} whenever $R\ln2<I_\infty$. The
+student's description length must be at least the teacher's functional information. This is not the
+teacher's parameter count: trained networks are highly redundant as functions, which is what makes
+pruning, quantisation and distillation work at all.
+
+\begin{corollary}[$K$ independent facts; the floor is tight]\label{cor:facts}
+\Pv\Ck Let the teacher be a uniformly random function $F:[K]\to\cV$ with $p(\cdot\mid i)=\delta_{F(i)}$, and let
+$\cD$ be uniform on $[K]$. Every $R$-bit student class satisfies
+$\E\,\E_{x\sim\cD}\KL\ge\big(\ln V-\frac{R\ln2}K\big)_+$. The student that memorises
+$\lfloor R/\log_2V\rfloor$ facts and is uniform elsewhere attains this up to rounding.
+\end{corollary}
+\begin{proof}
+Take $N=K$, $x_i=i$, $m=1$: $I(F;Y)=K\ln V$. The memorising student has KL $\ln V$ on each fact it does not
+store and $0$ on the others.
+\end{proof}
+
+\begin{corollary}[Behavioural floor for $K$ facts]\label{cor:facts-tv}
+\Pv In the setting of \cref{cor:facts} with $V\ge3$, every $R$-bit student class satisfies
+\[
+\E\,\E_{x\sim\cD}\TV\big(p(\cdot\mid x),q_{\theta^\star}(\cdot\mid x)\big)\;\ge\;1-\frac{R\ln2/K+\ln2}{\ln(V-1)} .
+\]
+The KL floor of \cref{cor:facts} is therefore not an artefact of KL: behavioural losslessness also
+fails once $R\ll K\log_2V$.
+\end{corollary}
+\begin{proof}
+Let $\hat G_i\sim q_{\theta^\star}(\cdot\mid i)$ independently given $\theta^\star$. Then
+$e_i:=\P(\hat G_i\ne F(i))=\E\TV_i$, because the teacher is a point mass. Since the $F(i)$ are independent and
+$\hat G$ depends on $F$ only through $\theta^\star$,
+$\sum_iI(F(i);\hat G_i)\le I(F;\hat G)\le H(\theta^\star)\le R\ln2$. Fano gives
+$I(F(i);\hat G_i)\ge\ln V-\ln2-e_i\ln(V-1)$. Sum over $i$ and rearrange:
+$\bar e\ln(V-1)\ge\ln V-\ln2-R\ln2/K\ge\ln(V-1)-\ln2-R\ln2/K$.
+\end{proof}
+
+\begin{corollary}[Metric-entropy version]\label{cor:metric}
+\Pv Suppose $\Theta_\TS$ has an $\eps$-cover $\Theta_\eps$ in $\|\log q_\theta-\log q_{\theta'}\|_\infty$ (over the
+design and $\cV^T$). Then $\KL(p\|q_{\theta'})\le\KL(p\|q_\theta)+\eps$ whenever $\theta'$ is $\eps$-close to
+$\theta$. Hence
+\[
+\E_\pi\min_{\theta\in\Theta_\TS}\frac1N\sum_i\KL_i\ge\frac{I(\mathbf T;Y)-\log\cN(\eps)}{mN}-\eps.
+\]
+For $P$ parameters in $[-B_\theta,B_\theta]^P$ with $\theta\mapsto\log q_\theta$ being $L$-Lipschitz in $\ell_\infty$,
+$\log\cN(\eps)\le P\log\lceil LB_\theta/\eps\rceil$, so the effective rate is
+$R_{\mathrm{eff}}(\eps)\approx P\log_2(LB_\theta/\eps)$ bits. Pseudo-dimension and Rademacher bounds enter
+through the usual covering-number estimates.
+\end{corollary}
+\begin{proof}
+$\KL(p\|q_{\theta'})-\KL(p\|q_\theta)=\E_p[\log q_\theta-\log q_{\theta'}]\le\eps$. Apply \cref{thm:capacity} to
+the finite class $\Theta_\eps$.
+\end{proof}
+
+\begin{remark}[Bits per parameter]
+The rate that matters is \emph{usable} bits. \citet{allenzhu2024physics} report, in controlled synthetic
+settings, a knowledge capacity of about $2$ bits per parameter for language models. \citet{kumar2024scaling}
+model how precision changes the effective parameter count. Combining such estimates with
+\cref{thm:capacity} gives a heuristic necessary condition. A student with $N_\TS$ parameters cannot be
+lossless on content whose functional information exceeds roughly $2N_\TS$ bits. Treat this as an
+order-of-magnitude guide; the constant is an empirical estimate for a particular kind of knowledge.
+\end{remark}
+
+\subsection{Distillation as rate--distortion}
+
+\begin{definition}[Distillation distortion--rate function]
+For a prior $\pi$ on teachers, a reproduction alphabet of student functions, and distortion
+$\mathsf d(\mathbf T,\hat{\mathbf T})=\E_{x\sim\cD}\KL(p_{\mathbf T}(\cdot\mid x)\|p_{\hat{\mathbf T}}(\cdot\mid x))$, define
+$D_\pi(R):=\inf\{\E\,\mathsf d(\mathbf T,\hat{\mathbf T}):\ I(\mathbf T;\hat{\mathbf T})\le R\ln2\}$.
+\end{definition}
+
+\begin{theorem}[One-shot converse]\label{thm:rd}
+\Pv Every class of $2^R$ students satisfies $\E_\pi\min_\theta\mathsf d(\mathbf T,q_\theta)\ge D_\pi(R)$.
+\end{theorem}
+\begin{proof}
+$\theta^\star(\mathbf T)$ is a deterministic function of $\mathbf T$ taking at most $2^R$ values, so
+$I(\mathbf T;\theta^\star)\le H(\theta^\star)\le R\ln2$. It is therefore feasible in the infimum.
+\end{proof}
+\noindent
+Unlike Shannon's asymptotic theorem \citep{shannon1959coding}, no block coding is needed. The converse
+holds for a single teacher draw because it uses only $I\le H\le\log(\#\text{codewords})$
+\citep{cover2006elements,polyanskiy2024information}. For log-loss distortion the rate--distortion
+function has the simple form $R(D)=H-D$ \citep{courtade2014multiterminal}. \Cref{cor:facts} is an
+instance of this.
+
+\begin{proposition}[Power-law spectrum gives a power-law floor]\label{prop:powerlaw}
+\Mo\Ck \emph{Model.} Near-lossless regime (\cref{prop:local}), in Fisher-whitened centred
+log-probability coordinates, where $\KL\approx\frac12\|z-\hat z\|^2$. The teacher's whitened
+log-probability function is a centred Gaussian vector with covariance eigenvalues $\lambda_1\ge\lambda_2\ge\cdots$.
+Reverse water-filling \citep[Thm.~10.3.3]{cover2006elements} gives
+\[
+D(R)=\tfrac12\sum_i\min(w,\lambda_i),\qquad\sum_i\tfrac12\log_+\frac{\lambda_i}w=R\ln2 .
+\]
+If $\lambda_i=c\,i^{-\alpha}$ with $\alpha>1$, then
+$D(R)=\frac c2\,\frac\alpha{\alpha-1}\big(\tfrac{2R\ln2}\alpha\big)^{-(\alpha-1)}(1+o(1))$, so $D(R)\asymp R^{-(\alpha-1)}$.
+\end{proposition}
+\begin{proof}[Proof sketch]
+With $k$ active components, $w=\lambda_k$. The rate is
+$\frac\alpha2\sum_{i\le k}\log\frac ki=\frac{\alpha}2(k-O(\log k))$ by Stirling, so $k\approx2R\ln2/\alpha$. The
+distortion is $\frac12[kw+\sum_{i>k}\lambda_i]=\frac c2k^{1-\alpha}\big(1+\frac1{\alpha-1}\big)(1+o(1))$.
+The fitted exponents in \texttt{check\_capacity.py} match $-(\alpha-1)$ to within $0.04$ for
+$\alpha\in\{1.5,2,3\}$.
+\end{proof}
+
+\begin{proposition}[Finite teacher dimension: from power law to exponential]\label{prop:phase}
+\Mo\Ck If $\lambda_i=0$ for $i>k_\TT$, then as soon as $w<\lambda_{k_\TT}$,
+$D(R)=\frac{k_\TT}2\big(\prod_{i\le k_\TT}\lambda_i\big)^{1/k_\TT}e^{-2R\ln2/k_\TT}$. The distortion decays
+\emph{exponentially} in the student's rate once the student can resolve every component the teacher has.
+For $k_\TT=1000$ and $\alpha=2$, $D$ drops by a factor $e^{4}\approx55$ when the rate doubles from $2000$ to
+$4000$ nats. Below $\approx k_\TT$ nats it follows the power law.
+\end{proposition}
+
+\begin{proposition}[No capacity gap under optimal rate-limited allocation]\label{prop:nogap}
+\Mo Let the ground truth have spectrum $(\lambda_i)_{i\ge1}$ and let a teacher of size $k_\TT$ know the first
+$k_\TT$ components exactly. The best $R$-bit student's distortion \emph{with respect to the ground truth} is
+non-increasing in $k_\TT$.
+\end{proposition}
+\begin{proof}
+Let $E(k_\TT)=D_{k_\TT}(R)+\frac12\sum_{i>k_\TT}\lambda_i$. For $k'>k_\TT$, one feasible code for the larger
+teacher uses the optimal code for the first $k_\TT$ components and reproduces $0$ elsewhere. Hence
+$D_{k'}(R)\le D_{k_\TT}(R)+\frac12\sum_{k_\TT<i\le k'}\lambda_i$, so $E(k')\le E(k_\TT)$.
+\end{proof}
+
+\subsection{What this implies for distillation scaling laws}
+
+Empirical laws take the form $L(N,D)=E+A/N^{a}+B/D^{b}$ for supervised pre-training
+\citep{kaplan2020scaling,hoffmann2022training}. \citet{busbridge2025distillation} fit a distillation
+scaling law in which the student's cross-entropy depends on the teacher's cross-entropy and on the
+student's supervised-scaling loss. That law captures a ``capacity gap'': beyond some point, stronger
+teachers yield worse students \citep[see also][]{cho2019efficacy,mirzadeh2020improved,zhang2023capacity}.
+We are confident of this qualitative content but not of the exact parametrisation in
+\citet{busbridge2025distillation}. The claim of \citet{zhang2023capacity} that the optimal teacher is
+about $2.5\times$ the student is quoted from memory and should be checked. The results above imply the
+following.
+
+\begin{heuristic}[Student-size exponent]\label{heur:size}
+With a constant number of usable bits per parameter, $R_\TS\propto N_\TS$. The approximation part of the
+gap should then scale as $N_\TS^{-(\alpha-1)}$, where $\alpha$ is the decay exponent of the teacher's
+\emph{Fisher-weighted} centred log-probability spectrum. This spectrum is measurable (\cref{sec:experiments}).
+It should cross over to faster (exponential) decay once $R_\TS\ln2$ approaches the teacher's functional
+information (\cref{prop:phase}).
+\end{heuristic}
+
+\begin{heuristic}[Data exponent: soft labels are steeper]\label{heur:data}
+Consider a projection-estimator model. The target has coefficients of energy $\lambda_i=ci^{-\alpha}$ in
+an orthonormal basis under $\cD$, and the student estimates the first $k$ from $n$ samples. The error is
+approximately $\sigma^2\frac kn+\sum_{i>k}\lambda_i$, where $\sigma^2$ is the effective noise.
+With hard labels, $\sigma^2$ includes label noise $\sigma^2_0>0$. The optimum is $k\asymp n^{1/\alpha}$, giving
+error $\asymp n^{-(\alpha-1)/\alpha}$.
+With soft labels, the only noise is the aliased tail, $\sigma^2\asymp k^{1-\alpha}$. Then $k\asymp n$ and the
+error is $\asymp n^{-(\alpha-1)}$.
+The rigorous version of this noiseless/noisy crossover in kernel regression is due to
+\citet{cui2021generalization}. The prediction is that the distillation-token exponent should be
+steeper for full-logit distillation than for sequence-level (hard-label) distillation, with top-$k$
+logits in between.
+\end{heuristic}
+
+\begin{heuristic}[Capacity gap as a finite-sample aliasing effect]\label{heur:gap}
+In the same model, let the teacher have $k_\TT$ components and the student $k<k_\TT$. With soft labels,
+the student's error with respect to the ground truth is approximately
+\[
+\frac kn\sum_{k<i\le k_\TT}\lambda_i+\sum_{i>k}\lambda_i .
+\]
+The first term increases in $k_\TT$ (teacher content the student cannot represent aliases into the
+components it estimates). For $k_\TT\le k$ the error is $\sum_{i>k_\TT}\lambda_i$, which decreases in $k_\TT$.
+Hence the optimal teacher has $k_\TT\approx k$, and the penalty for a stronger teacher is at most a factor
+$(1+k/n)$ on the tail. It vanishes as $n\to\infty$. Together with \cref{prop:nogap}, this predicts that
+capacity gaps are \emph{finite-data and optimisation effects}, and should shrink as distillation tokens
+grow at fixed student size.
+\end{heuristic}
+
+\begin{conjecture}[Distillation gap law]\label{conj:law}
+For a teacher whose Fisher-weighted log-probability spectrum decays as $i^{-\alpha}$, the per-token
+forward-KL gap of a well-optimised student with $R_\TS$ usable bits and $n$ distillation tokens satisfies
+\[
+\eoff^{\KL}\asymp A\,R_\TS^{-(\alpha-1)}+B\,n^{-b}+\frac{k(R_\TS)}n\,\mathrm{Tail}_\TT\big(k(R_\TS)\big),
+\]
+with $b=\alpha-1$ for full soft labels and $b=(\alpha-1)/\alpha$ for hard labels. The first term switches
+to exponential decay once $R_\TS\ln2\gtrsim I_\infty$.
+\end{conjecture}

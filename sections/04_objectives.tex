@@ -1,0 +1,143 @@
+% ===========================================================================
+\section{Objective design}\label{sec:objectives}
+% ===========================================================================
+
+\subsection{Gradients with respect to student logits}
+
+\begin{proposition}[Logit gradients of $f$-divergences]\label{prop:grad}
+\Pv\Ck Let $q=\softmax(z)$, $u=p/q$, and $\psi_f(u):=f(u)-uf'(u)$. Then
+$\nabla_zD_f(p\|q)=q\odot\big(\psi_f(u)-\E_q\psi_f(u)\big)$. In particular:
+\begin{align*}
+\nabla_z\KL(p\|q)&=q-p,\\
+\nabla_z\KL(q\|p)&=q\odot\big(\log\tfrac qp-\KL(q\|p)\one\big),\\
+\nabla_z\JSD_\beta(p\|q)&=(1-\beta)\,q\odot\big(\log\tfrac qm-\E_q\log\tfrac qm\,\one\big),\qquad m=\beta p+(1-\beta)q.
+\end{align*}
+\end{proposition}
+\begin{proof}
+$\partial_{q(y)}\sum_{y'}q(y')f(p(y')/q(y'))=f(u_y)-u_yf'(u_y)$. The softmax Jacobian is
+$\partial q_j/\partial z_i=q_j(\delta_{ij}-q_i)$. For KL, $\psi=-u$. For reverse KL, written as $D_{-\log}$,
+$\psi=1-\log u$. For $\JSD_\beta$ we have $f_\beta(u)-uf_\beta'(u)=-(1-\beta)\log(\beta u+1-\beta)=(1-\beta)\log(q/m)$.
+\end{proof}
+
+\subsection{Mode covering versus mode seeking}
+
+\begin{proposition}[Support behaviour]\label{prop:support}
+\Pv If $\KL(p\|q)<\infty$ then $\operatorname{supp}p\subseteq\operatorname{supp}q$ (zero-avoiding, mode covering). If
+$\KL(q\|p)<\infty$ then $\operatorname{supp}q\subseteq\operatorname{supp}p$ (zero-forcing, mode seeking).
+$\JSD_\beta\le h(\beta)$ is always finite and imposes neither constraint.
+\end{proposition}
+
+\begin{proposition}[Missing-mode gradients]\label{prop:missing}
+\Pv Fix a token $i$ with $p_i>0$ and let $q_i\to0$, the other coordinates staying bounded away from $0$.
+\begin{enumerate}[label=(\roman*),nosep]
+\item Forward KL: $\partial_{z_i}\KL(p\|q)=q_i-p_i\to-p_i$. The restoring force equals the missing mass.
+\item Reverse KL: $|\partial_{z_i}\KL(q\|p)|\le q_i\big(|\log\tfrac{q_i}{p_i}|+\KL(q\|p)\big)=O(q_i\log\tfrac1{q_i})\to0$.
+A mode the student has dropped exerts \emph{no} pull.
+\item $\JSD_\beta$: $\partial_{z_i}\JSD_\beta=-(1-\beta)\,q_i\big[\log(1-\beta+\beta p_i/q_i)+c\big]$ with
+$c=\KL(q\|m)\in[0,\log\frac1{1-\beta}]$. The pull towards the missing mode is therefore at most
+$\beta(1-\beta)p_i+(1-\beta)q_i\log\frac1{1-\beta}$, at most a quarter of the forward-KL pull when $q_i\ll p_i$.
+As $q_i\to0$ it equals $(1-\beta)q_i\log\frac{\beta p_i}{q_i}(1+o(1))\to0$, which is reverse-like. A teacher mode is
+effectively recovered only while the student's mass on it is not $\ll\beta p_i$.
+\end{enumerate}
+\end{proposition}
+\begin{proof}
+Read off \cref{prop:grad}. For (iii), $m_i/q_i=1-\beta+\beta p_i/q_i$, and
+$0\le\E_q\log\frac qm\le\log\frac1{1-\beta}$ because $m\ge(1-\beta)q$. Use $q_i\log(1+\beta p_i/q_i)\le\beta p_i$ for the
+upper bound, and $\log(1-\beta+\beta p_i/q_i)=\log\frac{\beta p_i}{q_i}+o(1)$ as $q_i\to0$.
+\end{proof}
+
+\begin{proposition}[M-projection versus I-projection]\label{prop:projections}
+\Pv(a), \Kn(b).
+(a)~For an exponential-family student $q_\eta\propto e^{\eta^\top\phi}$, $\eta\mapsto\KL(p\|q_\eta)$ is convex,
+and its stationarity condition is moment matching, $\E_{q_\eta}\phi=\E_p\phi$. Stationarity of
+$\KL(q_\eta\|p)$ is $\Cov_{q_\eta}(\phi,\log\frac{q_\eta}p)=0$, which is generally non-convex.
+(b)~Let $p=w\,\cN(-a,1)+(1-w)\,\cN(a,1)$ with $w<\frac12$, and let $q=\cN(\mu,s^2)$.
+The forward minimiser is $\mu=(1-2w)a$, $s^2=1+4w(1-w)a^2$. At it, $\KL(q\|p)=\Theta(a^2)$ and $\TV(p,q)\to1$
+as $a\to\infty$.
+The reverse KL has local minimisers near $\mu=\pm a$ with $s\to1$, of value $\to\log\frac1w$ and
+$\log\frac1{1-w}$ respectively; the global one is the heavier mode. At it, $\KL(p\|q)=\Theta(a^2)$ but
+$\TV(p,q)\to w$.
+\end{proposition}
+\begin{proof}
+(a) $\nabla_\eta\KL(p\|q_\eta)=\E_{q_\eta}\phi-\E_p\phi$, and the Hessian is $\Cov_{q_\eta}\phi\succeq0$. For the
+reverse direction, differentiate $\E_{q_\eta}[\log q_\eta-\log p]$.
+(b) The forward case is moment matching. The mixture has mean $(1-2w)a$ and variance
+$1+a^2-(1-2w)^2a^2$. The reverse values follow because $p\approx(1-w)\cN(a,1)$ on the bulk of
+$\cN(a,1)$. Classical discussions are \citet{minka2005divergence} and \citet{bishop2006pattern}.
+\end{proof}
+\noindent
+Each direction's minimiser is catastrophic in the other direction. In this example, the mode-seeking
+solution is \emph{behaviourally} better (TV $\approx w$ versus $\approx1$): it produces valid samples and
+drops a mode, whereas the covering solution produces mostly invalid samples. This is the formal content
+of ``mode covering versus mode seeking''. Which is preferable depends on the deployment criterion
+(\cref{sec:right}). Under misspecification, neither is TV-optimal (\cref{prop:agnostic}).
+
+\subsection{Temperature}
+
+Let $p^\tau=\softmax(v/\tau)$, $q^\tau=\softmax(z/\tau)$, and $\cL_\tau(z):=\tau^2\KL(p^\tau\|q^\tau)$, the loss of
+\citet{hinton2015distilling}.
+\begin{proposition}[Temperature and the $\tau^2$ factor]\label{prop:temperature}
+\Pv\Ck
+\begin{enumerate}[label=(\roman*),nosep]
+\item $\nabla_z\cL_\tau=\tau(q^\tau-p^\tau)$. Without the factor $\tau^2$ the gradient is $\frac1\tau(q^\tau-p^\tau)=O(\tau^{-2})$
+as $\tau\to\infty$. The factor $\tau^2$ keeps gradient magnitudes $O(1)$, so the relative weighting against a
+hard-label term is stable across $\tau$.
+\item (High temperature: logit matching.)
+$\tau(q^\tau_i-p^\tau_i)=\frac1V(\tilde z_i-\tilde v_i)+\frac1{2V\tau}\big[(\tilde z_i^2-\tilde v_i^2)-\frac1V(\|\tilde z\|^2-\|\tilde v\|^2)\big]+O(\tau^{-2})$,
+so $\cL_\tau(z)=\frac1{2V}\|\tilde z-\tilde v\|^2+O(1/\tau)$. This is centred-logit regression, as in
+\citet{ba2014do}.
+\item (Low temperature: argmax matching.) If $v$ has a unique maximiser $i^\star$, then
+$\tau\KL(p^\tau\|q^\tau)\to\max_jz_j-z_{i^\star}$, a perceptron/hinge loss on the teacher's argmax, and $\cL_\tau\to0$.
+\item (Geometry, not solution.) The global minimisers $\{v+c\one\}$ do not depend on $\tau$, and
+$\nabla^2\cL_\tau|_{z=v}=\diag(p^\tau)-p^\tau p^{\tau\top}\to\frac1VC$ as $\tau\to\infty$. Temperature changes \emph{which
+errors are cheap}, and hence the misspecified solution and the conditioning, but not the realisable
+solution.
+\end{enumerate}
+\end{proposition}
+\begin{proof}
+(i) Chain rule: $\partial_z\KL(p^\tau\|\softmax(z/\tau))=\frac1\tau(q^\tau-p^\tau)$.
+(ii) Expand $e^{\tilde z_i/\tau}=1+\tilde z_i/\tau+\tilde z_i^2/2\tau^2+O(\tau^{-3})$, with
+$\sum_je^{\tilde z_j/\tau}=V+\|\tilde z\|^2/2\tau^2+O(\tau^{-3})$, and similarly for $v$.
+(iii) $p^\tau\to\delta_{i^\star}$, and $-\tau\log q^\tau_{i^\star}=\tau\,\mathrm{lse}(z/\tau)-z_{i^\star}\to\max_jz_j-z_{i^\star}$;
+the entropy terms of $p^\tau$ vanish.
+(iv) The Hessian of $\tau^2\mathrm{lse}(z/\tau)$ is $\diag(q^\tau)-q^\tau q^{\tau\top}$.
+\end{proof}
+
+\subsection{Dark knowledge as Fisher information}
+
+\begin{proposition}[Low-probability tokens are invisible at $\tau=1$]\label{prop:invisible}
+\Pv For $\delta\in\R^V$ supported on $A\subseteq\cV$,
+$\delta^\top(\diag p-pp^\top)\delta\le\max_{i\in A}p_i\,\|\delta\|^2\le p(A)\|\delta\|^2$. Near the optimum,
+perturbing the logits of tokens of total teacher mass $10^{-6}$ by $\delta$ costs at most $\frac12\cdot10^{-6}\|\delta\|^2$.
+Their relative logits, which is the ``dark knowledge'', are essentially unconstrained at $\tau=1$. At
+temperature $\tau$, $p$ is replaced by the flatter $p^\tau$.
+\end{proposition}
+
+\begin{proposition}[What soft labels add to hard labels]\label{prop:soft-info}
+\Pv
+\begin{enumerate}[label=(\alph*),nosep]
+\item At $\theta^\circ$, one hard label at $s$ carries Fisher information $\mathcal I(s)=J^\top(\diag p-pp^\top)J$,
+and $m$ i.i.d.\ hard labels carry $m\mathcal I(s)$. The soft label is the $m\to\infty$ limit. It determines the
+centred teacher logits $\tilde v(s)$ exactly, because $p\mapsto C\log p$ is a bijection from the open simplex
+onto $\operatorname{range}C$.
+\item The per-state gradient-variance reduction from using the soft label is $\tr\mathcal I(s)$
+(\cref{prop:rb}). It is zero iff the teacher is deterministic at $s$ (for $J$ of full rank on
+$\operatorname{range}C$). In the realisable linear case it upgrades a $k/2n$ error to exact recovery
+(\cref{prop:exact}).
+\item For any $\tau>0$, $p^\tau$ is a bijective function of $p$. Temperature adds \emph{no information}; it
+reweights existing information in the loss (\cref{prop:temperature}(iv), \cref{prop:invisible}). It
+matters only when the channel is lossy, for example with top-$k$ logits, finite precision, or finite
+optimisation budgets.
+\item Under \cref{as:linear} for the teacher, $\tilde v(s)=CW_\TT h_\TT(s)$. The soft label therefore reveals
+the teacher's final hidden state up to $\ker(CW_\TT)$: dark knowledge is a linear image of the
+teacher's representation. This links to \cref{sec:repr}.
+\end{enumerate}
+\end{proposition}
+\noindent
+So soft labels carry information beyond hard labels \emph{exactly when the teacher is non-degenerate}.
+The amount is unbounded in the noiseless realisable case and equals the Rao--Blackwell gap otherwise.
+Temperature is a preconditioner, not an information source. This sharpens the ``dark knowledge'' account
+of \citet{hinton2015distilling} and the gradient decompositions of \citet{furlanello2018born} and
+\citet{tang2020understanding}. Relations to label smoothing are discussed by \citet{muller2019does}.
+
+\input{sections/04b_objectives}

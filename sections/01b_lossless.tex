@@ -1,0 +1,137 @@
+\subsection{Sequence level versus token level}\label{sec:chain}
+
+\begin{theorem}[Chain rules: each KL direction has its own prefix law]\label{thm:chain}
+\Pv\Ck For every $x$,
+\begin{align}
+\KL(\Pseq\|\Qseq)&=\sum_{t=1}^T\E_{s_t\sim\Pseq}\,\KL\big(p_t(\cdot\mid s_t)\,\|\,q_t(\cdot\mid s_t)\big),\label{eq:chain-fwd}\\
+\KL(\Qseq\|\Pseq)&=\sum_{t=1}^T\E_{s_t\sim\Qseq}\,\KL\big(q_t(\cdot\mid s_t)\,\|\,p_t(\cdot\mid s_t)\big).\label{eq:chain-rev}
+\end{align}
+After averaging over $x\sim\cD$: $\E_\cD\KL(P\|Q_\theta)=T\,\eoff^{\KL}$ (teacher prefixes) and
+$\E_\cD\KL(Q_\theta\|P)=T\,\eon^{\mathrm{rKL}}$ (student prefixes).
+\end{theorem}
+\begin{proof}
+$\log\frac{\Pseq(y)}{\Qseq(y)}=\sum_t\log\frac{p_t(y_t\mid s_t)}{q_t(y_t\mid s_t)}$. Take $\E_{y\sim\Pseq}$ and
+condition each summand on $s_t$ (tower property). The reverse identity is the same computation with
+$y\sim\Qseq$.
+\end{proof}
+
+\begin{remark}\label{rem:pairings}
+Supervised distillation on teacher-generated sequences with soft labels at every position (the
+token-level analogue of \citet{kim2016sequence}) minimises \eqref{eq:chain-fwd} \emph{exactly}. On-policy
+reverse-KL distillation, as in the objectives of \citet{gu2024minillm} and \citet{agarwal2024gkd} with
+$\lambda=1$ and reverse KL, minimises \eqref{eq:chain-rev} exactly, provided the gradient is taken through the
+sampling distribution (\cref{prop:rb-reverse}). The two remaining pairings are forward KL on student
+prefixes (for example GKD with forward KL on on-policy data) and reverse KL on teacher prefixes. These are
+genuine discrepancies (\cref{prop:hybrid-div}) but do not equal any sequence-level $f$-divergence.
+\end{remark}
+
+\begin{proposition}[Hybrid argument for TV, and its converse]\label{prop:hybrid}
+\Pv\Ck For every $x$,
+\[
+\TV(\Pseq,\Qseq)\le\sum_{t=1}^T\E_{s_t\sim\Pseq}\TV_t(s_t)
+\quad\text{and}\quad
+\TV(\Pseq,\Qseq)\le\sum_{t=1}^T\E_{s_t\sim\Qseq}\TV_t(s_t),
+\]
+where $\TV_t(s)=\TV(p_t(\cdot\mid s),q_t(\cdot\mid s))$. Conversely, for each $t$,
+$\E_{s_t\sim\Pseq}\TV_t(s_t)\le2\,\TV(\Pseq,\Qseq)$, and the same holds with $\Qseq$.
+\end{proposition}
+\begin{proof}
+Let $H_k$ draw $y_{1:k}$ from $p$ and $y_{k+1:T}$ from $q_\theta$, so that $H_T=\Pseq$ and $H_0=\Qseq$.
+$H_k$ and $H_{k-1}$ share the law of $s_k$ and the continuation kernel after step $k$. By data processing,
+$\TV(H_k,H_{k-1})\le\E_{s_k\sim\Pseq}\TV_k(s_k)$. Telescope. For the second bound, exchange the roles of
+$p$ and $q_\theta$.
+For the converse, let $\Pi^P_t$ and $\Pi^Q_t$ be the laws of $(s_t,y_t)$ and $\Pi^H:=\dteach t\otimes q_t$. Then
+$\E_{\dteach t}\TV_t=\TV(\Pi^P_t,\Pi^H)\le\TV(\Pi^P_t,\Pi^Q_t)+\TV(\dstud t,\dteach t)\le2\,\TV(\Pseq,\Qseq)$,
+because marginalisation cannot increase TV.
+\end{proof}
+
+\begin{proposition}[The mismatched pairings are divergences but lose $\sqrt T$]\label{prop:hybrid-div}
+\Pv Let $\mathsf H_{\mathrm{on}}^{\KL}:=\sum_t\E_{s\sim\Qseq}\KL(p_t\|q_t)$ and
+$\mathsf H_{\mathrm{off}}^{\mathrm{rKL}}:=\sum_t\E_{s\sim\Pseq}\KL(q_t\|p_t)$. Each is $\ge0$, and each
+vanishes iff $\Pseq=\Qseq$. Moreover $\TV(\Pseq,\Qseq)\le\sqrt{T\,\mathsf H/2}$ for either one.
+By contrast, the exact pairings give $\TV\le\sqrt{\KL/2}$ with $\KL$ the corresponding sequence-level KL.
+\end{proposition}
+\begin{proof}
+If $\mathsf H_{\mathrm{on}}^{\KL}=0$, then $p_1=q_1$ at $x$. So $d_2^{\,p}=d_2^{\,\theta}$, hence $p_2=q_2$ on the
+common support, and so on by induction. The bound follows from \cref{prop:hybrid}, Pinsker per token,
+and Cauchy--Schwarz: $\sum_t\E\TV_t\le\sum_t\sqrt{e_t/2}\le\sqrt{T\sum_te_t/2}$.
+\end{proof}
+
+\begin{corollary}[Sequence-level TV from per-token errors]\label{cor:seq-tv}
+\Pv
+\[
+\E_\cD\TV(P,Q_\theta)\le\min\Big\{\sqrt{T\eoff^{\KL}/2},\;\sqrt{1-e^{-T\eoff^{\KL}}},\;\sqrt{T\eon^{\mathrm{rKL}}/2},\;
+T\eoff^{\TV},\;T\eon^{\TV}\Big\}.
+\]
+\end{corollary}
+\begin{proof}
+Combine \cref{thm:chain,prop:pinsker,prop:hybrid} with Jensen. The maps $k\mapsto\sqrt k$ and
+$k\mapsto\sqrt{1-e^{-k}}$ are concave.
+\end{proof}
+
+\begin{example}[Neither route dominates]\label{ex:regimes}
+\Pv
+(a)~\emph{Diffuse errors.} Let $p_t=\mathrm{Bern}(\frac12)$ and $q_t=\mathrm{Bern}(\frac12+\delta)$ be i.i.d.
+Then $T\eoff^{\TV}=T\delta$, whereas $\KL(P\|Q)=-\frac T2\log(1-4\delta^2)$, so the Pinsker route gives
+$\TV\le\sqrt T\,\delta\,(1+o(1))$. This is the correct order, by the central limit theorem for the
+log-likelihood ratio, and it improves on the hybrid route by $\sqrt T$.
+(b)~\emph{Concentrated errors (deterministic teacher).} Let $p_t=\delta_{a}$ and $q_t(a)=1-\delta$. Then
+$\TV=1-(1-\delta)^T\le T\delta$ and $\KL=-T\log(1-\delta)$, so $\sqrt{\KL/2}\approx\sqrt{T\delta/2}\gg T\delta$
+when $T\delta\ll1$. Here the hybrid route is tight. In general, if $P$ is a point mass then
+$\TV(P,Q)=1-e^{-\KL(P\|Q)}\le\KL(P\|Q)$: control is linear rather than square-root.
+\end{example}
+
+\begin{proposition}[Covariate shift]\label{prop:covshift}
+\Pv For any measurable $g\ge0$ (for example a per-input divergence), under \cref{as:shift},
+$\E_\mu g\le\rho\,\E_\cD g$. If $0\le g\le G$, then without any density-ratio assumption,
+$|\E_\mu g-\E_\cD g|\le G\,\TV(\mu,\cD)$.
+Bounded criteria ($\TV$, $\Hel^2$, $\JSD_\beta$) therefore transfer across input shift additively.
+Unbounded ones (KL) need \cref{as:shift}.
+\end{proposition}
+
+\subsection{Which definition is the right one?}\label{sec:right}
+
+\begin{definition}[Hierarchy of near-losslessness]\label{def:hierarchy}
+At tolerance $\eps$ and deployment law $\mu$, the student is:
+\begin{description}[nosep,font=\normalfont\itshape]
+\item[behaviourally lossless] if $\E_\mu\TV(\Pseq,\Qseq)\le\eps$;
+\item[likelihood lossless] if $\E_\mu\KL(\Pseq\|\Qseq)\le\eps$;
+\item[two-sided lossless] if $\E_\mu[\KL(\Pseq\|\Qseq)+\KL(\Qseq\|\Pseq)]\le2\eps$;
+\item[decoding lossless] if it is behaviourally lossless and the margin condition of
+\cref{prop:margin} holds on the teacher's greedy paths.
+\end{description}
+\end{definition}
+
+\noindent\textbf{Position taken in this document.}
+\begin{enumerate}[leftmargin=*]
+\item \emph{The target is sequence-level, on the deployment law.} Behavioural losslessness,
+$\E_\mu\TV(\Pseq,\Qseq)\le\eps$, is \emph{exactly} the statement that no bounded downstream task evaluated
+by sampling changes by more than $\eps$ (\cref{prop:tv-task}). It is also exactly the statistical
+indistinguishability of the two models from one sample. It is symmetric, bounded, and transfers across
+covariate shift additively (\cref{prop:covshift}). Token-level criteria are \emph{surrogates}; they
+relate to the target only through \cref{thm:chain,prop:hybrid}.
+\item \emph{TV alone is not enough when probabilities are consumed or events are rare.} If the student's
+likelihoods are used (scoring, calibration, uncertainty, perplexity), the relevant quantity is the
+log-loss regret, which is \emph{exactly} $\E_\mu\KL(\Pseq\|\Qseq)$. If the student is sampled at scale and
+rare events matter (hallucinations, unsafe outputs), the precision bound of \cref{prop:events}(ii--iii)
+requires the \emph{reverse} direction. Hence two-sided losslessness. If decoding is greedy or beam
+search, margins matter too (\cref{prop:margin}).
+\item \emph{Among trainable surrogates, sequence-level forward KL is canonical.} It dominates behavioural
+loss via Pinsker and gives log-loss exactly. By \cref{thm:chain} its per-token decomposition uses
+\emph{teacher prefixes only}, so it is estimable without student roll-outs and has no exposure-bias term
+(\cref{sec:shift}). It is convex in the logits (\cref{prop:convexity}). It is also the only divergence on
+the simplex that is both an $f$-divergence and a Bregman divergence \citep{amari2009alpha}; we are
+confident of this characterisation for probability vectors but have not re-derived it.
+\item \emph{But when exactness is impossible, the surrogate must be chosen for the target.} Under
+misspecification, minimisers of either KL direction can be arbitrarily bad in TV, whereas minimisers of
+a bounded divergence such as $\JSD_\beta$ are TV-competitive (\cref{prop:agnostic}). This is why the
+objective proposed in \cref{sec:objectives} is a \emph{sequence-level} $\JSD_\beta$ with an optional
+forward-KL anchor.
+\item \emph{In the truly near-lossless regime the question dissolves.} By \cref{prop:local}, all smooth
+divergences agree to second order when likelihood ratios are bounded. The practically important choice
+is then the \emph{prefix law} and the \emph{estimator}, not the divergence.
+\end{enumerate}
+In one sentence: a student should be called $\eps$-lossless if it is two-sided lossless at level $\eps$
+under the deployment input law (behavioural losslessness at level $\sqrt{\eps/2}$ then follows). It
+should be trained with a sequence-level divergence whose minimiser remains TV-competitive when
+$\eps$-losslessness is out of reach.
