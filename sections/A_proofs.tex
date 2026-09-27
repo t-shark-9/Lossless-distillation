@@ -67,5 +67,9 @@ TV estimator, the bias of the stop-gradient estimator, the unbiasedness of the p
 \cref{def:pajsd}, and the bias that results from adding the two recipes. \texttt{check\_capacity.py} verifies
 \cref{prop:powerlaw,prop:phase,thm:bottleneck,cor:facts}, the $R=0$ tightness of \cref{cor:facts-tv}, and
 \cref{thm:capacity} on 300 random instances by exact computation of $I(\mathbf T;Y)$. \texttt{check\_representations.py} verifies
-\cref{prop:cca,thm:overconstraint,prop:fisher-rep} in a random instance of the linear-Gaussian model. All
-checks pass.
+\cref{prop:cca,thm:overconstraint,prop:fisher-rep} in a random instance of the linear-Gaussian model.
+\texttt{check\_repr\_nonlinear.py} verifies \cref{lem:penalty} on random finite problems,
+\cref{thm:nl-overconstraint,thm:fisher-central,thm:stein,prop:no-moment-rule,thm:poincare} by Gauss--Hermite quadrature
+(the conditional expectations of \cref{thm:poincare} by nested quadrature), \cref{ex:retrieval} by the exact law of the
+number of distinct sampled states, and \cref{prop:attention-convex} by solving the convex attention-map problem with
+Newton steps. All checks pass.

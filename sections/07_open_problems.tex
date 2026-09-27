@@ -42,11 +42,20 @@ DAgger-type map in \cref{prop:rb-reverse}. When do they coincide with minimisers
 divergence? Is there a Lyapunov function? Under what conditions does the iteration converge for
 overparameterised students?
 
-\item \textbf{Representation matching in deep networks.} Extend \cref{thm:overconstraint,prop:fisher-rep} beyond the
-linear-Gaussian model. Is there a Fisher-aligned target, depending on $s$ through the Jacobian, whose
-constraint provably has zero approximation cost for a nonlinear teacher--student pair? Can one quantify
-sample-complexity and computational gains of intermediate supervision for transformer students, beyond
-parity-type separations?
+\item \textbf{Representation matching in deep networks} (partly resolved in \cref{sec:repr-nonlinear,sec:repr-complexity}).
+Resolved: over-constraint persists for any nonlinear head and feature law (\cref{thm:nl-overconstraint}); the Fisher
+target, and a pointwise Jacobian target, cost nothing whenever the teacher's Fisher central subspace fits in the student
+(\cref{thm:fisher-central}); for linear read-outs the cost-free target averages the Jacobian rather than the Fisher
+(\cref{thm:stein}); in the lossy regime the cost of Fisher alignment is at most a Poincaré gap (\cref{thm:poincare}), and
+no rule based on second moments of the Jacobian is exact (\cref{prop:no-moment-rule}). Staged supervision adds errors
+instead of compounding them (\cref{thm:composition}), attention-map supervision convexifies each layer
+(\cref{prop:attention-convex}), and the gains beyond parities are graded by the information exponent or hold against all
+efficient learners (\cref{prop:graded}). Open: (a)~a computable characterisation of the output-optimal target in the lossy
+nonlinear regime, the sufficient-dimension-reduction problem $\min_{\mathcal S}\cL^\star(\mathcal S)$, beyond Gaussian features
+and for the exact $\tau=1$ KL with a state-dependent Fisher matrix; (b)~end-to-end lower bounds for gradient-trained
+transformer students on natural language-like data, rather than single-index or threshold targets embedded in one block;
+(c)~whether attention-map fitting stays tractable under the rank constraint of a small head dimension, where it
+resembles low-rank matrix sensing.
 
 \item \textbf{Optimal input design for distillation.} The teacher can be queried anywhere. Which input
 distribution $\cD$, possibly adaptive, minimises the deployment risk under $\mu$ for a fixed query budget,

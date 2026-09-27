@@ -158,14 +158,20 @@ The spectral gap gives uniqueness up to $M$.
 \end{proof}
 
 \begin{heuristic}[Deep networks]\label{heur:repr-deep}
-For intermediate layers $J(s)$ varies with $s$, and $K$ averages over it. Alignment is then approximate,
-but $K$ can be estimated with a few Jacobian--vector products per batch (Hutchinson-type probes). The
+For intermediate layers $J(s)$ varies with $s$, and $K$ averages over it. Alignment is then exact when
+$\rank K\le d_\TS$ and approximate otherwise, with the error bracketed in \cref{sec:repr-nonlinear}. $K$ can be estimated
+with a few Jacobian--vector products per batch (Hutchinson-type probes). The
 theory predicts the following. Full-feature matching helps when the teacher's high-variance directions
 are output-relevant. It hurts when they carry nuisance variance, for example the outlier or ``massive''
 activation dimensions reported in large transformers (we are unsure of the canonical reference for this
 phenomenon). CKA matching over-constrains more than $\cR_{\mathrm{LS}}$ when $d_\TS<d_\TT$. Fisher-aligned matching
-should dominate both.
+should dominate both. \Cref{thm:fisher-central,thm:poincare} prove this in two nonlinear regimes, and
+\cref{prop:no-moment-rule} shows that no rule based on second moments of the Jacobian is exact in general.
 \end{heuristic}
+
+\input{sections/05b_representations}
+
+\subsection{Summary}
 
 \begin{center}
 \begin{tabular}{@{}p{0.33\linewidth}p{0.6\linewidth}@{}}
@@ -177,6 +183,11 @@ hard labels / top-$k$ / sampled sequences & fewer parameters learned from noise 
 ill-conditioned output Fisher & preconditioning, faster optimisation (\cref{prop:precond})\\
 compositional targets & exponential computational gain (\cref{prop:parity})\\
 $d_\TS<\rank\Sigma$, misaligned variance & over-constraint, unbounded cost (\cref{thm:overconstraint})\\
-Fisher-aligned target & no approximation cost in the model (\cref{prop:fisher-rep})\\\bottomrule
+Fisher-aligned target & no approximation cost in the model (\cref{prop:fisher-rep})\\
+nonlinear head, universal student head & full matching can cost $I(Y;h_\TT)$ (\cref{thm:nl-overconstraint})\\
+nonlinear head, $\rank K\le d_\TS$ & Fisher and Jacobian targets cost nothing (\cref{thm:fisher-central})\\
+nonlinear teacher, linear read-out & align with $\bar J^\top F\bar J$, not $K$ (\cref{thm:stein})\\
+nonlinear head, $\rank K>d_\TS$ & cost $\le$ Poincaré gap (\cref{thm:poincare}); no moment rule is exact (\cref{prop:no-moment-rule})\\
+supervised stages / CoT & errors add (\cref{thm:composition}); graded and cryptographic separations (\cref{prop:graded})\\\bottomrule
 \end{tabular}
 \end{center}
