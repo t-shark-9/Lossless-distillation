@@ -48,19 +48,21 @@ constraint provably has zero approximation cost for a nonlinear teacher--student
 sample-complexity and computational gains of intermediate supervision for transformer students, beyond
 parity-type separations?
 
-\item \textbf{Optimal input design beyond the two extremes.} \Cref{sec:design} solves the design problem at
-both ends of the structure spectrum. For unstructured teachers the minimax rate is $\Theta(L_n)$, uniformly in
-the horizon, and the square-root law is optimal (\cref{thm:separable}). For teachers with shared
-parameters, the local constant is $\frac12\Phi^\star/n$ and the I-optimal design attains it
-(\cref{thm:local-design}). Open are: (a)~non-asymptotic minimax rates for shared and partially shared
-classes, for example a teacher whose prompt-to-logit map lies in a reproducing-kernel Hilbert space with
-a power-law spectrum, where the tempering exponent of \cref{heur:tempering} should interpolate between
-$\frac12$ and $1$; (b)~the sharp constant in \cref{thm:separable}; (c)~noiseless regimes, namely soft labels
-under misspecification and deterministic teachers, where deterministic or adaptive designs can beat
-i.i.d.\ sampling by more than constants, by quadrature-type rates \citep{cohen2017optimal} or by
-binary-search-type exponential savings \citep{dasgupta2005coarse}; noisy active learning has its own
-minimax theory \citep{castro2008minimax}; (d)~designs for the behavioural (TV) risk, where
-\cref{heur:tempering} predicts $\mu^{2/3}$.
+\item \textbf{Optimal input design beyond the two extremes.} \Cref{sec:design} answers the design problem
+at both ends of the structure spectrum. For unstructured teachers the minimax rate is $\Theta(L_n)$,
+uniformly in the horizon and up to a universal constant, and the square-root law is optimal
+(\cref{thm:separable}). For teachers with shared parameters the local constant is $\frac12\Phi^\star/n$ in KL,
+and the two-stage adaptive design attains it (\cref{thm:local-design}). Open are: (a)~non-asymptotic
+minimax rates for shared and partially shared classes, for example a teacher whose prompt-to-logit map
+lies in a reproducing-kernel Hilbert space with a power-law spectrum, where the tempering exponent of
+\cref{heur:tempering} should interpolate between $\frac12$ and $1$; since a bounded number of parameters does
+not by itself give horizon-free rates (\cref{rem:sep-general}), the right complexity measure is a local
+entropy that is uniform in $T$; (b)~the sharp constant in \cref{thm:separable}; (c)~noiseless regimes,
+namely soft labels under misspecification and deterministic teachers, where optimal sampling measures
+for weighted least squares \citep{cohen2017optimal}, deterministic designs, or binary-search-type
+adaptive designs \citep{dasgupta2005coarse} can beat sampling from $\mu$ by more than constants; noisy active
+learning has its own minimax theory \citep{castro2008minimax}; (d)~designs for the behavioural (TV) risk,
+where \cref{heur:tempering} predicts $\mu^{2/3}$.
 
 \item \textbf{Decoding-level losslessness.} Beyond the margin condition of \cref{prop:margin}, give sharp
 bounds on the probability that greedy or beam-search outputs of teacher and student differ, in terms

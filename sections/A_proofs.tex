@@ -102,12 +102,21 @@ $\KL(\P_\sigma\|\P_{\sigma^{(x,j)}})=\E_\sigma[n_x]\,T\,\KL(p_{x,\sigma}\|p_{x,\
 $\frac{2\delta_x}{V'}\log\frac{1+\delta_x}{1-\delta_x}\le\frac{16\delta_x^2}{3V'}$ for $\delta_x\le\frac12$. By Pinsker and Jensen,
 $\tau_{x,j}\le\big(\frac83\,\bar n_x\,T\delta_x^2/V'\big)^{1/2}$, where $\bar n_x:=2^{-|\cX_0|m_0}\sum_\sigma\E_\sigma[n_x]$ and $\sum_x\bar n_x\le n$.
 
-(5) \emph{Choice of $\delta_x$.} Put $t_x:=T\delta_x^2/V'=\min\{\frac1{4V'},\frac3{32\bar n_x}\}$. Then $T\delta_x^2\le\frac14$, $\delta_x\le\frac12$ and
+(5) \emph{Choice of $\delta_x$.} We want $t_x:=T\delta_x^2/V'=\min\{\frac1{4V'},\frac3{32\bar n_x}\}$. Under an adaptive design
+$\bar n_x$ depends on $\delta=(\delta_x)_{x\in\cX_0}$ through the laws $\P_\sigma$, so this is a fixed-point condition. Each
+$\E_\sigma[n_x]$ is continuous in $\delta\in[0,\frac12]^{\cX_0}$. Indeed $\E_\sigma[n_x]=\E_0[n_xL_\sigma(\delta)]$, where $\E_0$ is taken
+with every $p_x$ uniform on the first $V'$ tokens. The likelihood ratio $L_\sigma(\delta)$ of the transcript is a
+product of at most $nT$ factors $1\pm\delta_x$, hence continuous in $\delta$ and at most $(3/2)^{nT}$, and $n_x\le n$, so
+dominated convergence applies. The map
+$\Gamma(\delta)_x:=\big(V'\min\{\frac1{4V'},\frac3{32\bar n_x(\delta)}\}/T\big)^{1/2}$, with $3/0:=\infty$, is therefore a continuous
+self-map of $[0,\frac12]^{\cX_0}$,
+and it has a fixed point by Brouwer's theorem. At a fixed point, $T\delta_x^2\le\frac14$, $\delta_x\le\frac12$ and
 $\tau_{x,j}\le\frac12$. So prompt $x$ contributes at least
 $\frac{m_0w_x}4=\frac{1-e^{-1}}{32}\,\mu(x)\,V't_x\ge c_{\mathrm{sep}}\,\mu(x)\min\{1,k/\bar n_x\}$, because
 $V't_x=\min\{\frac14,\frac{3V'}{32\bar n_x}\}$ and $V'\ge k$.
 
-(6) \emph{Conclusion.} For an i.i.d.\ design $\bar n_x=n\cD(x)$; letting $\cX_0$ increase to $\cX$ gives $c_{\mathrm{sep}}S_n(\cD)$.
+(6) \emph{Conclusion.} For an i.i.d.\ design $\bar n_x=n\cD(x)$ does not depend on $\delta$; letting $\cX_0$ increase to $\cX$
+gives $c_{\mathrm{sep}}S_n(\cD)$.
 For an adaptive design $\bar n/n$ is a sub-probability vector, so the bound is at least $c_{\mathrm{sep}}$ times the
 infimum of $S_n$ restricted to $\cX_0$. Taking $\cX_0$ to be the $M$ most probable prompts and letting $M\to\infty$
 gives $c_{\mathrm{sep}}L_n$, by part (ii).
@@ -120,8 +129,9 @@ $\sum_{i\le m}\mu_{(i)}\frac k{n\cD_{(i)}}\ge\frac kn\big(\sum_{i\le m}\sqrt{\mu
 $\sum_{i>m}\mu_{(i)}$. Hence $S_n(\cD)\ge L_n$. Conversely, since $f(u)\le k/(nu)$, the design $\cD^\star\propto\sqrt\mu$ on the $m^\star$
 most probable prompts has $S_n(\cD^\star)\le\frac kn(\sum_{i\le m^\star}\sqrt{\mu_{(i)}})^2+\sum_{i>m^\star}\mu_{(i)}=L_n$. The minimum over $m$
 exists: going from $m$ to $m+1$ changes the bracket in $L_n$ by
-$\mu_{(m+1)}\big[\frac kn\big(2\sum_{i\le m}\sqrt{\mu_{(i)}}/\sqrt{\mu_{(m+1)}}+1\big)-1\big]$, which is positive for all large $m$.
-Part (iii) follows from (i) and (ii), and part (iv) is immediate. \qed
+$\mu_{(m+1)}\big[\frac kn\big(2\sum_{i\le m}\sqrt{\mu_{(i)}}/\sqrt{\mu_{(m+1)}}+1\big)-1\big]$, which is non-negative for all large $m$
+(zero beyond the support of $\mu$). The lower bound in part (iii) is step (6), its upper bound follows from
+(i) and (ii), and part (iv) is immediate. \qed
 
 \subsection{Proof of \cref{thm:local-design}(b) (van Trees for adaptive designs)}\label{app:vantrees}
 
@@ -133,21 +143,21 @@ information of the transcript is
 \mathcal I^{(n)}(\theta)=\E_\theta\sum_{i=1}^n\mathcal I_{x_i}(\theta)=n\,\mathcal I_{\bar\cD_\theta}(\theta),\qquad
 \bar\cD_\theta:=\frac1n\sum_{i=1}^n\mathrm{Law}_\theta(x_i)\in\Delta(\cX).
 \]
-Let $\lambda(u)=\prod_{i\le k}\cos^2(\pi u_i/2)$ on $[-1,1]^k$, whose location Fisher information is $\pi^2I_k$, and
-let $\lambda_n$ be the law of $\theta=\theta^\circ+bu/\sqrt n$ with $u\sim\lambda$. The multivariate van Trees inequality
+Let $\varpi(u)=\prod_{i\le k}\cos^2(\pi u_i/2)$ on $[-1,1]^k$, whose location Fisher information is $\pi^2I_k$, and
+let $\varpi_n$ be the law of $\theta=\theta^\circ+bu/\sqrt n$ with $u\sim\varpi$. The multivariate van Trees inequality
 \citep{vantrees1968detection,gill1995applications} states that, for any estimator,
 \[
-\E_{\lambda_n}\E_\theta\big[(\htheta-\theta)(\htheta-\theta)^\top\big]\succeq\Big(\E_{\lambda_n}\mathcal I^{(n)}(\theta)+\frac{n\pi^2}{b^2}I_k\Big)^{-1}.
+\E_{\varpi_n}\E_\theta\big[(\htheta-\theta)(\htheta-\theta)^\top\big]\succeq\Big(\E_{\varpi_n}\mathcal I^{(n)}(\theta)+\frac{n\pi^2}{b^2}I_k\Big)^{-1}.
 \]
 It follows from the matrix Cauchy--Schwarz inequality, because the joint score
-$U=\nabla_\theta\log\big(p(o\mid\theta)\lambda_n(\theta)\big)$ satisfies $\E[(\htheta-\theta)U^\top]=I_k$. That identity is an integration by
-parts in $\theta$, and the boundary terms vanish because $\lambda_n$ vanishes on the boundary of its support.
+$U=\nabla_\theta\log\big(p(o\mid\theta)\varpi_n(\theta)\big)$ satisfies $\E[(\htheta-\theta)U^\top]=I_k$. That identity is an integration by
+parts in $\theta$, and the boundary terms vanish because $\varpi_n$ vanishes on the boundary of its support.
 Since $\cX$ is finite and each $\mathcal I_x(\cdot)$ is continuous, $\mathcal I_x(\theta)\preceq\mathcal I_x(\theta^\circ)+\omega_nI_k$ on the
-support of $\lambda_n$, with $\omega_n\to0$. Therefore $\E_{\lambda_n}\mathcal I^{(n)}(\theta)\preceq n(\mathcal I_{\tilde\cD_n}+\omega_nI_k)$, where
-$\tilde\cD_n:=\E_{\lambda_n}\bar\cD_\theta\in\Delta(\cX)$ and $\mathcal I$ is evaluated at $\theta^\circ$. Let
+support of $\varpi_n$, with $\omega_n\to0$. Therefore $\E_{\varpi_n}\mathcal I^{(n)}(\theta)\preceq n(\mathcal I_{\tilde\cD_n}+\omega_nI_k)$, where
+$\tilde\cD_n:=\E_{\varpi_n}\bar\cD_\theta\in\Delta(\cX)$ and $\mathcal I$ is evaluated at $\theta^\circ$. Let
 $\Phi^\star_\eps:=\min_{\cD}\tr\big(W(\mathcal I_\cD+\eps I_k)^{-1}\big)$ with $W=\mathcal I_\mu$. Taking the trace against $W$ gives
 \[
-\sup_{\|\theta-\theta^\circ\|_\infty\le b/\sqrt n}n\,\E_\theta\|\htheta-\theta\|^2_W\ \ge\ n\,\E_{\lambda_n}\E_\theta\|\htheta-\theta\|^2_W\ \ge\ \Phi^\star_{\omega_n+\pi^2/b^2}.
+\sup_{\|\theta-\theta^\circ\|_\infty\le b/\sqrt n}n\,\E_\theta\|\htheta-\theta\|^2_W\ \ge\ n\,\E_{\varpi_n}\E_\theta\|\htheta-\theta\|^2_W\ \ge\ \Phi^\star_{\omega_n+\pi^2/b^2}.
 \]
 $\Phi^\star_\eps$ is continuous in $\eps>0$, so the $\liminf_n$ is at least $\Phi^\star_{\pi^2/b^2}$. Finally, $\Phi^\star_\eps\uparrow\Phi^\star$ as
 $\eps\downarrow0$. To see this, take minimisers $\cD_\eps$ and a convergent subsequence $\cD_\eps\to\cD_0$ (the simplex is
@@ -172,8 +182,10 @@ TV estimator, the bias of the stop-gradient estimator, the unbiasedness of the p
 \texttt{check\_design.py} verifies \cref{prop:design-game} on 200 random design games by solving both linear
 programs. For \cref{thm:separable} it checks the Laplace bound by exact enumeration, the binomial averaging
 inequality and the hypercube separations of the lower bound, the identity $\inf_\cD S_n(\cD)=L_n$ by direct
-search, and the upper bound by simulation. It fits the rate exponents of \cref{cor:sep-rates,cor:sep-soft}.
-In a $V=2$, $T=3$ autoregressive logistic model with three shared parameters it verifies the chain rule
-for $\mathcal I_x$, parts (d)--(f) of \cref{thm:local-design}, and part (a) by simulating the MLE under $\mu$ and
-under the I-optimal design. It also verifies \cref{prop:adaptivity-gap,prop:bias-design,prop:path-shift}, and
+search, and the upper bound by simulation. It fits the rate exponents of \cref{cor:sep-rates,cor:sep-soft},
+computes the best i.i.d.\ design of \cref{cor:sep-soft} exactly for a geometric $\mu$, and checks the KL bound of
+\cref{rem:sep-general}. In a $V=2$, $T=3$ autoregressive logistic model with three shared parameters it
+verifies the chain rule for $\mathcal I_x$, parts (d)--(f) of \cref{thm:local-design}, the example quoted after
+that theorem, and part (a) by simulating the MLE under $\mu$ and under the I-optimal design. It also
+verifies \cref{prop:adaptivity-gap} and its converse, \cref{prop:bias-design,prop:path-shift}, and
 \cref{prop:iw-design}(a,b) by simulating the weighted MLE for a misspecified student. All checks pass.

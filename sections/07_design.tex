@@ -3,8 +3,8 @@
 % ===========================================================================
 
 In distillation the labelling function is the teacher, and it can be queried at any prompt. The
-training law $\cD$ is therefore a decision variable, not a given. \Cref{sec:decomposition} bounded the
-covariate-shift term for a fixed $\cD$ (\cref{prop:covshift,prop:cov-term}). This section asks which
+training law $\cD$ is therefore a decision variable, not a given. \Cref{prop:covshift,prop:cov-term} bound
+the covariate-shift term for a fixed $\cD$. This section asks which
 $\cD$, possibly adaptive, minimises the deployment risk under $\mu$ at a fixed query budget, and what
 the minimax rates are when outputs are sequences. \Cref{sec:design-answer} collects the answers and
 \cref{sec:open} lists what remains open.
@@ -55,11 +55,11 @@ $\ge1-\delta$, for every horizon $T$,
 \[
 \E_{x\sim\mu}\Hel^2\big(\Pseq,Q^x_{\htheta}\big)\le\kappa_{\cG_\Theta}(\mu\|\cD)\,\frac{\log(|\Theta_\TS|/\delta)}n .
 \]
-\item If $\cX$ and $\cG$ are finite and $\E_\mu g>0$ for all $g\in\cG$, then
-$\kappa^\star_\cG:=\min_\cD\kappa_\cG(\mu\|\cD)=1/v$, where
+\item Let $\cG^+:=\{g\in\cG:\E_\mu g>0\}$, on which $\kappa_\cG$ depends. If $\cX$ and $\cG^+$ are finite and
+$\cG^+\ne\emptyset$, then $\kappa^\star_\cG:=\min_\cD\kappa_\cG(\mu\|\cD)=1/v$, where
 \[
-v:=\max_{\cD\in\Delta(\cX)}\ \min_{g\in\cG}\frac{\E_\cD g}{\E_\mu g}
-=\min_{\lambda\in\Delta(\cG)}\ \max_{x\in\cX}\ \sum_{g\in\cG}\lambda_g\frac{g(x)}{\E_\mu g}\ \ge\ 1 .
+v:=\max_{\cD\in\Delta(\cX)}\ \min_{g\in\cG^+}\frac{\E_\cD g}{\E_\mu g}
+=\min_{\lambda\in\Delta(\cG^+)}\ \max_{x\in\cX}\ \sum_{g\in\cG^+}\lambda_g\frac{g(x)}{\E_\mu g}\ \ge\ 1 .
 \]
 The optimal designs and the least-favourable mixtures $\lambda$ solve a pair of dual linear programs.
 The design $\cD=\mu$ is optimal iff some $\lambda$ satisfies $\sum_g\lambda_g\,g/\E_\mu g\le1$ on all of $\cX$.
@@ -85,8 +85,9 @@ so $\kappa(\mu\|\cD)=\eps/\cD(x_1)$.
 Part (iv) is the basic phenomenon. The best place to query can carry little or no deployment mass,
 because that is where the candidate students disagree. The coefficient $\kappa_\cG$ plays the role of
 the discrepancy distance and the transfer exponents of domain adaptation
-\citep{mansour2009domain,hanneke2019value}. Here the labelling function is known, so the student class
-alone fixes $\cG$. Bound (ii) inherits the union bound of \cref{thm:mle} and is not sharp for structured
+\citep{mansour2009domain,hanneke2019value}. Under realisability the teacher is itself a student, so the
+student class alone fixes $\cG_\Theta$, just as it fixes the discrepancy distance. What distillation adds
+is that labels can be requested at any input, so $\cD$ is free. Bound (ii) inherits the union bound of \cref{thm:mle} and is not sharp for structured
 classes. Sharp rates follow for the least structured class (\cref{sec:separable}) and, locally, for
 smooth parametric classes (\cref{sec:local-design}).
 
@@ -100,7 +101,8 @@ realisable, and nothing learned at one prompt transfers to another.
 \end{definition}
 
 \begin{theorem}[Minimax rates for separable teachers]\label{thm:separable}
-\Pv\Ck Let $k:=V-1$, let $\mu_{(1)}\ge\mu_{(2)}\ge\cdots$ be the decreasing rearrangement of $\mu$, and set
+\Pv\Ck Let $k:=V-1$ be the per-prompt dimension, let $\mu_{(1)}\ge\mu_{(2)}\ge\cdots$ be the decreasing
+rearrangement of $\mu$, and set
 \[
 S_n(\cD):=\sum_{x\in\cX}\mu(x)\min\Big\{1,\frac k{n\cD(x)}\Big\},\qquad
 L_n:=\min_{m\ge0}\Big[\frac kn\Big(\sum_{i\le m}\sqrt{\mu_{(i)}}\Big)^2+\sum_{i>m}\mu_{(i)}\Big],
@@ -110,7 +112,8 @@ horizon $T\ge1$:
 \begin{enumerate}[label=(\roman*),nosep]
 \item (any design) $c_{\mathrm{sep}}\,S_n(\cD)\le\mathfrak M_n(\mathcal P_{\mathrm{sep}};\cD)\le S_n(\cD)$;
 \item (optimal design) $\inf_\cD S_n(\cD)=L_n$, attained by $\cD^\star\propto\sqrt\mu$ on the $m^\star$ most probable
-prompts, where $m^\star$ attains the minimum in $L_n$;
+prompts, where $m^\star$ attains the minimum in $L_n$ (if $n\le k$, then $S_n\equiv L_n=1$ and every design is
+optimal);
 \item (adaptivity) $c_{\mathrm{sep}}\,L_n\le\mathfrak M^{\mathrm{ad}}_n(\mathcal P_{\mathrm{sep}})\le L_n$, so adaptive
 designs gain at most the constant factor $1/c_{\mathrm{sep}}$;
 \item (the naive design) $S_n(\mu)=\sum_x\min\{\mu(x),k/n\}$.
@@ -128,8 +131,9 @@ Averaging over $n_x\sim\mathrm{Bin}(n,\cD(x))$ gives $\min\{1,k/(n\cD(x))\}$.
 \emph{Lower bound.} Assouad's lemma over sign perturbations $\pm\delta_x$ of $\lfloor V/2\rfloor$ token pairs at
 each prompt, with $T\delta_x^2\le\frac14$. The triangle inequality for $\Hel$ projects any estimate onto the
 cube. For adaptive designs the chain rule gives
-$\KL(\P_\sigma\|\P_{\sigma'})=\E_\sigma[n_x]\,T\,\KL(p_{x,\sigma}\|p_{x,\sigma'})$ for vertices that differ at $x$.
-So only the average allocation $\bar n_x$ enters, and $\sum_x\bar n_x\le n$.
+$\KL(\P_\sigma\|\P_{\sigma'})=\E_\sigma[n_x]\,T\,\KL(p_{x,\sigma}\|p_{x,\sigma'})$ for vertices that differ only at prompt
+$x$. So only the average allocation $\bar n_x$ enters, and $\sum_x\bar n_x\le n$. Because $\bar n_x$ depends on
+$\delta$ under an adaptive design, $\delta$ is chosen as a fixed point of a continuous map (Brouwer).
 \emph{Optimal design.} Rearranging $\cD$ to be ordered like $\mu$ cannot increase $S_n$, and after the
 rearrangement the learned set $\{n\cD>k\}$ is a set of most probable prompts. Cauchy--Schwarz on
 that set gives $L_n$, with equality for $\cD\propto\sqrt\mu$.
@@ -141,7 +145,7 @@ the rate is \emph{uniform in the horizon}. A query returns $T$ tokens and the se
 times more sensitive, and the two effects cancel exactly. Second, the optimal design is a
 \emph{square-root law}: sample prompts with probability $\propto\sqrt{\mu(x)}$, which is flatter than $\mu$,
 and learn only the head of $\mu$. Sampling from $\mu$ over-spends on frequent prompts and never reaches
-the rare ones. Third, adaptivity is worth at most a constant.
+the rare ones. Third, with hard labels adaptivity is worth at most a constant.
 
 \begin{corollary}[Sampling from $\mu$ is rate-suboptimal for heavy tails]\label{cor:sep-rates}
 \Pv\Ck As $n\to\infty$ with $k$ fixed:
@@ -168,11 +172,13 @@ $\sum_i\sqrt{\mu_{(i)}}<\infty$.
 \[
 \tfrac14\sum_{i>n}\mu_{(i)}\ \le\ \mathfrak M^{\mathrm{ad}}_n(\mathcal P_{\mathrm{sep}})\ \le\ \sum_{i>n}\mu_{(i)},
 \]
-and the upper bound is achieved by querying the $n$ most probable prompts once each. For a design $\cD$,
-$\mathfrak M_n(\mathcal P_{\mathrm{sep}};\cD)$ lies between $\frac14$ and $1$ times $\sum_x\mu(x)(1-\cD(x))^n$. For $\cD=\mu$
-this is the Good--Turing missing mass \citep{good1953population}. For $\mu_{(i)}\propto i^{-a}$ the optimal and
-naive rates are $\asymp n^{1-a}$ and $\asymp n^{-(a-1)/a}$. For $\mu_{(i)}\propto r^i$ they are $\asymp r^n$ and
-$\asymp1/n$: exponential against polynomial.
+and the upper bound is achieved by querying the $n$ most probable prompts once each, a deterministic
+non-adaptive allocation. For a design $\cD$, $\mathfrak M_n(\mathcal P_{\mathrm{sep}};\cD)$ lies between $\frac14$ and $1$
+times $\sum_x\mu(x)(1-\cD(x))^n$. For $\cD=\mu$ this is the expected missing mass, which the Good--Turing
+estimator estimates \citep{good1953population}. For $\mu_{(i)}\propto i^{-a}$ the optimal and naive rates are
+$\asymp n^{1-a}$ and $\asymp n^{-(a-1)/a}$. For $\mu_{(i)}\propto r^i$ they are $\asymp r^n$ and $\asymp1/n$, and even the best
+i.i.d.\ design only reaches $e^{-\Theta(\sqrt n)}$. With soft labels, enumeration therefore beats every i.i.d.\
+design by a rate, while adaptivity adds nothing beyond enumeration.
 \end{corollary}
 \begin{proof}
 One soft-label query at $x$ reveals $p_x$ (the soft label at $t=1$), hence $\Pseq$. For the upper bound,
@@ -182,16 +188,25 @@ unqueried prompt still has this prior. For every law $Q$ on $\cY$, the triangle 
 $\frac12[\Hel^2(\delta_a^{\otimes T},Q)+\Hel^2(\delta_b^{\otimes T},Q)]\ge\frac14\Hel^2(\delta_a^{\otimes T},\delta_b^{\otimes T})=\frac14$. At
 most $n$ prompts are queried, and under an i.i.d.\ design $x$ stays unqueried with probability $(1-\cD(x))^n$.
 The rates follow as in \cref{cor:sep-rates}. In the geometric case the prompts with $\mu(x)\asymp1/n$
-dominate the missing mass and contribute $\asymp1/n$.
+dominate the missing mass and contribute $\asymp1/n$. For the best i.i.d.\ design, take $m=\lceil\sqrt n\rceil$.
+At least $m$ of the $2m$ most probable prompts have $\cD(x)\le1/m$, and each leaves mass
+$\gtrsim r^{2m}(1-\frac1m)^n\ge r^{2m}e^{-2n/m}$ unqueried. Conversely, $\cD$ uniform on the top $m$ prompts leaves
+at most $e^{-n/m}+r^m$.
 \end{proof}
 
-\begin{remark}[Unrestricted teachers, and KL]\label{rem:sep-general}
+\begin{remark}[Unrestricted teachers, dimension, and KL]\label{rem:sep-general}
 If $\Pseq$ may be any law on $\cY$, apply \cref{thm:separable} with vocabulary $\cY$ and horizon $1$. The same
 rates hold with $k=V^T-1$, so the horizon now enters exponentially, through the per-prompt dimension.
 Horizon-free rates therefore need structure, either within a prompt (here, position independence)
-or across prompts (\cref{sec:local-design}). For KL, the Laplace estimator gives the same upper bound
-except that an unlearned prompt costs up to $T\log V$ instead of $1$, and the lower bound follows from
-$\KL\ge2\Hel^2$. The horizon then enters the KL rate only through the unlearned mass.
+or across prompts (\cref{sec:local-design}). A bounded number of parameters is not enough. A smooth
+one-parameter family $P_\theta=\bigotimes_t\mathrm{Bern}(\frac12+\gamma_t(\theta))$ whose curve $\gamma$ passes through all
+$2^T$ points $\delta s$, $s\in\{\pm1\}^T$, contains that hypercube. Assouad's lemma over positions, with
+$\delta^2\asymp1/n$, then gives minimax risk $\gtrsim\min\{1,T/n\}$ at a single prompt. What is needed is a
+bound on local entropy that is uniform in $T$. For KL, deterministic allocations satisfy the upper
+bound of \cref{thm:separable}(i) with the cost of an unlearned prompt raised from $1$ to at most $T\log V$.
+Under an i.i.d.\ design a prompt of the head can also go unqueried, and the bound becomes
+$\sum_x\mu(x)\big[\min\{T\log V,\frac{2k}{(n+1)\cD(x)}\}+T\log V\,(1-\cD(x))^n\big]$. The lower bound follows from
+$\KL\ge2\Hel^2$. So the horizon enters the KL rate only through the mass left unqueried.
 \end{remark}
 
 \begin{heuristic}[The tempering law]\label{heur:tempering}
@@ -204,10 +219,11 @@ learning:
 The case $\beta=1$ ($\Hel^2$ or KL with hard labels) is the square-root law of \cref{thm:separable}. The limit
 $\beta\to\infty$ (soft labels, where one query suffices) gives the uniform law on the head, as in
 \cref{cor:sep-soft}. For behavioural TV, $\beta=\frac12$ because $\TV\asymp\Hel$ locally, and the law is $\mu^{2/3}$.
-Temperature sampling of data sources, $q_i\propto p_i^\alpha$, is a standard heuristic in multilingual
-pre-training. We recall $\alpha=0.5$ in \citet{lample2019cross} and $\alpha=0.3$ in \citet{xue2021mt5}, quoted from
-memory. The tempering law gives a minimax rationale for $\alpha=\frac12$ when each source is learned at the
-parametric rate, and it predicts a smaller $\alpha$ for soft-label distillation.
+Temperature sampling of data sources, $q_i\propto p_i^\alpha$ with $\alpha$ between about $0.3$ and $0.7$, is a
+standard heuristic in multilingual pre-training \citep{lample2019cross,xue2021mt5}. We quote this range from
+memory; the primary sources were not reachable when we checked, so the exact values each paper uses
+should be verified. The tempering law gives a minimax rationale for $\alpha=\frac12$ when each source is learned
+at the parametric rate, and it predicts a smaller $\alpha$ for soft-label distillation.
 \end{heuristic}
 
 \input{sections/07b_design}

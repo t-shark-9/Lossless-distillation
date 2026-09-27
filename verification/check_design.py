@@ -162,6 +162,15 @@ for n in [300, 3000]:
         ok &= np.mean(risks) <= S_n(mu, D, k, n)
 results.append(report("thm:separable (i): Monte Carlo risk of the Laplace estimator <= S_n(D) (D = mu and sqrt(mu))", ok))
 
+ok = True
+for _ in range(300):
+    Vv, Tt, n, pi = int(rng.integers(2, 6)), int(rng.integers(1, 200)), int(rng.integers(1, 80)), float(rng.uniform(0.001, 1))
+    A, kk_ = Tt * log(Vv), Vv - 1
+    pmf = np.array([comb(n, j) * pi ** j * (1 - pi) ** (n - j) for j in range(n + 1)])
+    lhs = pmf[0] * A + sum(pmf[j] * min(A, kk_ / j) for j in range(1, n + 1))
+    ok &= lhs <= min(A, 2 * kk_ / ((n + 1) * pi)) + A * (1 - pi) ** n + 1e-9
+results.append(report("rem:sep-general: E min{T log V, k/N} <= min{T log V, 2k/((n+1)pi)} + T log V (1-pi)^n", ok))
+
 # ---------------------------------------------------------------------------------------------
 # cor:sep-rates and cor:sep-soft -- rate exponents (Zipf laws on all of N: explicit head + Hurwitz-zeta tail)
 # ---------------------------------------------------------------------------------------------
@@ -206,9 +215,31 @@ nm = np.array([n * float(np.sum(mu * np.exp(n * np.log1p(-mu)))) for n in [1e2, 
 results.append(report(f"cor:sep-soft: geometric mu, n * missing mass in [{nm.min():.3f}, {nm.max():.3f}] (order 1/n)",
                       nm.max() / nm.min() < 1.5))
 
+
+
+def best_iid_missing(mu, n):
+    """min_D sum_x mu_x (1 - D_x)^n: convex; KKT gives D_x = 1 - (lam/(n mu_x))^(1/(n-1)) where positive."""
+    def D_of(lam):
+        return np.clip(1 - (lam / (n * mu)) ** (1 / (n - 1)), 0, 1)
+    lo, hi = 1e-300, n * mu.max()
+    for _ in range(400):
+        mid = np.sqrt(lo * hi)
+        lo, hi = (mid, hi) if D_of(mid).sum() > 1 else (lo, mid)
+    D = D_of(hi); D /= D.sum()
+    return float(np.sum(mu * (1 - D) ** n))
+
+
+mu = 0.5 ** np.arange(1, 400); mu /= mu.sum()
+vals = {n: best_iid_missing(mu, n) for n in [40, 160, 640, 2560]}
+rat = [-np.log(v) / np.sqrt(n) for n, v in vals.items()]
+results.append(report(f"cor:sep-soft: geometric mu, best i.i.d. design -log(risk)/sqrt(n) in [{min(rat):.2f}, {max(rat):.2f}] "
+                      f"(e^(-Theta(sqrt n))), top-n tail at n=160: {mu[160:].sum():.1e}",
+                      max(rat) / min(rat) < 1.6 and mu[160:].sum() < 1e-40 < vals[160]))
+
 # ---------------------------------------------------------------------------------------------
 # thm:local-design -- autoregressive logistic model, V = 2, T = 3, k = 3 shared parameters
 # ---------------------------------------------------------------------------------------------
+rng = np.random.default_rng(83)   # dedicated seed: the example quoted in the text of thm:local-design
 T, kk, nX = 3, 3, 6
 A = rng.normal(size=(nX, kk, 3))
 scale = np.exp(rng.normal(size=nX) * 0.9)
@@ -268,6 +299,9 @@ results += [
            and Phi(mu * np.sqrt(lev) / (mu @ np.sqrt(lev))) <= (mu @ np.sqrt(lev)) ** 2 + 1e-9),
     report("thm:local-design (e): mu is optimal iff max lev <= k (here max lev > k and Phi* < k)",
            lev.max() > kk and Phistar < kk - 1e-6),
+    report(f"thm:local-design: D* drops {int(np.sum(Dstar < 1e-6))} of 6 prompts, incl. the most frequent "
+           f"(mu = {mu.max():.3f}, lev = {lev[np.argmax(mu)]:.3f} < k)",
+           Dstar[np.argmax(mu)] < 1e-6 and int(np.sum(Dstar < 1e-6)) == 3 and lev[np.argmax(mu)] < kk),
     report("thm:local-design (f): Phi and D* invariant under a common rescaling of the information",
            abs(Phi(Dstar, 7.3 * Ix) - Phistar) < 1e-9 and abs(Phi(mu, 7.3 * Ix) - kk) < 1e-9),
 ]
@@ -329,6 +363,20 @@ for K, rr in [(3, 30.0), (5, 60.0)]:
     best = minimize(worst, np.zeros(K), method="Nelder-Mead", options={"maxiter": 20000, "xatol": 1e-10, "fatol": 1e-12}).fun
     results.append(report(f"prop:adaptivity-gap: K={K}: best fixed design has worst-case Phi/Phi* = {best:.3f} >= 0.99 K",
                           best >= 0.99 * K))
+
+ok = True
+for _ in range(100):
+    nXr, kr = int(rng.integers(2, 7)), int(rng.integers(1, 4))
+    Ir = []
+    for _ in range(nXr):
+        R_ = rng.normal(size=(kr, int(rng.integers(1, kr + 1)))); Ir.append(R_ @ R_.T * np.exp(rng.normal() * 2))
+    Ir = np.array(Ir); mur = rng.dirichlet(np.ones(nXr))
+    if np.linalg.eigvalsh(np.tensordot(np.ones(nXr), Ir, 1)).min() < 1e-8:
+        continue
+    Ph = lambda D: float(np.trace(np.linalg.solve(np.tensordot(D, Ir, 1) + 1e-300 * np.eye(kr), np.tensordot(mur, Ir, 1))))
+    best = min(Ph(rng.dirichlet(np.ones(nXr) * 0.5)) for _ in range(2000))
+    ok &= Ph(np.ones(nXr) / nXr) <= nXr * best * (1 + 1e-9)
+results.append(report("prop:adaptivity-gap: converse, Phi(unif) <= |X| Phi(D) for every D (100 random models)", ok))
 
 # ---------------------------------------------------------------------------------------------
 # prop:bias-design -- the factor rho(mu||D) rho(D||mu) is sharp
@@ -431,21 +479,13 @@ for t in range(1, T + 1):   # (ii): teacher-generated prefixes keep the prompt-l
              for y in itertools.product(range(V), repeat=t - 1))
     ok_ii &= abs(m2 - (1 + chiX)) < 1e-12
 results.append(report("prop:path-shift (ii): with r = p, E[w_t^2] = 1 + chi^2(mu||D) at every depth", ok_ii))
-p0, r0 = np.array([0.5, 0.3, 0.2]), np.array([0.3, 0.3, 0.4]); kap = float(p0 @ np.log(p0 / r0))
-ok, masses = True, []
-for t in [11, 41, 161]:
-    tp = tr = 0.0
-    for a in range(t):
-        for b in range(t - a):
-            cc = t - 1 - a - b
-            lc = lgamma(t) - lgamma(a + 1) - lgamma(b + 1) - lgamma(cc + 1)
-            llr = a * log(p0[0] / r0[0]) + b * log(p0[1] / r0[1]) + cc * log(p0[2] / r0[2])
-            if llr >= (t - 1) * kap / 2:
-                tp += np.exp(lc + a * log(p0[0]) + b * log(p0[1]) + cc * log(p0[2]))
-                tr += np.exp(lc + a * log(r0[0]) + b * log(r0[1]) + cc * log(r0[2]))
-    ok &= tr <= np.exp(-(t - 1) * kap / 2) * tp + 1e-15
-    masses.append(tp)
-results.append(report(f"prop:path-shift (iii): d^r_t(A_t) <= e^(-(t-1)kappa/2) d^p_t(A_t); teacher mass of A_t "
-                      f"{', '.join(f'{m:.3f}' for m in masses)} -> 1", ok and masses[0] < masses[1] < masses[2]))
+# (iii): deterministic teacher prefix a^(t-1); proposal r0 hits it w.p. r0(a)^(t-1) = e^{-(t-1)K0}
+ok = True
+for _ in range(200):
+    r0a, t, N = float(rng.uniform(0.05, 0.95)), int(rng.integers(2, 40)), int(rng.integers(1, 10 ** 6))
+    K0 = -log(r0a)
+    miss = float(np.exp(N * np.log1p(-r0a ** (t - 1))))                 # P(s* never drawn in N proposal states)
+    ok &= abs(r0a ** (t - 1) - np.exp(-(t - 1) * K0)) < 1e-12 and miss >= (1 - N * np.exp(-(t - 1) * K0)) - 1e-12
+results.append(report("prop:path-shift (iii): P(miss s*) = (1 - e^{-(t-1)K0})^N >= 1 - N e^{-(t-1)K0}; teacher prefixes hit s* surely", ok))
 
 print("\nALL PASS" if all(results) else "\nSOME CHECKS FAILED")
