@@ -58,24 +58,33 @@ $R=\frac12\sum_{i\le k_\TT}\log(\lambda_i/w)$ gives $w=(\prod_i\lambda_i)^{1/k_\
 \paragraph{\Cref{thm:local-u}(iv).} Only prefixes with $\cD(x)>0$ carry mass under $\dstud t$, so the proof of \cref{thm:pdl}
 applies with $u_\cD$. Conversely, fix $t$ and $s=(x,y_{<t})$ with $\cD(x)>0$. Full support gives $\dteach t(s)>0$. Pick
 $a^+\in\argmax_aQ^p_t(s,a)$, $a^-\in\argmin_aQ^p_t(s,a)$ and $0<\eta\le p_t(a^-\mid s)$. Let the student equal the teacher,
-except that $q_t(\cdot\mid s)=p_t(\cdot\mid s)+\eta(\delta_{a^+}-\delta_{a^-})$. Its prefix law at time $t$ is the teacher's, so
-$\dstud t(s)=\dteach t(s)$. Moreover $\Delta_k$ and $\TV_k$ vanish except at $(t,s)$, where $\TV_t(s)=\eta$ and
-$\Delta_t(s)=\eta\,u_t(s)$. By \cref{thm:pdl}, $\Delta J=\dteach t(s)\,\eta\,u_t(s)=u_t(s)\,T\eon^{\TV}$, and $T\eon^{\TV}=\dteach t(s)\,\eta$ is as
-small as desired. \qed
+except that $q_t(\cdot\mid s)=p_t(\cdot\mid s)+\eta(e_{a^+}-e_{a^-})$, where $e_a$ is the unit vector of token $a$. Its prefix law
+at time $t$ is the teacher's, so $\dstud t(s)=\dteach t(s)$. Moreover $\Delta_k$ and $\TV_k$ vanish except at $(t,s)$, where
+$\TV_t(s)=\eta$ and $\Delta_t(s)=\eta\,u_t(s)$. By \cref{thm:pdl}, $\Delta J=\dteach t(s)\,\eta\,u_t(s)=u_t(s)\,T\eon^{\TV}$, and
+$T\eon^{\TV}=\dteach t(s)\,\eta$ is as small as desired. \qed
 
-\paragraph{\Cref{prop:trap}.} The teacher stays at $O$. There $Q^p_t(s,0)=0$ and $Q^p_t(s,1)=1$: one costly step at $D$,
-after which the teacher returns to $O$. So $u_t=1$ on the teacher's prefixes, where $\TV_t=\eps$. At $D$,
-$Q^p_t(s,0)=0$ and $Q^p_t(s,1)=1+(T-t)$, the cost of absorption. Under the student, $\P(z_t=O)=(1-\eps)^{t-1}$, and
-$\P(z_t=D)=\eps(1-\eps)^{t-2}$ for $t\ge2$. Hence $\E c_t=\P(z_{t+1}\ne O)=1-(1-\eps)^t$, and
-$T\eon^{\TV}=\sum_t[\eps\,\P(z_t=O)+\P(z_t=D)]$; both sums are geometric. For $T\eps\le1$, Bonferroni's inequality gives
-$1-(1-\eps)^t\ge t\eps-\binom t2\eps^2\ge t\eps/2$. So $\Delta J\ge\eps T(T+1)/4$, while $T\eon^{\TV}\le(2T-1)\eps\le2T\eps$. For
-fixed $T$, all these quantities depend continuously on the probability with which the teacher emits $1$,
-which gives the last claim. \qed
+\paragraph{\Cref{prop:trap}.} The teacher stays at $\mathsf{ok}$. There $Q^p_t(s,0)=0$ and $Q^p_t(s,1)=1$: one costly step at
+$\mathsf{drift}$, after which the teacher returns to $\mathsf{ok}$. So $u_t=1$ on the teacher's prefixes, where $\TV_t=\eps$. At
+$\mathsf{drift}$, $Q^p_t(s,0)=0$ and $Q^p_t(s,1)=1+(T-t)$, the cost of absorption. At $\mathsf{sink}$ both tokens cost the same.
+Under the student, $\P(z_t=\mathsf{ok})=(1-\eps)^{t-1}$, and $\P(z_t=\mathsf{drift})=\eps(1-\eps)^{t-2}$ for $t\ge2$. Hence
+$\E c_t=\P(z_{t+1}\ne\mathsf{ok})=1-(1-\eps)^t$, and $T\eon^{\TV}=\sum_t[\eps\,\P(z_t=\mathsf{ok})+\P(z_t=\mathsf{drift})]$; both sums are geometric.
+For $T\eps\le1$, Bonferroni's inequality gives $1-(1-\eps)^t\ge t\eps-\binom t2\eps^2\ge t\eps/2$. So $\Delta J\ge\eps T(T+1)/4$,
+while $T\eon^{\TV}\le(2T-1)\eps\le2T\eps$. For fixed $T$, the averaged quantities depend continuously on the
+probability with which the teacher emits $1$, which gives the last claim. \qed
+
+\paragraph{The supremum for the teacher of \cref{prop:trap}.} Let $T\ge2$ and take any student. By the values of
+$Q^p_t$ above, $\Delta_t=\TV_t$ at $\mathsf{ok}$, $\Delta_t=(T-t+1)\TV_t$ at $\mathsf{drift}$, and $\Delta_t=0$ at $\mathsf{sink}$. Let $A$ and $C$ be the sums
+over $t$ of $\E_{\dstud t}\TV_t$ restricted to $\mathsf{ok}$ and to $\mathsf{drift}$. Since $\mathsf{drift}$ occurs only for $t\ge2$,
+$0\le\Delta J\le A+(T-1)C$, while $T\eon^{\TV}\ge A+C$. Each visit to $\mathsf{drift}$ at time $t$ follows a deviation at $\mathsf{ok}$ at time
+$t-1$, so $C\le\sum_{t\ge2}\P(z_t=\mathsf{drift})\le A$. For $T\ge2$ the map $C\mapsto(A+(T-1)C)/(A+C)$ is nondecreasing, so
+$\Delta J/(T\eon^{\TV})\le T/2$. A student that deviates only at $t=1$ and then always emits $1$ at $\mathsf{drift}$ attains $T/2$.
+Meanwhile $u_\cD=u_2(\mathsf{drift})=T-1$, which exceeds $T/2$ once $T\ge3$. \qed
 
 \paragraph{\Cref{thm:forgetting}(iii).} Write $\operatorname{osc}h:=\sup h-\inf h$ and $\bar c_t(z):=\sum_ap_t(a\mid z)c_t(z,a)\in[0,1]$. By
 backward induction, $V^p_t(s)=\bar V_t(\phi_t(s))$, where $\bar V_{T+1}=0$ and $\bar V_t=\bar c_t+K_t\bar V_{t+1}$. Hence
 $Q^p_t(s,a)=c_t(z,a)+\bar V_{t+1}(f_t(z,a))$ for $z=\phi_t(s)$, and $u_t(s)\le1+\operatorname{osc}\bar V_{t+1}$. For a kernel $K$ and any constant
-$c$, $Kh(z)-Kh(z')=\sum_w\big(K(z,w)-K(z',w)\big)\big(h(w)-c\big)$, so $\operatorname{osc}(Kh)\le\delta(K)\operatorname{osc}h$. Unrolling $m$ steps,
+$h_0$, $Kh(z)-Kh(z')=\sum_w\big(K(z,w)-K(z',w)\big)\big(h(w)-h_0\big)$, so $\operatorname{osc}(Kh)\le\delta(K)\operatorname{osc}h$. Fix $1\le m\le T$.
+Unrolling $m$ steps,
 \[
 \bar V_j=\sum_{k=j}^{j+m-1}K_j\cdots K_{k-1}\bar c_k+K_j\cdots K_{j+m-1}\bar V_{j+m}\qquad(j\le T-m+1),
 \]
@@ -84,8 +93,10 @@ $[0,1]$. Backward induction gives $\operatorname{osc}\bar V_j\le m/(1-\delta_m)$
 $Q^p_t(s,a)=\bar W_{t+1}(f_t(z,a))$, where $\bar W_{T+1}=g_{T+1}$ and $\bar W_j=g_j+K_j\bar W_{j+1}$. The same induction, now with at
 most $m$ terms for $j>T-m+1$, gives $\operatorname{osc}\bar W_j\le m/(1-\delta_m)$, and $u_t(s)\le\operatorname{osc}\bar W_{t+1}$. For a
 homogeneous chain with stationary law $\pi$, the triangle inequality gives
-$\delta(K^m)\le2\sup_z\TV(K^m(z,\cdot),\pi)$, which is at most $\frac12$ at $m=t_{\mathrm{mix}}(\frac14)$. Under Doeblin's condition
-with $\alpha<1$, $K_t\cdots K_{t+m-1}(z,\cdot)=\alpha\,\omega_t+(1-\alpha)R(z,\cdot)$ for a kernel $R$, so $\delta_m\le1-\alpha$. \qed
+$\delta(K^m)\le2\sup_z\TV(K^m(z,\cdot),\pi)$, which is at most $\frac12$ at $m=t_{\mathrm{mix}}(\frac14)$. So $m_{1/2}\le t_{\mathrm{mix}}(\frac14)$ when
+$t_{\mathrm{mix}}(\frac14)\le T$; otherwise $u\le T<1+2t_{\mathrm{mix}}(\frac14)$. Under Doeblin's condition with $\alpha<1$,
+$K_t\cdots K_{t+m-1}(z,\cdot)=\alpha\,\omega_t+(1-\alpha)R(z,\cdot)$ for a kernel $R$, so $\delta_m\le1-\alpha$. If $\alpha=1$, every row equals
+$\omega_t$ and $\delta_m=0$. \qed
 
 \subsection{Numerical verification}
 
@@ -105,4 +116,5 @@ TV estimator, the bias of the stop-gradient estimator, the unbiasedness of the p
 \texttt{check\_recoverability.py} verifies \cref{thm:local-u,prop:trap,thm:forgetting,ex:selfcorrect,prop:valmart}. It enumerates random
 tabular teachers, students and costs exactly, constructs the single-state deviations of \cref{thm:local-u}(iv), and
 evaluates the coupling bound of \cref{thm:forgetting}(ii) under shared-noise sampling. Part (iii) is checked by exact
-dynamic programming on 300 random latent chains. All checks pass.
+dynamic programming on 300 random latent chains. It also tests the supremum $T/2$ for the deterministic teacher of
+\cref{prop:trap} against random students. All checks pass.

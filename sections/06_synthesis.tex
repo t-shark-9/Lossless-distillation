@@ -87,8 +87,8 @@ forward KL, and $\kappa\approx1$ for on-policy training when $\bar u_{\mathrm{on
 (c)~Recoverability. At each $T'$, estimate $\bar u_{\mathrm{on}}$, $\bar a_{\mathrm{on}}$ and the commitment fraction $\zeta$ as in
 \cref{rem:measure-u}. From the teacher alone, estimate $\Var_p(C)$ as a function of $T'$ (\cref{prop:valmart}), and the
 number of steps whose costs differ after a forced token, under shared sampling noise (\cref{thm:forgetting}(ii)).
-The predictions are $\Delta J\approx\bar a_{\mathrm{on}}T'\eon^{\TV}$, $\kappa\approx1$ when $\bar u_{\mathrm{on}}$ stays bounded in $T'$, and $\kappa\approx2$ when
-$\zeta$ does not vanish.
+The predictions are $\Delta J\approx\bar a_{\mathrm{on}}T'\eon^{\TV}$, and $\kappa\approx1$ when $\bar u_{\mathrm{on}}$ stays bounded in $T'$. A value of $\kappa$
+near $2$ requires that $\zeta$ not vanish.
 (d)~The prefix-weight process $w_t(s)$ of \cref{prop:pajsd}: the fraction of positions where
 $|w_t-\beta|>0.1$, which is where token-level GKD departs from sequence-level JSD.
 \emph{Falsifier:} on-policy gains that do not correlate with small $\bar u_{\mathrm{on}}$, or $\kappa$ unaffected by the prefix

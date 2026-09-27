@@ -435,8 +435,8 @@ def delta_m(Ks, m):
     return max(vals) if vals else 0.0
 
 
-ok_gen = ok_post = ok_tau = ok_doe = ok_mix = True
-checked = 0
+ok_gen = ok_post = ok_tau = ok_doe = ok_mix = ok_tmix = True
+checked = n_tmix = 0
 for trial in range(300):
     nz, Vv, TT = int(rng.integers(2, 6)), int(rng.integers(2, 5)), int(rng.integers(3, 25))
     f = rng.integers(0, nz, size=(nz, Vv))
@@ -449,7 +449,7 @@ for trial in range(300):
     cpost = [gpost[t + 1][f] for t in range(TT)]
     u_gen, _ = latent_u(Pz, f, cz, TT)
     u_post, _ = latent_u(Pz, f, cpost, TT)
-    for m in range(1, 5):
+    for m in range(1, min(4, TT) + 1):
         dm = delta_m(Ks, m)
         if dm < 1 - 1e-12:
             checked += 1
@@ -465,7 +465,7 @@ for trial in range(300):
             if alphas:
                 am = min(alphas)
                 ok_doe &= dm <= 1 - am + TOL and (am <= 0 or u_gen <= 1 + m / am + TOL)
-    taus = [m for m in range(1, 40) if delta_m(Ks, m) <= 0.5]
+    taus = [m for m in range(1, TT + 1) if delta_m(Ks, m) <= 0.5]   # m_half, if it exists
     if taus:
         ok_tau &= u_gen <= 1 + 2 * taus[0] + TOL
     if homog:
@@ -473,13 +473,20 @@ for trial in range(300):
         w_, vecs = np.linalg.eig(K.T)
         pi = np.real(vecs[:, np.argmin(np.abs(w_ - 1))])
         pi = pi / pi.sum()
-        for m in range(1, 30):
+        tmix = None
+        for m in range(1, 400):
             Km = np.linalg.matrix_power(K, m)
             dmix = max(0.5 * np.abs(Km[z] - pi).sum() for z in range(nz))
             ok_mix &= dmix - TOL <= dob(Km) <= 2 * dmix + TOL
+            if tmix is None and dmix <= 0.25:
+                tmix = m
+        if tmix is not None:
+            n_tmix += 1
+            ok_tmix &= u_gen <= 1 + 2 * tmix + TOL
 report(f"thm:forgetting(iii): u <= 1 + m/(1-delta_m) on random latent chains ({checked} cases)", ok_gen)
 report("thm:forgetting(iii): post-step costs, u <= m/(1-delta_m)", ok_post)
-report("thm:forgetting(iii): u <= 1 + 2 m_half, m_half = min{m : delta_m <= 1/2}", ok_tau)
+report("thm:forgetting(iii): u <= 1 + 2 m_half, m_half = min{m <= T : delta_m <= 1/2}", ok_tau)
+report(f"thm:forgetting(iii): homogeneous chains, u <= 1 + 2 t_mix(1/4) ({n_tmix} cases)", ok_tmix and n_tmix > 50)
 report("thm:forgetting(iii): Doeblin, delta_m <= 1 - alpha and u <= 1 + m/alpha", ok_doe)
 report("thm:forgetting(iii): d(m) <= delta(K^m) <= 2 d(m) (homogeneous chains)", ok_mix)
 
@@ -508,14 +515,17 @@ for j, s in enumerate(tr2.by_time[2]):
 report("thm:forgetting(iv): the raw prefix chain has delta = 1", abs(dob(Kp) - 1.0) < TOL)
 
 # ---------------------------------------------------------------------------
-# ex:selfcorrect: two latent states, error rate eta, repair rate alpha, cost 1 per step ending in E
+# ex:selfcorrect: latent states ok (0) and err (1); error rate eta_err, repair rate eta_rep;
+# each step that ends in err costs 1
 # ---------------------------------------------------------------------------
-f2 = np.array([[0, 1], [0, 1]])  # token 0 -> C (latent 0), token 1 -> E (latent 1)
-ok_sc = ok_lim = ok_cliff = True
-for alpha, eta in [(0.3, 0.05), (0.1, 0.0), (0.5, 0.5), (0.02, 0.01), (0.0, 0.2)]:
-    lam = 1 - alpha - eta
+f2 = np.array([[0, 1], [0, 1]])  # token 0 -> ok, token 1 -> err, from either state
+ok_sc = ok_lim = ok_cliff = ok_doe2 = True
+for eta_rep, eta_err in [(0.3, 0.05), (0.1, 0.0), (0.5, 0.5), (0.02, 0.01), (0.0, 0.2)]:
+    lam = 1 - eta_rep - eta_err
+    K1 = np.array([[1 - eta_err, eta_err], [eta_rep, 1 - eta_rep]])
+    ok_doe2 &= abs(K1.min(axis=0).sum() - (eta_err + eta_rep)) < TOL   # best Doeblin constant, m = 1
     for TT in [1, 2, 5, 50, 400]:
-        Pz = [np.array([[1 - eta, eta], [alpha, 1 - alpha]])] * TT
+        Pz = [K1] * TT
         cpost = [np.array([[0.0, 1.0], [0.0, 1.0]])] * TT
         u_ex, _ = latent_u(Pz, f2, cpost, TT)
         closed = TT if lam == 1 else (1 - lam ** TT) / (1 - lam)
@@ -524,14 +534,15 @@ for alpha, eta in [(0.3, 0.05), (0.1, 0.0), (0.5, 0.5), (0.02, 0.01), (0.0, 0.2)
         if lam < 1:
             ok_sc &= u_ex <= 1 / (1 - lam) + TOL
     if lam < 1:  # gap to the limit is exactly lambda_2^T / (1 - lambda_2) -> 0
-        ok_lim &= abs(1 / (alpha + eta) - u_ex - lam ** TT / (1 - lam)) < 1e-9 * (1 / (alpha + eta))
+        ok_lim &= abs(1 / (eta_err + eta_rep) - u_ex - lam ** TT / (1 - lam)) < 1e-9 * (1 / (eta_err + eta_rep))
 for TT in [1, 7, 100]:
     Pz = [np.array([[1.0, 0.0], [0.0, 1.0]])] * TT
     u_ex, _ = latent_u(Pz, f2, [np.array([[0.0, 1.0], [0.0, 1.0]])] * TT, TT)
     ok_cliff &= abs(u_ex - TT) < TOL and abs(delta_m(kernels(Pz, f2), 3 if TT >= 3 else 1) - 1) < TOL
 report("ex:selfcorrect: u = (1-lambda_2^T)/(1-lambda_2) <= 1/(1-delta_1), delta_1 = lambda_2", ok_sc)
-report("ex:selfcorrect: u -> 1/(alpha+eta) as T grows", ok_lim)
-report("ex:selfcorrect: no repair (the cliff): delta_m = 1 and u = T", ok_cliff)
+report("ex:selfcorrect: Doeblin constant (m=1) is eta_err + eta_rep", ok_doe2)
+report("ex:selfcorrect: u -> 1/(eta_err+eta_rep) as T grows", ok_lim)
+report("ex:selfcorrect: no repair and no errors (err absorbing): delta_m = 1 and u = T", ok_cliff)
 
 # rem:where-avg: an absorbing error entered with probability 1/T per step gives Var_p(C) of order T^2
 ratios_v = []
@@ -547,23 +558,33 @@ report(f"rem:where-avg: absorbing error at rate 1/T gives Var_p(C)/T^2 -> {ratio
 
 # ---------------------------------------------------------------------------
 # prop:trap: teacher-side averages of u do not control on-policy compounding
+# latent states ok, drift, sink
 # ---------------------------------------------------------------------------
+STEP = {("ok", 0): "ok", ("ok", 1): "drift", ("drift", 0): "ok", ("drift", 1): "sink",
+        ("sink", 0): "sink", ("sink", 1): "sink"}
 
 
-def trap_models(TT, eps, eta=0.0):
+def trap_tree(TT):
     tr = Tree((0,), 2, TT)
     z = {}
     for s in sorted(tr.prefixes, key=len):
-        if len(s) == 1:
-            z[s] = "O"
-        else:
-            zp, a = z[s[:-1]], s[-1]
-            z[s] = {"O": "OD", "D": "OX", "X": "XX"}[zp][a]
-    step = {("O", 0): "O", ("O", 1): "D", ("D", 0): "O", ("D", 1): "X", ("X", 0): "X", ("X", 1): "X"}
+        z[s] = "ok" if len(s) == 1 else STEP[(z[s[:-1]], s[-1])]
+    C = np.array([[float(STEP[(z[s], a)] != "ok") for a in range(2)] for s in tr.prefixes])
+    return tr, z, C
+
+
+def trap_models(TT, eps, eta=0.0):
+    tr, z, C = trap_tree(TT)
     Pt = np.array([[1 - eta, eta] for s in tr.prefixes])
-    Ps = np.array([{"O": [1 - eps, eps], "D": [0.0, 1.0], "X": [1.0, 0.0]}[z[s]] for s in tr.prefixes])
-    C = np.array([[float(step[(z[s], a)] != "O") for a in range(2)] for s in tr.prefixes])
+    Ps = np.array([{"ok": [1 - eps, eps], "drift": [0.0, 1.0], "sink": [1.0, 0.0]}[z[s]] for s in tr.prefixes])
     return tr, z, Pt, Ps, C
+
+
+def ratio_terms(tr, Pt, Ps, C):
+    Dx1 = np.array([1.0])
+    dJ = tr.J(Ps, C, Dx1) - tr.J(Pt, C, Dx1)
+    Teon = sum(w_ * tv(Pt[tr.index[s]], Ps[tr.index[s]]) for d in tr.laws(Ps, Dx1) for s, w_ in d.items())
+    return dJ, Teon
 
 
 ok_trap = ok_teach = ok_D = ok_lb = ok_off = True
@@ -572,15 +593,14 @@ for TT in [3, 6, 10]:
         tr, z, Pt, Ps, C = trap_models(TT, eps)
         Dx1 = np.array([1.0])
         Q = tr.Qfun(Pt, C)
-        dJ = tr.J(Ps, C, Dx1) - tr.J(Pt, C, Dx1)
+        dJ, Teon = ratio_terms(tr, Pt, Ps, C)
         dS, dP = tr.laws(Ps, Dx1), tr.laws(Pt, Dx1)
-        Teon = sum(w_ * tv(Pt[tr.index[s]], Ps[tr.index[s]]) for d in dS for s, w_ in d.items())
         ok_trap &= abs(dJ - sum(1 - (1 - eps) ** t for t in range(1, TT + 1))) < 1e-9
         ok_trap &= abs(Teon - (2 - (1 - eps) ** TT - (1 - eps) ** (TT - 1))) < 1e-9
         ok_teach &= all(abs(sum(w_ * (Q[tr.index[s]].max() - Q[tr.index[s]].min()) for s, w_ in d.items()) - 1) < TOL
                         for d in dP)
         ok_D &= all(abs(Q[tr.index[s]].max() - Q[tr.index[s]].min() - (TT - (len(s) - 1))) < TOL
-                    for s in tr.prefixes if z[s] == "D")
+                    for s in tr.prefixes if z[s] == "drift")
         eoff = sum(w_ * tv(Pt[tr.index[s]], Ps[tr.index[s]]) for d in dP for s, w_ in d.items()) / TT
         u_off = sum(w_ * tv(Pt[tr.index[s]], Ps[tr.index[s]]) * (Q[tr.index[s]].max() - Q[tr.index[s]].min())
                     for d in dP for s, w_ in d.items()) / (TT * eoff)
@@ -591,20 +611,40 @@ for TT in [3, 6, 10]:
             ok_lb &= dJ >= (TT + 1) / 8 * Teon - TOL and u_on >= (TT + 1) / 8 - TOL
 report("prop:trap: exact Delta J and T eps_on (enumeration)", ok_trap)
 report("prop:trap: E_{d^p_t} u_t = 1 for every t", ok_teach)
-report("prop:trap: u_t = T-t+1 at the trap state D", ok_D)
+report("prop:trap: u_t = T-t+1 at the drift state", ok_D)
 report("prop:trap: eps_off = eps and E_nu^p[u TV]/E_nu^p[TV] = 1", ok_off)
 report("prop:trap: Delta J >= (T+1)/8 * T eps_on and u_on >= (T+1)/8 when T eps <= 1", ok_lb)
 
-# full-support teacher: same conclusions up to factors close to 1
+# full-support teacher: the averaged conclusions hold up to factors close to 1
 tr, z, Pt, Ps, C = trap_models(10, 0.1, eta=1e-9)
 Q = tr.Qfun(Pt, C)
-Dx1 = np.array([1.0])
-dJ = tr.J(Ps, C, Dx1) - tr.J(Pt, C, Dx1)
-dS, dP = tr.laws(Ps, Dx1), tr.laws(Pt, Dx1)
-Teon = sum(w_ * tv(Pt[tr.index[s]], Ps[tr.index[s]]) for d in dS for s, w_ in d.items())
+dJ, Teon = ratio_terms(tr, Pt, Ps, C)
+dP = tr.laws(Pt, np.array([1.0]))
 Eu = [sum(w_ * (Q[tr.index[s]].max() - Q[tr.index[s]].min()) for s, w_ in d.items()) for d in dP]
-report("prop:trap: full-support teacher (eta=1e-9): E_{d^p} u_t < 1.001 and ratio >= (T+1)/8 * 0.999",
-       max(Eu) < 1.001 and dJ >= 0.999 * (10 + 1) / 8 * Teon)
+num = sum(w_ * tv(Pt[tr.index[s]], Ps[tr.index[s]]) * (Q[tr.index[s]].max() - Q[tr.index[s]].min())
+          for d in dP for s, w_ in d.items())
+den = sum(w_ * tv(Pt[tr.index[s]], Ps[tr.index[s]]) for d in dP for s, w_ in d.items())
+report("prop:trap: full-support teacher (eta=1e-9): teacher-side averages < 1.001, ratio >= (T+1)/8 * 0.999",
+       max(Eu) < 1.001 and num / den < 1.001 and dJ >= 0.999 * (10 + 1) / 8 * Teon)
+
+# the supremum for the deterministic trap teacher is T/2 (while u_D = T-1): random students never exceed it,
+# and deviating only at t=1, then always emitting 1 at drift, attains it
+ok_sup = ok_att = True
+for TT in [2, 3, 4, 6]:
+    tr, z, C = trap_tree(TT)
+    Pt = np.array([[1.0, 0.0] for s in tr.prefixes])
+    Q = tr.Qfun(Pt, C)
+    uD = max(Q[tr.index[s]].max() - Q[tr.index[s]].min() for s in tr.prefixes)
+    for trial in range(300):
+        Ps = rng.dirichlet(rng.choice([0.2, 1.0, 5.0]) * np.ones(2), size=len(tr.prefixes))
+        dJ, Teon = ratio_terms(tr, Pt, Ps, C)
+        ok_sup &= dJ <= TT / 2 * Teon + TOL
+    Ps = np.array([[1.0, 0.0] if z[s] != "drift" else [0.0, 1.0] for s in tr.prefixes])
+    Ps[tr.index[(0,)]] = [0.9, 0.1]
+    dJ, Teon = ratio_terms(tr, Pt, Ps, C)
+    ok_att &= abs(dJ / Teon - TT / 2) < 1e-9 and abs(uD - (TT - 1)) < TOL
+report("app:recoverability: deterministic trap teacher, sup |dJ|/(T eps_on) <= T/2 (random students)", ok_sup)
+report("app:recoverability: T/2 attained by one deviation at t=1; u_D = T-1", ok_att)
 
 # large T via the closed forms
 for TT, eps in [(100, 1e-2), (1000, 1e-3)]:
