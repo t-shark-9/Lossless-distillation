@@ -118,7 +118,10 @@ estimator; (v)~analyse intermediate-representation matching, proving when it is 
 when it helps (noisy supervision, conditioning, compositional hardness) and when it over-constrains,
 and propose a Fisher-aligned variant with no approximation cost in a linear-Gaussian model;
 (vi)~assemble an end-to-end bound, separate what is proved from what is conjectured, and specify
-experiments and open problems. Every inequality marked \emph{numerically checked} is verified by the
+experiments and open problems; (vii)~prove a corrected distillation scaling law in a solvable model with a
+softmax bottleneck and depth: an exact finite-sample learning curve, soft- and hard-label exponents, the
+capacity gap as aliasing, depth as implicit capacity selection, and the finding that the exponential phase
+of the capacity floor does not survive spectra with infinitely many nonzero eigenvalues. Every inequality marked \emph{numerically checked} is verified by the
 scripts in \texttt{verification/}.
 \end{abstract}
 
@@ -132,6 +135,7 @@ scripts in \texttt{verification/}.
 \input{sections/04_objectives}
 \input{sections/05_representations}
 \input{sections/06_synthesis}
+\input{sections/06b_scaling_law}
 \input{sections/07_open_problems}
 
 \appendix

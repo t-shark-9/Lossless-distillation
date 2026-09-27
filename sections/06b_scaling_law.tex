@@ -1,0 +1,550 @@
+% ===========================================================================
+\section{A solvable distillation scaling law}\label{sec:law}
+% ===========================================================================
+
+This section settles open problem~P4 (\cref{sec:open}) within an explicit model: deep linear students
+with a softmax read-out, reading Gaussian context features, in the near-lossless regime where
+\cref{prop:powerlaw} already works. The model has both a softmax bottleneck (the narrowest layer) and depth.
+We prove:
+\begin{itemize}[nosep,leftmargin=*]
+\item an \emph{exact} finite-sample learning curve for every well-optimised deep student
+(\cref{thm:curve}). \Cref{heur:data,heur:gap} follow from it as identities (\cref{cor:nested});
+\item a corrected form of \cref{conj:law} with matching upper and lower bounds (\cref{thm:law});
+\item the effect of the softmax bottleneck (\cref{thm:rrr}) and of depth (\cref{prop:flow,thm:depth}).
+Depth does not change the global minimisers. Its implicit bias under gradient flow, however, performs
+the capacity selection that the additive form of \cref{conj:law} presupposes;
+\item that the exponential phase of \cref{prop:phase} is a finite-rank phenomenon. It disappears for every
+spectrum with infinitely many nonzero eigenvalues and survives a spectral gap only as a window of
+explicit length (\cref{thm:expo}).
+\end{itemize}
+\Cref{sec:law-summary} lists what changes in \cref{conj:law}. Every claim marked \emph{numerically
+checked} is verified by \texttt{verification/check\_scaling\_law.py}.
+
+\subsection{The model}\label{sec:law-model}
+
+Write $V':=V-1$ and $\Gamma_p:=\diag p-pp^\top$, so that $\delta^\top\Gamma_p\delta=\Var_p(\delta)$. The first
+lemma is the two-sided version of \cref{lem:logratio} that the model rests on.
+
+\begin{lemma}[Quadratic sandwich]\label{lem:quad}
+\Pv\Ck Let $p$ have full support, $\delta\in\R^V$, $q=\softmax(\log p+\delta)$ and
+$o(\delta):=\max_y\delta_y-\min_y\delta_y$. Then
+\[
+e^{-o(\delta)}\,\tfrac12\,\delta^\top\Gamma_p\delta\ \le\ \KL(p\,\|\,q)\ \le\ e^{o(\delta)}\,\tfrac12\,\delta^\top\Gamma_p\delta .
+\]
+\end{lemma}
+\begin{proof}
+$\log p-\log q=-\delta+\log\E_pe^{\delta}$, so $\KL(p\|q)=K(1)-K(0)-K'(0)$ for the cumulant generating
+function $K(t)=\log\E_pe^{t\delta}$. Hence $\KL=\int_0^1(1-t)K''(t)\dd t$ with $K''(t)=\Var_{p_t}(\delta)$ and
+$p_t\propto pe^{t\delta}$. Since $p_t/p\in[e^{-to(\delta)},e^{to(\delta)}]$ pointwise, and
+$\Var_\nu(\delta)=\min_c\E_\nu(\delta-c)^2$, we get $e^{-to}\Var_p\le\Var_{p_t}\le e^{to}\Var_p$. Integrating gives
+$2\varphi(-o)\le\KL/(\frac12\Var_p\delta)\le2\varphi(o)$ with $\varphi(o)=(e^o-1-o)/o^2$. Finally
+$2\varphi(o)\le e^{o}$: compare the coefficients of $o^j$, which are $2/j!\le1/(j-2)!$. Also
+$2\varphi(-o)\ge e^{-o}$: the function $g(o)=2(e^{-o}-1+o)-o^2e^{-o}$ has $g(0)=0$ and
+$g'(o)=2-2e^{-o}(1+o)+o^2e^{-o}\ge0$.
+\end{proof}
+
+\begin{definition}[Model $\mathcal M$: linearised softmax with a deep linear student]\label{def:model}
+\begin{enumerate}[label=(\alph*),nosep,leftmargin=*]
+\item \emph{Geometry.} All teacher conditionals share one Fisher matrix, $\Gamma_{p_\TT(\cdot\mid s)}=\bar\Gamma$ for every
+context $s$. This holds to leading order when teacher logits are uniformly small, where
+$\bar\Gamma\to C/V$. Otherwise it is the homogeneous-Fisher idealisation already used in
+\cref{prop:powerlaw}. Whitened coordinates are $\zeta(s):=\bar\Gamma^{1/2}z(s)\in\operatorname{range}\bar\Gamma\cong\R^{V'}$.
+They see only the centred logits. The per-context loss of a student is $\frac12\|\zeta_\TT(s)-\zeta_\TS(s)\|^2$,
+which by \cref{lem:quad} equals $\KL(p_\TT(\cdot\mid s)\|q(\cdot\mid s))$ up to a factor $e^{\pm o}$. We write
+$\eps_\TT:=\E_{s\sim\cD}\frac12\|\zeta_\TT-\zeta_\TS\|^2$. For a ground truth $\zeta_{\mathsf G}$ with the same Fisher matrix,
+$\eps_{\mathsf G}$ is defined in the same way.
+\item \emph{Features.} The student reads $\phi(s)\in\R^k$. The triple $(\phi,\zeta_\TT,\zeta_{\mathsf G})$ is jointly
+centred Gaussian under $s\sim\cD$, and $\Sigma:=\E\phi\phi^\top\succ0$. An intercept is one more feature.
+\item \emph{Student.} A depth-$L$ linear network with softmax read-out: $z_\TS(s)=W_L\cdots W_1\phi(s)$ with
+$W_l\in\R^{d_l\times d_{l-1}}$, $d_0=k$, $d_L=V$. Its \emph{bottleneck} is $d:=\min(d_1,\dots,d_{L-1})$, with $d:=V$ if
+$L=1$. The student acts through the whitened end-to-end map $M:=\bar\Gamma^{1/2}W_L\cdots W_1\in\R^{V'\times k}$.
+\item \emph{Data.} Contexts $s_1,\dots,s_n$ are i.i.d.\ from $\cD$, with targets $y_j=\zeta_\TT(s_j)+\xi_j$.
+Here $\E[\xi_j\mid s_j]=0$, $\E[\xi_j\xi_j^\top\mid s_j]=\sigma^2I_{V'}$, and the $\xi_j$ are independent across $j$. Soft labels
+have $\sigma^2=0$. For $m$ hard labels per context, $\sigma^2=1/m$ (\cref{rem:hardlin}). We write $\nu:=\sigma^2V'$.
+\item \emph{Well-optimised student.} Any global minimiser of the empirical loss
+$\hat F(M)=\frac1{2n}\sum_j\|y_j-M\phi(s_j)\|^2$ over the student class.
+\end{enumerate}
+\end{definition}
+
+\begin{remark}[Hard labels are noisy soft labels]\label{rem:hardlin}
+\Mo At context $s$ with empirical label frequencies $\hat p$ from $m$ teacher samples, the cross-entropy is
+$-\hat p^\top z_\TS+\mathrm{lse}(z_\TS)$. Put $\delta=z_\TS-z_\TT$ and expand $\mathrm{lse}$ to second order at $z_\TT$. Since
+$\hat p-p_\TT\in\one^\perp=\operatorname{range}\bar\Gamma$, the result is
+$\mathrm{const}+\frac12\|\bar\Gamma^{1/2}\delta-\xi\|^2+O(\|\delta\|^3)$ with $\xi:=\bar\Gamma^{+1/2}(\hat p-p_\TT)$. This is least squares
+towards $\zeta_\TT+\xi$, and $\Cov\xi=\bar\Gamma^{+1/2}(\bar\Gamma/m)\bar\Gamma^{+1/2}=I_{V'}/m$. The noise $\xi$ is bounded but heavy in
+low-probability directions. Only its conditional second moments enter \cref{thm:curve}, which is
+therefore exact for it (\texttt{check\_scaling\_law.py} uses the actual multinomial noise).
+\end{remark}
+
+\begin{lemma}[Depth enters only through the bottleneck]\label{lem:deeplin}
+\Pv\Ck The set of whitened end-to-end maps of depth-$L$ students with widths $d_1,\dots,d_{L-1}$ is exactly
+$\{M\in\R^{V'\times k}:\rank M\le d\}$. The population optimum and the set of well-optimised students
+therefore depend on the architecture only through $d$. The parameter count $\sum_ld_ld_{l-1}$ does not enter.
+\end{lemma}
+\begin{proof}
+The rank of a product is at most the smallest inner dimension. Conversely, let $\rank M=r\le d$ and
+$M=AB^\top$ with $A\in\R^{V'\times r}$, $B\in\R^{k\times r}$. Take $W_1=\binom{B^\top}{0}$, every middle layer
+$\bigl(\begin{smallmatrix}I_r&0\\0&0\end{smallmatrix}\bigr)$, and $W_L=(\bar\Gamma^{+1/2}A\ \ 0)$, where
+$\bar\Gamma^{+1/2}$ maps $\R^{V'}\cong\operatorname{range}\bar\Gamma$ back into $\R^V$. Then $\bar\Gamma^{1/2}W_L\cdots W_1=AB^\top=M$.
+\end{proof}
+\noindent
+So the softmax bottleneck is the rank constraint $\rank M\le d$, and depth is invisible to the
+well-optimised student. Depth does act on the \emph{training path} (\cref{sec:law-depth}). The square
+loss of a deep linear network has no spurious local minima \citep{baldi1989neural,kawaguchi2016deep}, so
+``well-optimised'' is a reasonable idealisation. \Cref{prop:flow} computes \emph{when} gradient flow gets there,
+and what it passes through on the way.
+
+\subsection{The exact learning curve}\label{sec:law-curve}
+
+For a target $\zeta\in\{\zeta_\TT,\zeta_{\mathsf G}\}$ let $M^\star_\zeta:=\E[\zeta\phi^\top]\Sigma^{-1}$ be the best linear read-out of the
+features and $A_\zeta:=\E\|\zeta-M^\star_\zeta\phi\|^2$ its residual energy. Since $\zeta-M^\star_\zeta\phi$ is uncorrelated with $\phi$,
+every $M$ satisfies the Pythagorean identity
+\begin{equation}\label{eq:pyth}
+\eps_\zeta(M)=\tfrac12\big[A_\zeta+\|(M-M^\star_\zeta)\Sigma^{1/2}\|_F^2\big].
+\end{equation}
+
+\begin{theorem}[Exact distillation learning curve]\label{thm:curve}
+\Mo\Ck Assume model $\mathcal M$ with no active bottleneck, $d\ge\min(k,V')$, and $n\ge k+2$. The well-optimised
+student is almost surely unique: it is the least-squares map $\hat M=Y\Phi^\top(\Phi\Phi^\top)^{-1}$, where
+$\Phi=(\phi(s_1),\dots,\phi(s_n))$ and $Y=(y_1,\dots,y_n)$. Its expected loss with respect to the ground truth is
+\[
+\E\,\eps_{\mathsf G}(\hat M)=\frac12\Big[A_{\mathsf G}+\big\|(M^\star_\TT-M^\star_{\mathsf G})\Sigma^{1/2}\big\|_F^2+\big(A_\TT+\sigma^2V'\big)\frac{k}{n-k-1}\Big].
+\]
+With respect to the teacher, $\E\,\eps_\TT(\hat M)=\frac12\big[A_\TT+(A_\TT+\sigma^2V')\frac k{n-k-1}\big]$.
+\end{theorem}
+\begin{proof}
+By \cref{lem:deeplin} the class is all of $\R^{V'\times k}$. The loss $\hat F$ is strictly convex once $\Phi\Phi^\top\succ0$,
+which holds almost surely for $n\ge k$, so its minimiser is $\hat M$. Write $Y=M^\star_\TT\Phi+R+\Xi$, where $R$ has
+columns $r_j=\zeta_\TT(s_j)-M^\star_\TT\phi(s_j)$ and $\Xi$ has columns $\xi_j$. Each $r_j$ is jointly Gaussian with $\phi(s_j)$ and
+uncorrelated with it, hence independent of it. So $R$ is independent of $\Phi$, with i.i.d.\ centred columns and
+$\E\|r_j\|^2=A_\TT$. Thus $\hat M=M^\star_\TT+N$ with $N:=(R+\Xi)\Phi^\top(\Phi\Phi^\top)^{-1}$, and $\E[N\mid\Phi]=0$. Because $r_j$ is
+a function of $s_j$ and $\E[\xi_j\mid s_j]=0$, the columns of $R+\Xi$ are uncorrelated given $\Phi$, and
+$\E[(R+\Xi)^\top(R+\Xi)\mid\Phi]=(A_\TT+\sigma^2V')I_n$.
+Apply \eqref{eq:pyth} with $\zeta=\zeta_{\mathsf G}$ to $\hat M=M^\star_\TT+N$. The cross term vanishes in conditional expectation, and
+\[
+\E\big[\|N\Sigma^{1/2}\|_F^2\,\big|\,\Phi\big]=(A_\TT+\sigma^2V')\tr\big(\Sigma(\Phi\Phi^\top)^{-1}\big).
+\]
+Write $\Phi=\Sigma^{1/2}X$ with $X\in\R^{k\times n}$ standard Gaussian. Then $\tr(\Sigma(\Phi\Phi^\top)^{-1})=\tr((XX^\top)^{-1})$, and
+$\E(XX^\top)^{-1}=I_k/(n-k-1)$ for $n\ge k+2$. This is the mean of an inverse Wishart matrix
+\citep[Thm.~3.2.12]{muirhead1982aspects}.
+\end{proof}
+
+\begin{remark}[Consistency with \cref{sec:decomposition}]\label{rem:curve}
+(i)~\emph{Realisable, soft}: $A_\TT=\sigma^2=0$ gives $\hat M=M^\star_\TT$ exactly for $n\ge k$, which is \cref{prop:exact}(a).
+(ii)~\emph{Realisable, hard}: $\E\eps_\TT=\frac{(V-1)k}{2m(n-k-1)}$. This is the $k/2n$ law of \cref{prop:exact}(b) for
+$(V-1)k$ parameters, now as an exact finite-$n$ expectation. The linearised model has no
+boundary, so it describes the non-degenerate part of the law of the true MLE, whose expectation is
+infinite.
+(iii)~The theorem holds conditionally on any feature map for which $(\phi,\zeta_\TT,\zeta_{\mathsf G})$ is jointly Gaussian. In
+particular it covers random features (\cref{prop:rf}).
+(iv)~The effective noise $A_\TT+\sigma^2V'$ has two sources: teacher content that the features cannot
+represent (\emph{aliasing}), and label noise. Soft labels remove only the second. This is the mechanism
+behind \cref{heur:data,heur:gap}.
+\end{remark}
+
+\begin{corollary}[Nested model: \cref{heur:data,heur:gap} are exact]\label{cor:nested}
+\Mo\Ck Let $x=(x_i)_{i\ge1}$ be i.i.d.\ $N(0,1)$ functions of the context, that is, an orthonormal Gaussian basis of
+$L^2(\cD)$. Let the ground truth be $\zeta_{\mathsf G}=\sum_ig_ix_i$ with $g_i\in\R^{V'}$ and energies $\lambda_i:=\|g_i\|^2$
+non-increasing and summable. The teacher of size $k_\TT$ is $\zeta_\TT=\sum_{i\le k_\TT}g_ix_i$, the best teacher that uses $k_\TT$
+features. The student reads $\phi=(x_1,\dots,x_k)$. Put $\Lambda(k):=\sum_{i>k}\lambda_i$ and
+$\Lambda(k,k_\TT):=\sum_{k<i\le k_\TT}\lambda_i$, which is $0$ if $k_\TT\le k$. For $n\ge k+2$,
+\begin{equation}\label{eq:nested}
+\E\,\eps_{\mathsf G}=\frac12\Big[\Lambda\big(\min(k,k_\TT)\big)+\big(\Lambda(k,k_\TT)+\sigma^2V'\big)\frac k{n-k-1}\Big].
+\end{equation}
+\begin{enumerate}[label=(\alph*),nosep,leftmargin=*]
+\item \emph{Capacity gap (\cref{heur:gap}).} For fixed $k$, $n$ and $\sigma^2$, \eqref{eq:nested} is non-increasing in $k_\TT$ on
+$[0,k]$ and non-decreasing on $[k,\infty)$. The optimal teacher has \emph{exactly the student's capacity},
+$k_\TT=k$, for every $n$ and every kind of label. The strongest teacher ($k_\TT=\infty$) pays the additive
+penalty $\frac12\Lambda(k)\frac k{n-k-1}$. This is at most the factor $\frac{n-1}{n-k-1}$ over the optimum, and it
+vanishes as $n\to\infty$. With hard labels the penalty sits next to the larger term $\frac12\sigma^2V'\frac k{n-k-1}$, so the
+capacity gap is diluted: it is a soft-label phenomenon.
+\item \emph{Aliasing (\cref{heur:data}).} The effective noise is $\Lambda(k,k_\TT)+\sigma^2V'$. With soft labels only the
+aliased tail remains, which is the premise of \cref{heur:data}. The exponents follow in \cref{thm:law}.
+\end{enumerate}
+\end{corollary}
+\begin{proof}
+Here $\Sigma=I$, $M^\star_{\mathsf G}=(g_1,\dots,g_k)$ and $A_{\mathsf G}=\Lambda(k)$. Also $M^\star_\TT$ keeps the columns $g_i$ with
+$i\le\min(k,k_\TT)$ and zeroes the rest, and $A_\TT=\Lambda(k,k_\TT)$. So
+$\|M^\star_\TT-M^\star_{\mathsf G}\|_F^2=\sum_{k_\TT<i\le k}\lambda_i$, and $\Lambda(k)+\sum_{k_\TT<i\le k}\lambda_i=\Lambda(\min(k,k_\TT))$. Substitute into
+\cref{thm:curve}. The monotonicity statements can be read off \eqref{eq:nested}.
+\end{proof}
+
+\begin{remark}[Correction to experiment E2(d)]\label{rem:e2}
+\Cref{sec:experiments} predicts that the optimal teacher size grows with the token budget $n$. For a student of
+fixed capacity it does not: it equals the student's capacity at every $n$. Only the \emph{penalty} for a
+too-strong teacher shrinks, like $k/n$. The optimal teacher grows with $n$ only for students whose
+\emph{effective} capacity grows with $n$, such as early-stopped deep students (\cref{thm:depth}).
+\end{remark}
+
+\subsection{The corrected distillation scaling law}\label{sec:law-law}
+
+\begin{theorem}[Distillation scaling law: corrected \cref{conj:law}]\label{thm:law}
+\Mo\Ck Take the nested model of \cref{cor:nested} with $c_1i^{-\alpha}\le\lambda_i\le c_2i^{-\alpha}$, $\alpha>1$, a teacher of size
+$k_\TT\ge k$ (for instance $k_\TT=\infty$), and label noise $\nu=\sigma^2V'\ge0$. Let $E(k,n)$ be the right side of
+\eqref{eq:nested}, and let
+\[
+\eps^\star(k,n):=\min_{0\le k'\le\min(k,n-2)}E(k',n)
+\]
+be the loss of the best well-optimised student of capacity at most $k$.
+\begin{enumerate}[label=(\alph*),nosep,leftmargin=*]
+\item \emph{Fixed capacity.} $E(k,n)=\frac12\Lambda(k)+\frac12\big(\Lambda(k,k_\TT)+\nu\big)\frac k{n-k-1}$ exactly. It is affine in
+$1/(n-k-1)$, so at fixed capacity the data exponent is $1$ for every kind of label.
+\item \emph{Envelope.} For $k\ge1$ and $n\ge\max(4,\nu)$,
+\[
+c\,\Big[k^{-(\alpha-1)}+n^{-(\alpha-1)}+\Big(\frac{\nu}{n}\Big)^{\frac{\alpha-1}\alpha}\Big]\ \le\ \eps^\star(k,n)\ \le\ C\,\Big[k^{-(\alpha-1)}+n^{-(\alpha-1)}+\Big(\frac{\nu}{n}\Big)^{\frac{\alpha-1}\alpha}\Big],
+\]
+where $c,C>0$ depend only on $(\alpha,c_1,c_2)$. The data exponent is therefore $b=\alpha-1$ for soft labels
+($\nu=0$) and $b=\frac{\alpha-1}\alpha$ for hard labels. The effective sample size of hard labels is
+$n/(\sigma^2(V-1))=mn/(V-1)$. The two regimes cross over at $\sigma^2(V-1)\asymp n^{-(\alpha-1)}$, which is the
+noiseless-to-noisy crossover of \citet{cui2021generalization}.
+\item \emph{The aliasing term.} The third term of \cref{conj:law} is $\frac12\Lambda(k,k_\TT)\frac k{n-k-1}\le\frac k{n-k-1}\cdot\frac12\Lambda(k)$.
+For $k\le n/2$ it multiplies $E$ by at most $3$, so it is invisible at the level of $\asymp$. It matters
+quantitatively, and it diverges only at the interpolation threshold $k\to n-1$.
+\end{enumerate}
+\end{theorem}
+\begin{proof}
+(a) is \eqref{eq:nested}. For (c), $\Lambda(k,k_\TT)\le\Lambda(k)$ and $\frac{n-1}{n-k-1}\le3$ when $k\le n/2$ and $n\ge4$.
+For (b), integral comparison gives $\kappa_1(k\vee1)^{1-\alpha}\le\Lambda(k)\le\kappa_2(k\vee1)^{1-\alpha}$ for all $k\ge0$, with
+$\kappa_1=c_1\min(1,2^{1-\alpha}/(\alpha-1))$ and $\kappa_2=c_2\alpha/(\alpha-1)$.
+
+\emph{Upper bound.} Take $k'=\min\big(k,\lfloor n/2\rfloor,\lceil(n/\nu)^{1/\alpha}\rceil\big)$, with $(n/\nu)^{1/\alpha}:=\infty$ if $\nu=0$. Then
+$1\le k'\le n/2$, so $n-k'-1\ge n/4$ and $\frac{k'}{n-k'-1}\le2$. Using $\Lambda(k',k_\TT)\le\Lambda(k')$,
+\[
+E(k',n)\le\tfrac32\Lambda(k')+2\nu k'/n .
+\]
+Since $\nu\le n$,
+\[
+\frac{\nu k'}n\le\frac\nu n\big((n/\nu)^{1/\alpha}+1\big)\le2\Big(\frac\nu n\Big)^{\frac{\alpha-1}\alpha},\qquad
+\Lambda(k')\le\kappa_2\max\Big(k^{1-\alpha},\ \lfloor n/2\rfloor^{1-\alpha},\ \Big(\frac\nu n\Big)^{\frac{\alpha-1}\alpha}\Big),
+\]
+and $\lfloor n/2\rfloor\ge n/4$. This gives the upper bound with $C=\frac32\kappa_2 4^{\alpha-1}+4$.
+
+\emph{Lower bound.} For $0\le k'\le\min(k,n-2)$ we have $E(k',n)\ge\frac12[\Lambda(k')+\nu k'/n]$. Three bounds follow:
+$\Lambda(k')\ge\Lambda(k)\ge\kappa_1k^{1-\alpha}$; $\Lambda(k')\ge\Lambda(n-2)\ge\kappa_1n^{1-\alpha}$; and
+$\Lambda(k')+\nu k'/n\ge c_3(\nu/n)^{(\alpha-1)/\alpha}$. For the third: if $k'=0$ use $\Lambda(0)\ge\kappa_1\ge\kappa_1(\nu/n)^{(\alpha-1)/\alpha}$. If
+$k'\ge1$, minimise $x\mapsto\kappa_1x^{1-\alpha}+\nu x/n$ over $x\ge1$. If the unconstrained minimiser is at least $1$, the
+minimum equals $\kappa_1^{1/\alpha}[(\alpha-1)^{(1-\alpha)/\alpha}+(\alpha-1)^{1/\alpha}](\nu/n)^{(\alpha-1)/\alpha}$. Otherwise it is attained at $x=1$
+and is at least $\kappa_1\ge\kappa_1(\nu/n)^{(\alpha-1)/\alpha}$. So $c_3$ is the smaller of the two constants. Hence $\eps^\star$ is at least
+$\frac12$ of the largest of the three bounds, and at least $\frac16$ of their sum.
+\end{proof}
+
+\begin{remark}[Reading \cref{thm:law} in the variables of \cref{conj:law}]\label{rem:law-bits}
+(i)~\emph{Bits.} A capacity-$k$ student has $kV'$ free whitened coordinates (\cref{lem:deeplin}). At $b$ bits
+each, $R_\TS\approx bV'k$, so the first term is $A\,R_\TS^{-(\alpha-1)}$ with $A\propto(bV')^{\alpha-1}$. Usable bits are bits on the
+rank-$d$ manifold, whose dimension is $d(V'+k-d)$. Extra depth or width adds parameters but no usable bits.
+Put the Gaussian prior $g_i\sim N(0,\lambda_iI_{V'}/V')$ on the ground truth. Then \cref{prop:powerlaw} (with
+multiplicity $V'$) needs $\approx\frac\alpha2V'k$ nats to reach distortion $\asymp k^{1-\alpha}$. So the architecture is within the
+factor $2b\ln2/\alpha$ of the information-theoretic optimum, and both have the exponent $\alpha-1$.
+(ii)~\emph{$Bn^{-b}$ is an envelope term.} It holds for students whose capacity is matched to $n$. Take a
+fixed-capacity student trained to convergence with $k\gg k^\star(n)$, where $k^\star\asymp(n/\nu)^{1/\alpha}$ for hard labels.
+Its excess is $\frac12\nu\frac k{n-k-1}$, which \emph{grows} with $k$. Experiment E3(a) should therefore fit $b$ along the
+capacity-matched frontier, or with early-stopped deep students (\cref{thm:depth}), and not at fixed size. At
+fixed size the model predicts $b=1$.
+(iii)~\emph{Label types.} Soft labels give $\nu=0$. With $m$ sampled tokens per context, $\nu=(V-1)/m$. Soft
+labels computed from a noisy teacher interpolate between the two, with the crossover of (b).
+\end{remark}
+
+\subsection{The softmax bottleneck}\label{sec:law-bottleneck}
+
+Now let the bottleneck be active, $d<\min(k,V')$. Whitening the features, $\phi\mapsto\Sigma^{-1/2}\phi$, preserves ranks, so we
+may take $\Sigma=I_k$. Put $S:=\Phi\Phi^\top$ and let $[A]_d$ denote a best rank-$d$ approximation of $A$
+\citep{eckart1936approximation}. Since $(Y-\hat M\Phi)\Phi^\top=0$, we have
+$\|Y-M\Phi\|_F^2=\|Y-\hat M\Phi\|_F^2+\|(M-\hat M)S^{1/2}\|_F^2$. So by \cref{lem:deeplin} the well-optimised width-$d$ student
+is the reduced-rank regression estimator \citep{izenman1975reduced}
+\[
+\hat M_d=[\hat MS^{1/2}]_d\,S^{-1/2}.
+\]
+
+\begin{lemma}[Truncation]\label{lem:trunc}
+\Pv\Ck For $B,N\in\R^{p\times q}$ and $d\ge1$, $\ \|[B+N]_d-B\|_F^2\le2\sum_{j>d}\sigma_j(B)^2+31\,d\,\|N\|_{\mathrm{op}}^2$.
+\end{lemma}
+\begin{proof}
+Let $A=B+N$, let $P$ project onto a top-$d$ left singular subspace of $A$, and let $P_B$ do the same for $B$. Then
+$[A]_d=PA$ and $PA-B=PN-(I-P)B$, and these two terms have orthogonal column spaces. So
+$\|PA-B\|_F^2=\|PN\|_F^2+x^2$ with $x:=\|(I-P)B\|_F$, and $\|PN\|_F^2\le d\|N\|_{\mathrm{op}}^2=:a^2$. Let $t:=\|(I-P_B)B\|_F^2=\sum_{j>d}\sigma_j(B)^2$.
+Optimality of $P$ gives $\|PA\|_F^2\ge\|P_BA\|_F^2$. Expanding both sides,
+$\|PB\|_F^2\ge\|P_BB\|_F^2-2\langle PB-P_BB,N\rangle-\|PN\|_F^2$. The matrix $PB-P_BB=(I-P_B)B-(I-P)B$ has rank at most $2d$.
+So $|\langle PB-P_BB,N\rangle|\le\sqrt{2d}\,\|PB-P_BB\|_F\|N\|_{\mathrm{op}}\le\sqrt2\,a(\sqrt t+x)$. Hence
+$x^2=\|B\|_F^2-\|PB\|_F^2\le t+2\sqrt2a(\sqrt t+x)+a^2$. This gives
+$(x-\sqrt2a)^2\le(\sqrt t+\sqrt2a)^2+a^2$, so $x\le\sqrt t+(2\sqrt2+1)a$. Therefore
+$\|PA-B\|_F^2\le a^2+2t+2(2\sqrt2+1)^2a^2\le2t+31a^2$.
+\end{proof}
+
+\begin{theorem}[Softmax bottleneck]\label{thm:rrr}
+\Mo\Ck Assume model $\mathcal M$ with $\Sigma=I_k$, Gaussian label noise, bottleneck $d<\min(k,V')$, and $W^\star:=M^\star_\TT$. Let
+$\Sigma_{\mathrm{eff}}:=\E r r^\top+\sigma^2I_{V'}$ be the covariance of the effective noise, where $r=\zeta_\TT-W^\star\phi$.
+\begin{enumerate}[label=(\alph*),nosep,leftmargin=*]
+\item \emph{Approximation.} Every width-$d$ student has $\eps_\TT(M)\ge\frac12\big[A_\TT+\sum_{j>d}\sigma_j(W^\star)^2\big]$, with equality at
+$M=[W^\star]_d$. This is the linearised, exact version of \cref{thm:bottleneck}.
+\item \emph{Estimation.} Deterministically,
+$\|\hat M_d-W^\star\|_F^2\le\big[2\lambda_{\max}(S)\sum_{j>d}\sigma_j(W^\star)^2+31\,d\,\|(\hat M-W^\star)S^{1/2}\|_{\mathrm{op}}^2\big]/\lambda_{\min}(S)$.
+If $k\le n/16$, the event $\mathcal E=\{\frac n4I\preceq S\preceq\frac94nI\}$ has probability at least $1-2e^{-n/32}$, and
+\[
+\E\big[\eps_\TT(\hat M_d)\,\big|\,\mathcal E\big]\ \le\ \tfrac12A_\TT+9\sum_{j>d}\sigma_j(W^\star)^2+\frac{62\,d}{n}\Big[\big(\sqrt{\tr\Sigma_{\mathrm{eff}}}+\sqrt{k\|\Sigma_{\mathrm{eff}}\|_{\mathrm{op}}}\big)^2+\|\Sigma_{\mathrm{eff}}\|_{\mathrm{op}}\Big].
+\]
+\end{enumerate}
+With hard labels the last term is $\asymp\sigma^2d(V'+k)/n$, which is $\sigma^2/n$ times the dimension of the
+rank-$d$ manifold, up to constants. So the bottleneck replaces $V'k$ by $d(V'+k)$ in the variance, as well
+as adding the approximation term.
+\end{theorem}
+\begin{proof}
+(a) follows from \eqref{eq:pyth} and Eckart--Young. (b) We have $\hat M_dS^{1/2}=[W^\star S^{1/2}+(\hat M-W^\star)S^{1/2}]_d$. Apply
+\cref{lem:trunc} with $B=W^\star S^{1/2}$, and use $\sigma_j(W^\star S^{1/2})^2\le\lambda_{\max}(S)\sigma_j(W^\star)^2$ and
+$\|\Delta\|_F^2\le\|\Delta S^{1/2}\|_F^2/\lambda_{\min}(S)$. For $X$ standard Gaussian, $\sqrt n-\sqrt k-u\le s_{\min}(X)\le s_{\max}(X)\le\sqrt n+\sqrt k+u$
+with probability at least $1-2e^{-u^2/2}$ \citep{davidson2001local}. With $u=\sqrt n/4$ and $k\le n/16$ this gives $\mathcal E$.
+Next, $(\hat M-W^\star)S^{1/2}=(R+\Xi)Q$ with $Q:=\Phi^\top S^{-1/2}$, which has orthonormal columns. Given $\Phi$, the columns of
+$R+\Xi$ are i.i.d.\ $N(0,\Sigma_{\mathrm{eff}})$. By rotation invariance, $(R+\Xi)Q\overset d=\Sigma_{\mathrm{eff}}^{1/2}Z$ with $Z\in\R^{V'\times k}$ standard
+Gaussian and independent of $\Phi$. Chevet's inequality \citep{chevet1978series}, \citep[\S8.7]{vershynin2018high} gives
+$\E\|\Sigma_{\mathrm{eff}}^{1/2}Z\|_{\mathrm{op}}\le\sqrt{\tr\Sigma_{\mathrm{eff}}}+\sqrt{k\|\Sigma_{\mathrm{eff}}\|_{\mathrm{op}}}$. Gaussian concentration adds a variance of at most
+$\|\Sigma_{\mathrm{eff}}\|_{\mathrm{op}}$. Finally, on $\mathcal E$ we have $\lambda_{\max}/\lambda_{\min}\le9$ and $1/\lambda_{\min}\le4/n$.
+\end{proof}
+
+\begin{remark}[Two capacity spectra]\label{rem:twospectra}
+In the nested model the approximation error of a student with $k$ features and bottleneck $d$ is
+$\frac12\big[\Lambda(k)+\sum_{j>d}\sigma_j(G_{\le k})^2\big]$, where $G_{\le k}=(g_1,\dots,g_k)$. There are two spectra: the
+\emph{feature spectrum} $\lambda_i$, which decides how much of the teacher the features can see, and the
+\emph{bottleneck spectrum} $\sigma_j(G_{\le k})$, the singular values of the teacher's head. For an aligned
+teacher (orthogonal $g_i$) they coincide, and the capacity is $\min(k,d)$: \cref{thm:law} holds with $k$ replaced
+by $\min(k,d)$. A teacher with a linear read-out of width $d_\TT$ has $\rank G\le d_\TT$, and its bottleneck term
+vanishes \emph{identically} once $d\ge d_\TT$ (\cref{rem:bottleneck}). The feature term does not. This cutoff and
+exact recovery from soft labels when $A_\TT=0$ (\cref{rem:curve}(i)) are the model's only finite-rank phenomena.
+The cutoff is a transition in the width $d$, not in the number of bits.
+\end{remark}
+
+\subsection{Depth: implicit capacity selection}\label{sec:law-depth}
+
+\Cref{thm:law}(b) is a statement about capacity-matched students. A student that is too large and
+trained to convergence pays $\frac12\nu\frac k{n-k-1}$ (\cref{rem:law-bits}(ii)). We now show that depth, through the
+implicit bias of gradient flow, selects the capacity automatically. To make the dynamics exactly solvable,
+we use the whitened sequence model: an orthogonal design $\Phi\Phi^\top=nI_k$, obtained for instance by
+empirically whitening the features, and Gaussian effective noise. Then
+$\hat F(M)=\frac12\|M-\hat S\|_F^2+\mathrm{const}$ with $\hat S:=Y\Phi^\top/n=W^\star+N$ and
+$N\overset d=\Sigma_{\mathrm{eff}}^{1/2}Z/\sqrt n$, with $Z$ standard Gaussian. The fixed-design risk is
+$\eps_\TT(M)=\frac12[A_\TT+\|M-W^\star\|_F^2]$. Write $\hat S=\sum_j\hat s_j\hat u_j\hat v_j^\top$ with $\hat s_1\ge\hat s_2\ge\cdots$.
+
+\begin{proposition}[Gradient flow of deep students]\label{prop:flow}
+\Pv\Ck Run gradient flow on $\frac12\|W_L\cdots W_1-\hat S\|_F^2$, with widths at least $d$, in the whitened parametrisation
+whose last layer is $\bar\Gamma^{1/2}W_L\in\R^{V'\times d_{L-1}}$. For $\bar\Gamma=C/V$ this is plain gradient flow with the
+last layer's learning rate multiplied by $V$. Start from the
+balanced spectral initialisation of scale $\eps>0$: $W_1(0)=\eps\sum_{j\le d}e_j\hat v_j^\top$, $W_l(0)=\eps\sum_{j\le d}e_je_j^\top$ for
+$1<l<L$, and $W_L(0)=\eps\sum_{j\le d}\hat u_je_j^\top$ \citep{saxe2014exact}. For $L=1$ start from $W(0)=0$.
+\begin{enumerate}[label=(\alph*),nosep,leftmargin=*]
+\item The end-to-end map is $M(t)=\sum_{j\le d}s_j(t)\hat u_j\hat v_j^\top$, where $\dot s_j=L\,s_j^{2-2/L}(\hat s_j-s_j)$ and $s_j(0)=\eps^L$.
+For $L=1$, $M(t)=(1-e^{-t})\hat S$: \emph{uniform shrinkage}.
+\item Let $L\ge2$, $c_2(\eps):=\ln(1/\eps)$ and $c_L(\eps):=\eps^{-(L-2)}/(L-2)$ for $L\ge3$. For every $\tau>0$ and every $j$
+with $\hat s_j\tau\ne1$, $s_j(\tau c_L(\eps))\to\hat s_j\,\ind\{\hat s_j\tau>1\}$ as $\eps\to0$. Hence
+$M(\tau c_L(\eps))\to H_{1/\tau,d}(\hat S)$, where
+\[
+H_{\theta,d}(\hat S):=\sum_{j\le d:\ \hat s_j>\theta}\hat s_j\hat u_j\hat v_j^\top
+\]
+is \emph{singular-value hard thresholding}, capped at rank $d$. Early-stopped deep students trace the
+hard-thresholding path, and depth-one students trace the shrinkage path.
+\end{enumerate}
+\end{proposition}
+\begin{proof}
+(a) Try $W_1=\sum_ja_je_j\hat v_j^\top$, $W_l=\sum_ja_je_je_j^\top$, $W_L=\sum_ja_j\hat u_je_j^\top$, with one scalar $a_j(t)$ per mode. The
+product is $\sum_ja_j^L\hat u_j\hat v_j^\top$, and the residual is $\sum_{j\le d}(a_j^L-\hat s_j)\hat u_j\hat v_j^\top-\sum_{j>d}\hat s_j\hat u_j\hat v_j^\top$. The gradient
+with respect to $W_l$ is $(W_L\cdots W_{l+1})^\top(\text{residual})(W_{l-1}\cdots W_1)^\top$. The modes $j>d$ are annihilated by
+orthogonality, and each remaining mode contributes $a_j^{L-1}(a_j^L-\hat s_j)$ times its own rank-one block. So the ansatz is
+preserved with $\dot a_j=-a_j^{L-1}(a_j^L-\hat s_j)$. By uniqueness of ODE solutions it is the solution. With $s_j=a_j^L$ we get
+$\dot s_j=La_j^{2L-2}(\hat s_j-s_j)=Ls_j^{2-2/L}(\hat s_j-s_j)$. For $L=1$ the flow is $\dot M=\hat S-M$.
+(b) For $L=2$ the solution is logistic: $s(t)=\hat s/\big(1+(\hat s\eps^{-2}-1)e^{-2\hat st}\big)$. At $t=\tau\ln(1/\eps)$,
+$\hat s\eps^{-2}e^{-2\hat st}=\hat s\eps^{2(\hat s\tau-1)}$, which tends to $0$ or $\infty$. For $L\ge3$, $s$ increases in $(0,\hat s)$.
+\emph{Below threshold:} $\dot s\le L\hat ss^{2-2/L}$ integrates to $s(t)^{-(L-2)/L}\ge\eps^{-(L-2)}-(L-2)\hat st$. So if $\hat s\tau<1$, then
+$s(\tau c_L)\le\eps^L(1-\hat s\tau)^{-L/(L-2)}\to0$.
+\emph{Above threshold:} using $\frac1{1-u}\le1+2u$ for $u\le\frac12$, the time to reach $\hat s/2$ is
+\[
+\int_{\eps^L}^{\hat s/2}\frac{\dd s}{Ls^{2-2/L}(\hat s-s)}\le\int_{\eps^L}^\infty\frac{\dd s}{L\hat ss^{2-2/L}}+\frac2{L\hat s^2}\int_0^{\hat s/2}s^{2/L-1}\dd s=\frac{c_L(\eps)}{\hat s}+O(1).
+\]
+If $\hat s\tau>1$, the time that remains after reaching $\hat s/2$ is at least $(\tau-1/\hat s)c_L(\eps)-O(1)\to\infty$. During it,
+$\hat s-s$ decays at rate at least $L(\hat s/2)^{2-2/L}$. So $s\to\hat s$.
+\end{proof}
+
+\begin{theorem}[Depth selects capacity]\label{thm:depth}
+\Mo\Ck In the whitened sequence model, let $\sigma_1\ge\sigma_2\ge\cdots$ be the singular values of $W^\star$ and
+$\gamma_n:=\big(\sqrt{\tr\Sigma_{\mathrm{eff}}}+\sqrt{k\|\Sigma_{\mathrm{eff}}\|_{\mathrm{op}}}\big)/\sqrt n$.
+\begin{enumerate}[label=(\alph*),nosep,leftmargin=*]
+\item \emph{Deep ($L\ge2$, limit $\eps\to0$).} Let the threshold $\theta$ be deterministic with
+$\theta\ge2\big(\gamma_n+u\sqrt{\|\Sigma_{\mathrm{eff}}\|_{\mathrm{op}}/n}\big)$. With probability at least $1-e^{-u^2/2}$,
+\[
+\|H_{\theta,d}(\hat S)-W^\star\|_F^2\ \le\ 49\min_{0\le r\le d}\Big[\sum_{j>r}\sigma_j^2+r\theta^2\Big].
+\]
+\item \emph{Shallow ($L=1$).} For every deterministic stopping time $t$,
+\[
+\E\|M(t)-W^\star\|_F^2\ \ge\ \frac{\|W^\star\|_F^2\cdot k\tr\Sigma_{\mathrm{eff}}/n}{\|W^\star\|_F^2+k\tr\Sigma_{\mathrm{eff}}/n}\ \ge\ \tfrac12\min\big(\|W^\star\|_F^2,\,k\tr\Sigma_{\mathrm{eff}}/n\big).
+\]
+\item \emph{Consequence.} Take the aligned nested model with $\lambda_j\asymp j^{-\alpha}$, hard labels, and $\theta\asymp\gamma_n$, so that
+$\theta^2\asymp\sigma^2(V'+k)/n$. The deep student's excess is $O\big(\Lambda(d)+(\sigma^2(V'+k)/n)^{(\alpha-1)/\alpha}\big)$. This is the
+envelope law of \cref{thm:law}, reached \emph{for every architectural size $k$} between $k^\star(n)\asymp(n/\nu)^{1/\alpha}$ and
+$O(V')$, without tuning the architecture. The shallow student is stuck at
+$\gtrsim\min\big(\sum_{j\le k}\lambda_j,\ \nu k/n\big)$. When $\nu k/n\le\sum_{j\le k}\lambda_j$, this exceeds the envelope by a factor
+$\asymp k/k^\star(n)$.
+\end{enumerate}
+\end{theorem}
+\begin{proof}
+(a) $\|N\|_{\mathrm{op}}$ has mean at most $\gamma_n$ (Chevet's inequality, as in \cref{thm:rrr}) and is
+$\sqrt{\|\Sigma_{\mathrm{eff}}\|_{\mathrm{op}}/n}$-Lipschitz in $Z$. So $\|N\|_{\mathrm{op}}\le\theta/2$ with probability at least $1-e^{-u^2/2}$. On this event,
+Weyl's inequality gives $|\hat s_j-\sigma_j|\le\theta/2$. Let $\hat r:=\#\{j\le d:\hat s_j>\theta\}$, so $H_{\theta,d}(\hat S)=[\hat S]_{\hat r}$, and let
+$r_1:=\#\{j\le d:\sigma_j>\theta/2\}$. Then $\hat r\le r_1$, and every $j\in(\hat r,r_1]$ has $\sigma_j\le3\theta/2$. \Cref{lem:trunc}, which also
+holds trivially for $\hat r=0$, gives
+\[
+\|[\hat S]_{\hat r}-W^\star\|_F^2\le2\sum_{j>\hat r}\sigma_j^2+31\hat r\|N\|_{\mathrm{op}}^2\le2\sum_{j>r_1}\sigma_j^2+\tfrac92(r_1-\hat r)\theta^2+\tfrac{31}4\hat r\theta^2\le49\Big[\sum_{j>r_1}\sigma_j^2+\tfrac{r_1\theta^2}4\Big].
+\]
+The function $h(r)=\sum_{j>r}\sigma_j^2+r\theta^2/4$ has increments $\theta^2/4-\sigma_r^2$. These are negative exactly when $\sigma_r>\theta/2$,
+so over $0\le r\le d$ it is minimised at $r_1$.
+(b) $M(t)=g\hat S$ with $g=1-e^{-t}$ deterministic. So $\E\|g\hat S-W^\star\|_F^2=(1-g)^2\|W^\star\|_F^2+g^2\E\|N\|_F^2$, with
+$\E\|N\|_F^2=k\tr\Sigma_{\mathrm{eff}}/n$. Minimise over $g\in\R$.
+(c) Insert $\sigma_j^2=\lambda_j$ for $j\le\min(k,k_\TT)$ into (a) and minimise over $r$ as in \cref{thm:law}. The noise level is
+$\tr\Sigma_{\mathrm{eff}}+k\|\Sigma_{\mathrm{eff}}\|_{\mathrm{op}}\asymp\sigma^2(V'+k)$ once the aliased tail is small next to $\sigma^2$. For (b), use $\tr\Sigma_{\mathrm{eff}}\ge\sigma^2V'$.
+\end{proof}
+
+\begin{remark}\label{rem:depth}
+(i)~Depth $2$ approaches the thresholding limit only logarithmically in $1/\eps$. Depth $L\ge3$ approaches it
+polynomially, and the transition sharpens with $L$ (\texttt{check\_scaling\_law.py}). For generic small random
+initialisations the same incremental, saddle-to-saddle learning is known to hold approximately
+\citep{saxe2014exact,gidel2019implicit,arora2019implicit,jacot2021saddle}. We prove only the spectral case.
+(ii)~So the additive form of \cref{conj:law}, $AR^{-(\alpha-1)}+Bn^{-b}$ with the envelope exponent $b$, is the law of
+early-stopped \emph{deep} students. Shallow students trained to convergence follow the fixed-capacity law of
+\cref{thm:law}(a). In the whitened model, spectral bias has to come from depth. With anisotropic features, a
+depth-one student also has spectral bias, through the feature covariance
+\citep{bach2024high,lin2024scaling,paquette2024phases}.
+\end{remark}
+
+\subsection{Does the exponential phase survive realistic spectra?}\label{sec:law-expo}
+
+Return to the Gaussian source of \cref{prop:powerlaw,prop:phase}. Its spectrum $\lambda_1\ge\lambda_2\ge\cdots\ge0$ is summable and
+not identically zero. Measure rate in nats, $\rho:=R\ln2$, so that $D(\rho)=\frac12\sum_i\min(w,\lambda_i)$ with
+$\frac12\sum_i\ln_+(\lambda_i/w)=\rho$. Put
+\[
+K(w):=\#\{i:\lambda_i>w\},\qquad T(w):=\sum_{i:\lambda_i\le w}\lambda_i,\qquad K_{\mathrm{eff}}(w):=K(w)+T(w)/w .
+\]
+
+\begin{theorem}[Fate of the exponential phase]\label{thm:expo}
+\Pv\Ck
+\begin{enumerate}[label=(\roman*),nosep,leftmargin=*]
+\item \emph{Local rate.} $\rho\mapsto D(\rho)$ is convex, $C^1$ and strictly decreasing on $(0,\infty)$, with $D'(\rho)=-w(\rho)$ and
+\[
+-\frac{\dd\ln D}{\dd\rho}=\frac2{K_{\mathrm{eff}}(w(\rho))}.
+\]
+\item \emph{Finite rank.} If exactly $k_\TT$ eigenvalues are positive, then for
+$\rho\ge\rho_{k_\TT}:=\frac12\sum_{i\le k_\TT}\ln(\lambda_i/\lambda_{k_\TT})$ we have $K_{\mathrm{eff}}\equiv k_\TT$ and
+$D(\rho)=\frac{k_\TT}2\big(\prod_{i\le k_\TT}\lambda_i\big)^{1/k_\TT}e^{-2\rho/k_\TT}$ (\cref{prop:phase}). For a power-law head,
+$\rho_{k_\TT}=\frac\alpha2\big(k_\TT-O(\log k_\TT)\big)$.
+\item \emph{Infinite support.} If infinitely many $\lambda_i$ are positive, then $K_{\mathrm{eff}}(w(\rho))\to\infty$ and
+$-\ln D(\rho)=o(\rho)$: $D$ decays more slowly than every exponential. For $\lambda_i\asymp i^{-\alpha}$,
+$K_{\mathrm{eff}}\sim\frac\alpha{\alpha-1}K$ and $D\asymp\rho^{-(\alpha-1)}$ (\cref{prop:powerlaw}).
+\item \emph{Analytic spectra.} If $\lambda_i=ce^{-\beta i}$, then $-\ln D(\rho)=2\sqrt{\beta\rho}+O(\ln\rho)$: a stretched exponential.
+The same computation gives $-\ln D\asymp\rho^{\gamma/(1+\gamma)}$ for $\lambda_i=ce^{-\beta i^\gamma}$.
+\item \emph{Spectral gap.} Let $\lambda_{k_\TT}>\lambda_{k_\TT+1}$, $\eta>0$ and $w_\eta:=\max\{\lambda_{k_\TT+1},\ \Lambda(k_\TT)/(\eta k_\TT)\}$, where
+$\Lambda(k_\TT)=\sum_{i>k_\TT}\lambda_i$. The rates at which all $k_\TT$ head components are active and the local rate
+is within the factor $1+\eta$ of the finite-rank rate $2/k_\TT$ form an interval of length
+\[
+\Delta\rho=\tfrac{k_\TT}2\ln_+\!\big(\lambda_{k_\TT}/w_\eta\big)\ \text{nats}.
+\]
+Across it $D$ falls by a factor between $(\lambda_{k_\TT}/w_\eta)^{1/(1+\eta)}$ and $\lambda_{k_\TT}/w_\eta$.
+\end{enumerate}
+\end{theorem}
+\begin{proof}
+(i) The water level $w(\rho)$ is continuous and strictly decreasing. Between consecutive distinct eigenvalues,
+$\frac{\dd D}{\dd w}=\frac K2$ and $\frac{\dd\rho}{\dd w}=-\frac K{2w}$, so $D'(\rho)=-w(\rho)$. This is continuous and increasing in $\rho$, hence $D$ is
+$C^1$ and convex. Then $-\frac{\dd\ln D}{\dd\rho}=\frac wD=\frac{2w}{Kw+T(w)}=\frac2{K_{\mathrm{eff}}}$.
+(ii) For $w\le\lambda_{k_\TT}$ we have $K=k_\TT$ and $T=0$. So $D=k_\TT w/2$ and $\ln w=\big(\sum_{i\le k_\TT}\ln\lambda_i-2\rho\big)/k_\TT$. For
+$\lambda_i=ci^{-\alpha}$, $\rho_{k_\TT}=\frac\alpha2(k_\TT\ln k_\TT-\ln k_\TT!)$, and Stirling's formula gives the claim.
+(iii) As $\rho\to\infty$, $w\downarrow0$ and $K(w)\to\infty$. So $-\ln D(\rho)=-\ln D(\rho_0)+\int_{\rho_0}^\rho2/K_{\mathrm{eff}}\le C+\int_{\rho_0}^\rho2/K(w(r))\dd r=o(\rho)$.
+For the power law, $T(w)/w\sim K/(\alpha-1)$ by integral comparison.
+(iv) For $w\in(\lambda_{K+1},\lambda_K]$, $\ln(c/w)\in[\beta K,\beta(K+1))$, so $\rho=\frac12[K\ln(c/w)-\beta K(K+1)/2]\in[\frac\beta4(K^2-K),\frac\beta4(K^2+K))$ and
+$K=2\sqrt{\rho/\beta}+O(1)$. Also $T(w)=\lambda_{K+1}/(1-e^{-\beta})\le w/(1-e^{-\beta})$. So $\ln D=\ln w+\ln K+O(1)=-\beta K+O(\ln K)$.
+For $\lambda_i=ce^{-\beta i^\gamma}$ the same steps give $K\asymp\rho^{1/(1+\gamma)}$ and $-\ln D\asymp K^\gamma$.
+(v) For $\lambda_{k_\TT+1}\le w<\lambda_{k_\TT}$ we have $K=k_\TT$ and $T(w)=\Lambda(k_\TT)$. So $K_{\mathrm{eff}}\le(1+\eta)k_\TT$ if and only if
+$w\ge\Lambda(k_\TT)/(\eta k_\TT)$. For $w<\lambda_{k_\TT+1}$, $K>k_\TT$. On the resulting interval $[w_\eta,\lambda_{k_\TT})$,
+$\dd\rho=-\frac{k_\TT}2\dd\ln w$, which gives $\Delta\rho$. The drop of $\ln D$ is $\int2/K_{\mathrm{eff}}\dd\rho$ with $K_{\mathrm{eff}}\in[k_\TT,(1+\eta)k_\TT]$.
+\end{proof}
+
+\begin{corollary}[Answer: the exponential phase is a finite-rank phenomenon]\label{cor:expo}
+\Pv
+\begin{enumerate}[label=(\alph*),nosep,leftmargin=*]
+\item $D(\rho)$ has an exponential phase if and only if the Fisher-weighted spectrum has finitely many
+nonzero eigenvalues. Realistic spectra, meaning power laws or smooth-function spectra
+$e^{-\beta i^\gamma}$, give polynomial or stretched-exponential decay at every rate. There is no transition.
+\item With a gap, the phase survives as a transient. Take a power-law head whose tail continues at
+$1/g$ of its level. Then $\lambda_{k_\TT}/w_\eta\approx\min\{g,\ \eta g(\alpha-1)\}$ and $\Delta\rho\approx\frac{k_\TT}2\ln\min\{g,\eta g(\alpha-1)\}$, after
+which the power law resumes. Without a gap ($g=1$) the window is empty for every $\eta<1/(\alpha-1)$.
+(\texttt{check\_scaling\_law.py}: $k_\TT=200$, $\alpha=2$, $\eta=\frac14$ gives windows of $0$, $92$ and $553$ nats for
+$g=1,10,10^3$, as predicted.)
+\item The switching criterion of \cref{conj:law}, $R_\TS\ln2\gtrsim I_\infty$, is not the right one. For any
+continuous prior, such as the Gaussian prior of \cref{prop:phase}, $I_\infty=\infty$. As $m\to\infty$ the label frequencies
+converge to $p_\TT(\cdot\mid x_i)$, which determines the teacher once the design identifies it
+(\cref{prop:soft-info}(a)). Data processing, and lower semicontinuity of mutual information under
+weak convergence \citep{pinsker1964information}, then force $I(\mathbf T;Y)\to\infty$. Yet the exponential phase starts at
+the finite rate $\rho_{k_\TT}\approx\frac\alpha2k_\TT$. The correct criterion is that the water level reaches the smallest
+teacher eigenvalue: $R_\TS\ln2\ge\rho_{k_\TT}$.
+\item \emph{Statistical and architectural analogues.} On the data side, the counterpart of the exponential
+phase is exact recovery from soft labels at $n\ge k$ (\cref{rem:curve}(i)). It too needs finite rank. If
+$\Lambda(k)>0$ for all $k$, then \eqref{eq:nested} gives $\E\eps_{\mathsf G}\ge\frac12\Lambda(k)>0$ for every $k$ and $n$, and the envelope
+decays as the power law $n^{-(\alpha-1)}$ (\cref{thm:law}). On the architecture side, the only sharp transition
+that survives is the softmax-bottleneck cutoff at $d\ge d_\TT$ (\cref{rem:twospectra}). It is a transition in
+width, not in bits, and leaves the power law of the feature spectrum intact.
+\end{enumerate}
+\end{corollary}
+
+\subsection{Random-feature students}\label{sec:law-rf}
+
+\begin{proposition}[Random features cap the exponent]\label{prop:rf}
+\Kn\Ck Let the context features be $x\sim N(0,\diag(\mu))$ with $\mu_i\asymp i^{-a}$ and $a>1$. Let the teacher be $\zeta_\TT=Bx$, with energies
+$\lambda_i:=\mu_i\|Be_i\|^2\asymp i^{-\alpha}$ and $\alpha>1$. Let the student read $\phi=Fx$, where $F\in\R^{k\times\infty}$ has i.i.d.\ $N(0,1)$
+entries. Conditionally on $F$, \cref{thm:curve} applies verbatim, with $A_\TT=A_\TT(F)$ the random-feature approximation
+error. The deterministic equivalent
+\[
+A_\TT(F)\approx\sum_i\lambda_i\frac{\kappa}{\mu_i+\kappa},\qquad\text{where $\kappa$ solves}\ \sum_i\frac{\mu_i}{\mu_i+\kappa}=k
+\]
+\citep{bach2024high,atanasov2024scaling,defilippis2024dimension} gives $A_\TT(F)\asymp k^{-\min(\alpha-1,a)}$, with an extra factor
+$\log k$ when $\alpha-1=a$. So for random-feature students the exponent $\alpha-1$ in \cref{conj:law,thm:law} becomes
+$\min(\alpha-1,a)$: the student's own feature spectrum caps how much of the teacher's smoothness it can use.
+\end{proposition}
+\begin{proof}[Derivation]
+$\sum_i\mu_i/(\mu_i+\kappa)\asymp\#\{i:\mu_i\ge\kappa\}\asymp\kappa^{-1/a}$, so $\kappa\asymp k^{-a}$. Split the sum at $i\asymp k$. The head gives
+$\kappa\sum_{i\le k}\lambda_i/\mu_i\asymp k^{-a}\sum_{i\le k}i^{a-\alpha}$. This is $\asymp k^{1-\alpha}$ if $\alpha<a+1$, $\asymp k^{-a}\log k$ if $\alpha=a+1$, and
+$\asymp k^{-a}$ if $\alpha>a+1$. The tail gives $\sum_{i>k}\lambda_i\asymp k^{1-\alpha}$. The exact $A_\TT(F)$, averaged over draws of $F$, has
+fitted slopes $-1.04$ and $-1.57$ against the predicted $-1$ and $-1.5$ ($a=1.5$; $\alpha=2,4$).
+\end{proof}
+
+This is the saturation familiar from kernel regression and from solvable scaling-law models
+\citep{maloney2022solvable,bahri2024explaining,paquette2024phases,lin2024scaling}. It is a genuine correction
+to \cref{heur:size,conj:law}. The exponent is set by the teacher's Fisher-weighted spectrum \emph{and} by the
+student's feature spectrum, whichever is smaller.
+
+\subsection{Summary: the status of \texorpdfstring{\cref{conj:law}}{Conjecture 3.14}}\label{sec:law-summary}
+
+Within model $\mathcal M$ (\cref{def:model}):
+\begin{enumerate}[label=\arabic*.,leftmargin=*]
+\item \textbf{\Cref{heur:data,heur:gap} are exact} (\cref{cor:nested}), once $n$ is replaced by $n-k-1$ and label noise by
+$\sigma^2(V-1)$. The optimal teacher has exactly the student's capacity. Its advantage over the strongest teacher
+is at most the factor $\frac{n-1}{n-k-1}$, and it is a soft-label effect.
+\item \textbf{\Cref{conj:law} holds in corrected form} (\cref{thm:law}). For the best student of capacity at most $k$,
+\[
+\eps^\star(k,n)\ \asymp\ k^{-(\alpha-1)}+n^{-(\alpha-1)}+\Big(\frac{\sigma^2(V-1)}n\Big)^{\frac{\alpha-1}\alpha},
+\]
+with $R_\TS\approx bV'k$ usable bits. Six corrections:
+\begin{enumerate}[label=(\alph*),nosep]
+\item $Bn^{-b}$ is an \emph{envelope} term. At fixed capacity the data exponent is $1$. A shallow student that is
+too large and trained to convergence gets \emph{worse} with size. Early-stopped deep students reach the
+envelope at every size (\cref{thm:depth}).
+\item The aliasing term $\frac kn\mathrm{Tail}_\TT(k)$ is at most a factor $\frac{n-1}{n-k-1}$. Up to constants it is redundant for
+$k\le n/2$.
+\item Hard labels use the effective sample size $mn/(V-1)$. Soft and hard labels cross over at
+$\sigma^2(V-1)\asymp n^{-(\alpha-1)}$.
+\item $R_\TS$ must count usable bits, meaning bits on the rank-$d$ manifold. Depth adds none (\cref{lem:deeplin}).
+\item The softmax bottleneck adds a second approximation spectrum (\cref{rem:twospectra}). Random-feature
+students replace $\alpha-1$ by $\min(\alpha-1,a)$ (\cref{prop:rf}).
+\item The switch to exponential decay has the wrong criterion (\cref{cor:expo}(c)). More importantly, it does not
+survive spectra with infinitely many nonzero eigenvalues (\cref{thm:expo}). Power laws stay power laws and
+analytic spectra give $e^{-2\sqrt{\beta\rho}}$. A spectral gap leaves only a window of $\frac{k_\TT}2\ln(\lambda_{k_\TT}/w_\eta)$ nats.
+\end{enumerate}
+\item \textbf{Depth} is invisible to well-optimised students and decisive for early-stopped ones: it
+turns the fixed-capacity law into the envelope law (\cref{prop:flow,thm:depth}).
+\item \textbf{Still open.} (i)~Context-dependent Fisher matrices, where the whitened student is no longer linear.
+(ii)~Non-Gaussian features, where residuals are uncorrelated with the features but not independent of
+them, so \cref{thm:curve} becomes an approximation. (iii)~Nonlinear students. (iv)~Generic random
+initialisation in \cref{prop:flow}. (v)~Measuring $\alpha$, $a$ and the bottleneck spectrum of real teachers
+(experiment E2).
+\end{enumerate}

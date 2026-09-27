@@ -30,6 +30,10 @@ rich enough to exhibit both the softmax bottleneck and depth. Examples are deep 
 softmax read-out, or random-feature models with a power-law spectrum. The model should include the
 soft-versus-hard data exponents (\cref{heur:data}) and the finite-sample capacity gap (\cref{heur:gap}).
 Determine whether the transition to exponential decay (\cref{prop:phase}) survives realistic spectra.
+\emph{Status: resolved in corrected form within model $\mathcal M$} (\cref{sec:law}): exact learning curve
+(\cref{thm:curve}), corrected law (\cref{thm:law}), bottleneck and depth (\cref{thm:rrr,thm:depth}), and a negative
+answer on the exponential phase (\cref{thm:expo}). The remaining open cases are listed in \cref{sec:law-summary}:
+context-dependent Fisher metrics, non-Gaussian features, nonlinear students, and random initialisation.
 
 \item \textbf{Recoverability of language models.} Give conditions on the teacher under which the
 recoverability constant $u$ of \cref{thm:pdl} is $O(1)$, or bounded in expectation rather than in the worst case.

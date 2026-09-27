@@ -221,3 +221,11 @@ forward-KL gap of a well-optimised student with $R_\TS$ usable bits and $n$ dist
 with $b=\alpha-1$ for full soft labels and $b=(\alpha-1)/\alpha$ for hard labels. The first term switches
 to exponential decay once $R_\TS\ln2\gtrsim I_\infty$.
 \end{conjecture}
+
+\begin{remark}[Status]\label{rem:conj-status}
+\Cref{sec:law} proves \cref{heur:data,heur:gap} exactly, and \cref{conj:law} in a corrected form (\cref{thm:law}),
+for deep linear students with a softmax read-out. The corrections are listed in \cref{sec:law-summary}. In
+particular, the switch to exponential decay does not survive spectra with infinitely many nonzero
+eigenvalues (\cref{thm:expo}), and its criterion should read $R_\TS\ln2\ge\rho_{k_\TT}$ rather than $R_\TS\ln2\gtrsim I_\infty$
+(\cref{cor:expo}).
+\end{remark}
