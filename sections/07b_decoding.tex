@@ -30,8 +30,13 @@ teacher's greedy path, so $Q(s^\star_t)=\prod_{j<t}q_j(a^\star_j\mid s^\star_j)>
 $Q(s^\star_t,a^\star_t)\le Q(s^\star_t,b)$ for some $b\ne a^\star_t$. Apply \cref{lem:merge} to the law of $y_{\le t}$ with
 $S_+=\{(s^\star_t,a^\star_t)\}$ and $S_-=\{(s^\star_t,b):b\ne a^\star_t\}$, whose teacher masses are $\pi^\star_tp^\star_{t,1}$ and at most
 $\pi^\star_tp^\star_{t,2}$. Finally, $D_f(P\|Q)\ge D_f(P_{\le t}\|Q_{\le t})$ by data processing.
-\emph{Attainment.} At a minimising $t$, take the law of \cref{lem:merge} for $y_{\le t}$ and extend it to
-sequences with the teacher's conditional law given $y_{\le t}$. Its likelihood ratio is constant on the three
+\emph{Attainment.} We may assume $\omega_f(x)<\infty$. Choose a minimising $t$ with $p^\star_{t,2}>0$ if $f(0)=\infty$.
+This is possible. If $p^\star_{t,2}=0$, let $j<t$ be the last step with $p^\star_{j,2}>0$. The steps strictly
+between $j$ and $t$ are deterministic, so $\pi^\star_jp^\star_{j,1}=\pi^\star_t$. Apply \cref{lem:merge} to a law with atoms
+of masses $\pi^\star_t$, $P_2:=\pi^\star_jp^\star_{j,2}$ and $0$, first with $S_-$ the null atom and then with $S_-$ both other
+atoms. The second constraint set is larger, so $k_f(\pi^\star_t,P_2)\le k_f(\pi^\star_t,0)$, and $j$ is also a
+minimiser. Such a $j$ exists, since otherwise $\pi^\star_t=1$ and $k_f(1,0)=\infty$. At this $t$, take the law of \cref{lem:merge} for $y_{\le t}$ and extend it
+to sequences with the teacher's conditional law given $y_{\le t}$. Its likelihood ratio is constant on the three
 cells, so $D_f(P\|Q)=\omega_f(x)$. With the strict version of \cref{lem:merge}, its greedy path either leaves
 the teacher's before step $t$ or flips at $s^\star_t$. Either way the outputs differ, at cost at most
 $\omega_f(x)+\delta$. States of different inputs are disjoint, so the per-input constructions combine. The
@@ -78,7 +83,8 @@ $\mu[\bar\gamma\le u]\le Cu^\alpha$ for all $u>0$. This is a margin condition of
 \Ldec\le\Big(\frac{2(2+\alpha)}{\alpha}\,\cL_{\KL}\Big)^{\frac\alpha{2+\alpha}}C^{\frac2{2+\alpha}}.
 \]
 Both exponents are attained. Take $T=1$, $V=2$, and $\mu$ uniform on $n$ inputs with margins $(i/n)^{1/\alpha}$,
-$i\le n$, so that $C=1$. As $n\to\infty$, the worst-case $\Ldec$ at $\cL_{\TV}=\eps$ converges to the first bound.
+$i\le n$, so that $C=1$. As $n\to\infty$, the worst-case $\Ldec$ at $\cL_{\TV}=\eps\le\frac{\alpha}{2(1+\alpha)}$ converges to
+the first bound; for larger $\eps$ the bound exceeds $1$.
 At $\cL_{\KL}=\eps$, its ratio to the second bound tends to $1$ as $n\to\infty$ and then $\eps\to0$. Through
 Pinsker's inequality, the first bound would give only the exponent $\frac\alpha{2(1+\alpha)}$ in $\cL_{\KL}$. If instead
 the per-token TV on greedy paths is at most $\eta$ everywhere and $\mu[\min_t\gamma_t\le u]\le C_\star u^\alpha$, then
@@ -95,8 +101,9 @@ $\pi^\star_t\kappa_{\KL}\ge\pi^\star_t\gamma_t^2/(2m_t)\ge(\pi^\star_t\gamma_t)^
 $\omega_{\KL}\ge\bar\gamma^2/2$ and $(a,C')=(\alpha/2,2^{\alpha/2}C)$. In the example, the function
 $\tau\mapsto\frac\eps\tau+\frac1\tau\int_0^\tau\mu[\omega<u]\dd u$ has derivative
 $\tau^{-2}\big[\int_0^\tau(\mu[\omega<\tau]-\mu[\omega<u])\dd u-\eps\big]$, whose bracket is non-decreasing. So the function is
-quasi-convex, and its stationary point is its minimum. The limit law satisfies $\mu[\omega<u]=C'u^a$ near $0$
-in the TV case, so for small $\eps$ the display is an equality for it. The discrete law converges to it,
+quasi-convex, and its stationary point is its minimum. In the TV case the limit law satisfies
+$\mu[\omega<u]=(2u)^\alpha$ for $u\le\frac12$. The stationary point satisfies $\tau\le\frac12$ exactly when
+$\eps\le\frac\alpha{2(1+\alpha)}$, and then the display is an equality for the limit law. The discrete law converges to it,
 and \cref{lem:knapsack} loses at most $1/n$. For
 $T=1$ and $V=2$, $\kappa_{\KL}=\mathrm{kl}(\frac{1+\gamma}2\|\frac12)=\frac{\gamma^2}2(1+O(\gamma^2))$.
 \end{proof}
@@ -108,18 +115,18 @@ $\mathsf D^r$, gives the exponent $\frac{r\alpha}{r+\alpha}$ for TV errors. This
 and $\alpha$ ($r=\infty$). If the errors are independent of the margins, then
 $\mu[\text{flip at }t]\le\E F_t(2e^\star_t)$, where $F_t(u)=\mu[\gamma_t\le u]$. For $\alpha\le1$, Jensen's inequality bounds
 this by $C(2\E e^\star_t)^\alpha$, which is linear in the error when $\alpha=1$.
-(b)~The factor $\pi^\star_t$ in \cref{thm:greedy-seq} is the price of training on sampled prefixes. Suppose the
-training prefix law puts mass at least $\lambda$ on each greedy state, as with
-$\nu_t=(1-\lambda)\dteach t+\lambda\,\delta_{s^\star_t}$ or with soft-label distillation on the teacher's greedy outputs. Then
-the training loss is at least $\lambda\eps^\star$, so \cref{thm:greedy} applies with $\eps^\star\le F/\lambda$, and no path
-weight appears.
+(b)~The factor $\pi^\star_t$ in \cref{thm:greedy-seq} is the price of training on sampled prefixes. Suppose that
+$\mu=\cD$ and that, given each $x$, the training prefix law puts mass at least $\lambda$ on $s^\star_t(x)$. Examples
+are $\nu_t=(1-\lambda)\dteach t+\lambda\,\delta_{s^\star_t}$ and soft-label distillation on the teacher's greedy outputs.
+Then the training loss is at least $\lambda\eps^\star$, so \cref{thm:greedy} applies with $\eps^\star\le F/\lambda$, and no
+path weight appears.
 \end{remark}
 
 \subsection{Hard labels on decoded outputs}
 
 \begin{proposition}[A margin-free bound for sequence-level distillation]\label{prop:hard}
-\Pv\Ck Fix a beam width $k\ge1$; $k=1$ is greedy decoding. Let $\hat y(x)$ and $\hat y_\theta(x)$ be the teacher's
-and the student's outputs. If $\Qseq(\hat y(x))>\frac12$, then $\hat y_\theta(x)=\hat y(x)$. Hence
+\Pv\Ck Fix a beam width $k\ge1$, with ties broken as in \cref{sec:beam}, so that $k=1$ is greedy decoding. Let
+$\hat y(x)$ and $\hat y_\theta(x)$ be the teacher's and the student's outputs. If $\Qseq(\hat y(x))>\frac12$, then $\hat y_\theta(x)=\hat y(x)$. Hence
 \[
 \P_\mu\big[\hat y_\theta\ne\hat y\big]\le\E_\mu\min\Big\{1,\log_2\frac1{\Qseq(\hat y(x))}\Big\}\le\frac1{\ln2}\,\E_\mu\big[-\log\Qseq(\hat y(x))\big].
 \]
@@ -144,12 +151,13 @@ distribution. These are different targets (\cref{cor:separation}). A soft-label 
 teacher with small margins has $Q(\hat y)\approx P(\hat y)$, which may be far below $\frac12$. For such teachers
 the margin-dependent bounds of \cref{thm:greedy,thm:greedy-seq} are the relevant ones.
 
-\subsection{Beam search}
+\subsection{Beam search}\label{sec:beam}
 
 Beam search of width $k$ keeps a set $\mathcal B_t$ of at most $k$ prefixes of length $t$, starting from
 $\mathcal B_0=\{x\}$. The candidates at level $t$ are $\mathcal C_t=\{(u,a):u\in\mathcal B_{t-1},\ a\in\cV\}$. $\mathcal B_t$ consists of
-the $k$ candidates of largest prefix probability under the decoding model, with ties broken by a fixed
-order. The output is the most probable element of $\mathcal B_T$. With the absorbing end-of-sequence
+the $k$ candidates of largest prefix probability under the decoding model. Ties are broken by a fixed
+order on prefixes that agrees with the order on $\cV$ for candidates with a common parent, so that $k=1$
+is greedy decoding. The output is the most probable element of $\mathcal B_T$. With the absorbing end-of-sequence
 convention, every hypothesis has length $T$, so this is beam search without length normalisation. The
 \emph{trajectory} is $(\mathcal B_1,\dots,\mathcal B_T,\text{output})$. For the teacher's beam search, let $P^+_t\ge P^-_t$ be
 the $k$-th and $(k+1)$-th largest values of $\Pseq$ on $\mathcal C_t$, where $\Pseq(u)$ is the teacher's probability of
@@ -170,10 +178,15 @@ $\sum_{j\le\min(t,T)}\E_{s\sim\dteach j\mid x}\KL(p_j\|q_j)(s)=\KL(P^x_{\le t}\|
 \]
 Only per-token errors at the teacher's beam states enter, weighted by the teacher's probabilities of
 those states.
-\item (Exactness.) $\omega^{(k)}_f(x):=\min_tk_f(P^+_t,P^-_t)$ is the infimum of $D_f(\Pseq\|\Qseq)$ over students whose
-trajectory differs from the teacher's. The outputs can differ only if $D_f(\Pseq\|\Qseq)\ge\omega^{(k)}_f(x)$, so
-$\P_\mu[\text{beam outputs differ}]\le\bar\Phi_{\omega^{(k)}_f}(\cL_{D_f})$. For trajectories, this is sharp in the sense of
-\cref{thm:greedy}(iii). For $k=1$, $(P^+_t,P^-_t)=\pi^\star_t\,(p^\star_{t,1},p^\star_{t,2})$, and (iii) is \cref{thm:greedy-seq}.
+\item (Exactness.) Let $\omega^{(k)}_f(x):=\min_tk_f(P^+_t,P^-_t)$. The outputs can differ only if
+$D_f(\Pseq\|\Qseq)\ge\omega^{(k)}_f(x)$, so $\P_\mu[\text{beam outputs differ}]\le\bar\Phi_{\omega^{(k)}_f}(\cL_{D_f})$. If $f(0)<\infty$, or
+if every candidate has positive teacher probability, then $\omega^{(k)}_f(x)$ is the infimum of $D_f(\Pseq\|\Qseq)$ over
+students whose trajectory differs from the teacher's, and for trajectories the bound is sharp in the sense
+of \cref{thm:greedy}(iii). All the $f$-divergences of \cref{prop:flip} except reverse KL have $f(0)<\infty$. For
+reverse KL the condition is needed: with $T=1$, $p=(0.9,0.1,0,0)$ and $k=3$, the cut lies between two null
+candidates, so $\omega^{(3)}_{\mathrm{rKL}}=0$, yet a finite $\KL(\Qseq\|\Pseq)$ forces $Q(c)=Q(d)=0$, and changing the beam then
+costs at least $\log\frac1{0.9}$. For $k=1$, $(P^+_t,P^-_t)=\pi^\star_t\,(p^\star_{t,1},p^\star_{t,2})$, and (iii) is
+\cref{thm:greedy-seq}, which needs no condition.
 \item (The cut gap cannot be replaced by the output's own gaps.) Let $k=2$, $T=2$ and $\cV=\{a,b,c\}$. Take
 first-token probabilities $(0.36,0.33,0.31)$ and prefix probabilities $aa:0.30$, $ab:0.059$, $ac:0.001$,
 $ba:0.20$, $bb:0.10$, $bc:0.03$, $ca:0.309$ and $cb=cc:0.0005$. The teacher keeps $\{a,b\}$, then $\{aa,ba\}$, and outputs
@@ -198,8 +211,9 @@ argument of \cref{thm:chain,prop:hybrid} hold for such processes, with visiting 
 merging children can only decrease KL and TV.
 (iii) The lower bound follows from (i), because $D_f(P\|Q)\ge D_f(P_{\le t}\|Q_{\le t})$ and the outputs can differ
 only if the trajectories do. For attainment, take the law of \cref{lem:merge} at a minimising level and
-extend it as in the proof of \cref{thm:greedy-seq}. If the trajectory has not changed before that level,
-the candidate sets agree there, and the strict version reverses the $k$-th and $(k+1)$-th candidates.
+extend it as in the proof of \cref{thm:greedy-seq}. The condition makes the strict clause of
+\cref{lem:merge} available. If the trajectory has not changed before that level, the candidate sets
+agree there, and the strict version reverses the $k$-th and $(k+1)$-th candidates.
 (iv) Direct computation (\texttt{check\_decoding.py}).
 \end{proof}
 
@@ -218,9 +232,9 @@ teacher's greedy path. A round started at $s^\star_t$ with $L$ drafted tokens ac
 $N=\min\{j\ge0:\text{the student flips at }s^\star_{t+j}\}\wedge L$ of them. So
 $\E_\mu N=\sum_{j=1}^L\big(1-\P_\mu[\text{a flip at one of }s^\star_t,\dots,s^\star_{t+j-1}]\big)$, and
 \cref{thm:greedy,thm:greedy-seq}, applied to these windows, bound the expected acceptance length from below.
-\item (Pointwise comparison.) At a state $s$ with margin $\gamma(s)$, the greedy rejection indicator is at most
+\item (Pointwise comparison.) At a state $s$ with margin $\gamma(s)>0$, the greedy rejection indicator is at most
 $\min\{1,2\TV_t(s)/\gamma(s)\}$. This is $2/\gamma(s)$ times the rejection probability of speculative
-sampling, and the constant is attained.
+sampling, and the constant $2$ cannot be improved.
 \end{enumerate}
 \end{proposition}
 \begin{proof}

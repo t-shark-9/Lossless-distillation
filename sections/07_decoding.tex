@@ -9,14 +9,15 @@ margins? There are four answers.
 (a)~Every $f$-divergence has an exact \emph{flip threshold}, which depends only on the teacher's two
 largest probabilities (\cref{prop:flip}).
 (b)~Given per-token errors along the teacher's greedy paths, the largest possible disagreement
-probability is the value of a knapsack problem over the distribution of these thresholds. The value has a
-closed dual form and is attained (\cref{thm:greedy}).
-(c)~Sequence-level divergences, and hence the per-token errors that training controls, see the same
-thresholds multiplied by the teacher's probability of its own greedy prefix. This weight is exact and
-can be exponentially small in $T$, so behavioural and decoding losslessness are logically independent
+probability is the value of a knapsack problem over the distribution of these thresholds. Up to the mass
+of a single input, this value has a closed dual form (\cref{thm:greedy}).
+(c)~Sequence-level divergences, and hence the per-token errors that training controls, see the merge cost
+of the two most likely continuations of each greedy prefix. For TV and KL this is exactly the per-token
+threshold multiplied by the teacher's probability of its own greedy prefix. That weight can be
+exponentially small in $T$, so behavioural and decoding losslessness are logically independent
 (\cref{thm:greedy-seq,cor:separation}).
-(d)~Beam search obeys the same laws, with the probability gap at the beam's cut in place of the margin
-(\cref{thm:beam}).
+(d)~Beam trajectories obey the same laws, with the probability gap at the beam's cut in place of the
+margin (\cref{thm:beam}). Beam outputs are bounded by the same quantities, but not always sharply.
 
 \paragraph{Setting.}
 Ties are broken by a fixed total order on $\cV$: $\gr(r)$ is the first maximiser of $r\in\Delta(\cV)$ in that
@@ -39,15 +40,15 @@ $\Ldec(\theta;\mu):=\P_{x\sim\mu}\big[g_{q_\theta}(x)\neq g_p(x)\big]$.
 to the first flip and differ there.
 \item For $\tau>0$, let $P^{x,\tau}$ and $Q^{x,\tau}_\theta$ be the sequence laws obtained by replacing every
 next-token distribution $r$ by $r^{1/\tau}/\sum_ar(a)^{1/\tau}$. If the maximisers along both greedy paths are
-unique, then $\TV(P^{x,\tau},Q^{x,\tau}_\theta)\to\ind\{g_{q_\theta}(x)\neq g_p(x)\}$ as $\tau\to0$. The decoding risk
-is therefore the zero-temperature limit of the behavioural risk.
+unique, then $\TV(P^{x,\tau},Q^{x,\tau}_\theta)\to\ind\{g_{q_\theta}(x)\neq g_p(x)\}$ as $\tau\to0$. If this holds for
+$\mu$-almost every $x$, the decoding risk is the zero-temperature limit of the behavioural risk.
 \end{enumerate}
 \end{lemma}
 \begin{proof}
 (i) By induction on $t$: until the first flip, the student's greedy path visits the teacher's greedy
 states. (ii) Each tempered next-token distribution tends to the point mass at its unique maximiser. Hence
 $P^{x,\tau}(g_p(x))\to1$ and $Q^{x,\tau}_\theta(g_{q_\theta}(x))\to1$, and the TV between two point masses is the
-indicator that they differ.
+indicator that they differ. The last claim follows by dominated convergence.
 \end{proof}
 
 \subsection{Flip thresholds}
@@ -77,8 +78,10 @@ $P^+:=\min_{S_+}P\ge P^-:=\max_{S_-}P$. For every $f$-divergence,
 \]
 The infimum is attained by the law that gives mass $c^\star$, a minimiser in $k_f$, to an atom $a^+\in S_+$ of
 mass $P^+$ and to an atom $b^-\in S_-$ of mass $P^-$, and multiplies $P$ by $(1-2c^\star)/(1-P^+-P^-)$
-elsewhere. If $P^++P^-=1$, the bracket in $k_f$ is non-increasing in $c$, and we take $c^\star=\frac12$. If $k_f(P^+,P^-)<\infty$, then for every $\delta>0$ some $Q$ with $Q(a^+)<Q(b^-)$ has
-$D_f(P\|Q)\le k_f(P^+,P^-)+\delta$.
+elsewhere. If $P^++P^-=1$, the bracket in $k_f$ is non-increasing in $c$, and we take $c^\star=\frac12$.
+Suppose moreover that $k_f(P^+,P^-)<\infty$ and that $P^->0$ or $f(0)<\infty$. Then for every $\delta>0$ some $Q$
+with $Q(a^+)<Q(b^-)$ has $D_f(P\|Q)\le k_f(P^+,P^-)+\delta$. Without the last condition this can fail: for
+reverse KL ($f(0)=\infty$) and $P^-=0$, every $Q$ with $Q(b^-)>0$ has $\KL(Q\|P)=\infty$.
 \end{lemma}
 \begin{proof}
 Let $Q(a)\le Q(b)$ with $a\in S_+$, $b\in S_-$ and $D_f(P\|Q)<\infty$.
@@ -99,15 +102,16 @@ $k_f(P^+,P^-)$. (If $R=0$, the derivative of the bracket is $\psi(P^+/c)+\psi(P^
 $\psi(u)=f(u)-uf'(u)$ is non-increasing, so $c^\star=\frac12$ is a minimiser.)
 \emph{Strict order.} The least $D_f(P\|Q)$ subject to $Q(b^-)\ge Q(a^+)+\delta$ is convex and non-decreasing
 in $\delta$ and equals $k_f$ at $\delta=0$. It is finite for small $\delta>0$: move mass $\delta$ into $b^-$ from
-another atom of the minimiser. Hence it tends to $k_f$ as $\delta\downarrow0$.
+another atom that the minimiser charges. This adds a finite cost at $b^-$ because $P^->0$ or $f(0)<\infty$.
+Hence it tends to $k_f$ as $\delta\downarrow0$.
 \end{proof}
 
 \begin{proposition}[Exact flip thresholds]\label{prop:flip}
 \Pv\Ck Let $p_1\ge p_2$ be the two largest probabilities of $p$, $\gamma=p_1-p_2$ and $m=p_1+p_2$.
 \begin{enumerate}[label=(\roman*),nosep]
 \item For every $f$-divergence, $\kappa_f(p)=k_f(p_1,p_2)$: only the two largest probabilities matter. The
-infimum is attained, and for every $\delta>0$ a strict flip (one that flips under any tie rule) costs at
-most $k_f(p_1,p_2)+\delta$.
+infimum is attained. If $\kappa_f(p)<\infty$, then for every $\delta>0$ a strict flip (one that flips under any
+tie rule) costs at most $k_f(p_1,p_2)+\delta$.
 \item Closed forms and lower bounds:
 \begin{center}\small
 \begin{tabular}{@{}lll@{}}
@@ -129,7 +133,8 @@ $\Hel^2$, this leading term is also a global lower bound.
 \end{enumerate}
 \end{proposition}
 \begin{proof}
-(i) Apply \cref{lem:merge} with $S_+=\{a^\star\}$ and $S_-=\cV\setminus\{a^\star\}$.
+(i) Apply \cref{lem:merge} with $S_+=\{a^\star\}$ and $S_-=\cV\setminus\{a^\star\}$. Its strict clause applies,
+because $p_2=0$ forces $p_1=1$, and then $k_f(1,0)=\infty$ if $f(0)=\infty$.
 (ii) For TV the bracket in $k_f$ is $\frac12(|p_1-c|+|p_2-c|+|m-2c|)$, minimal at $c=m/2$. For forward KL it
 is $p_1\log\frac{p_1}c+p_2\log\frac{p_2}c+R\log\frac R{1-2c}$, which is stationary at $c=m/2$. For reverse KL it is
 $c\log\frac{c^2}{p_1p_2}+(1-2c)\log\frac{1-2c}R$. Stationarity gives $c=\sqrt{p_1p_2}/Z$ with
@@ -186,7 +191,8 @@ $(1-\omega/\tau)_+\le\ind\{\omega<\tau\}$.
 \Pv\Ck Let $\mathsf D$ be a divergence on $\Delta(\cV)$. Put $e^\star_t(x):=\mathsf D(p_t\|q_t)(s^\star_t)$,
 $\kappa^\star_t(x):=\kappa_{\mathsf D}(p_t(\cdot\mid s^\star_t))$ and $\bar\kappa(x):=\min_t\kappa^\star_t(x)$.
 \begin{enumerate}[label=(\roman*),nosep]
-\item (Pathwise.) $\ind\{g_{q_\theta}(x)\ne g_p(x)\}\le\max_t\ind\{e^\star_t\ge\kappa^\star_t\}\le\min\{1,\max_te^\star_t/\kappa^\star_t\}$.
+\item (Pathwise.) $\ind\{g_{q_\theta}(x)\ne g_p(x)\}\le\max_t\ind\{e^\star_t\ge\kappa^\star_t\}\le\min\{1,\max_te^\star_t/\kappa^\star_t\}$, with
+$0/0=\infty/\infty:=1$.
 \item (Probability.) Let $\eps^\star:=\E_\mu\sum_te^\star_t$ be the summed per-token error on greedy paths. Then
 \begin{gather*}
 \Ldec\le\Phi_{\bar\kappa}\Big(\E_\mu\max_te^\star_t\Big)\le\bar\Phi_{\bar\kappa}(\eps^\star)\le\inf_{\tau>0}\Big\{\mu[\bar\kappa<\tau]+\frac{\eps^\star}\tau\Big\},\\

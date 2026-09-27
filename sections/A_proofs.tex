@@ -71,5 +71,6 @@ TV estimator, the bias of the stop-gradient estimator, the unbiasedness of the p
 \texttt{check\_decoding.py} verifies \cref{lem:merge,prop:flip,lem:knapsack,thm:greedy,thm:greedy-seq,cor:separation,cor:rates,prop:hard,thm:beam,prop:spec}.
 It checks the flip thresholds against direct constrained optimisation over the simplex, the knapsack
 characterisation against brute force over subsets, and the sequence-level and beam-search statements by
-exact enumeration, including the attaining students and the example of \cref{thm:beam}(iv). All checks
-pass.
+exact enumeration, including the attaining students and the example of \cref{thm:beam}(iv). It also uses
+teachers with zero probabilities and deterministic steps, and reproduces the reverse-KL examples that
+make the conditions in \cref{lem:merge} and \cref{thm:beam}(iii) necessary. All checks pass.

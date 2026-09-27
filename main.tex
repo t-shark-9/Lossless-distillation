@@ -120,11 +120,11 @@ estimator; (v)~analyse intermediate-representation matching, proving when it is 
 when it helps (noisy supervision, conditioning, compositional hardness) and when it over-constrains,
 and propose a Fisher-aligned variant with no approximation cost in a linear-Gaussian model;
 (vi)~assemble an end-to-end bound, separate what is proved from what is conjectured, and specify
-experiments; (vii)~give sharp bounds on the probability that the greedy or beam-search outputs of teacher
-and student differ: exact flip thresholds for every $f$-divergence, an exact knapsack characterisation of
-the worst case in terms of the teacher's margins along its greedy paths, and a path-weighted exchange rate
-which shows that behavioural and decoding-level losslessness are logically independent. We close with
-open problems. Every inequality marked \emph{numerically checked} is verified by the scripts in
+experiments; (vii)~give sharp bounds on the probability that the greedy outputs of teacher and student
+differ, with extensions to beam search and speculative decoding: exact flip thresholds for every
+$f$-divergence, an exact knapsack characterisation of the worst case in terms of the teacher's margins
+along its greedy paths, and a path-weighted exchange rate which shows that behavioural and
+decoding-level losslessness are logically independent. We close with open problems. Every inequality marked \emph{numerically checked} is verified by the scripts in
 \texttt{verification/}.
 \end{abstract}
 

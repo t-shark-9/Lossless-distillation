@@ -633,6 +633,134 @@ results.append(report(f"beam example: output {out} -> {oq} at TV {mv:.4f} = cut 
                       and abs(fdiv("TV", ex.seq_law(), Q) - mv) < 1e-12))
 
 # ---------------------------------------------------------------------------
+# zero-probability tokens: where the strict clause of lem:merge needs P^- > 0 or f(0) < inf
+# ---------------------------------------------------------------------------
+F0_FINITE = ["TV", "KL", "H2", "chi2", "JSD"]  # f(0) < inf; reverse KL has f(0) = inf
+
+# lem:merge: P = (1/2, 0, 1/2) with S+ = {0}, S- = {1}. For reverse KL, k_f = log 2 is reached by a tie at
+# zero mass, but every strict reversal has Q(1) > 0 = P(1) and infinite cost. For f(0) < inf, strict
+# reversals cost k_f + o(1).
+Pz = np.array([0.5, 0.0, 0.5])
+k_r, c_r = merge_cost("rKL", 0.5, 0.0, 0.5)
+ok = abs(k_r - np.log(2)) < 1e-9 and fdiv("rKL", Pz, np.array([0.5 - 1e-6, 1e-6, 0.5])) == np.inf
+for nm in F0_FINITE:
+    k, c = merge_cost(nm, 0.5, 0.0, 0.5)
+    Qs = np.array([c - 1e-9, c + 1e-9, 1 - 2 * c]) if c > 1e-9 else np.array([0.0, 1e-9, 1 - 1e-9])
+    ok &= Qs[1] > Qs[0] and fdiv(nm, Pz, Qs) <= k + 1e-6
+results.append(report("merge lemma with P^- = 0: strict order costs k_f + o(1) iff f(0) < inf (fails for reverse KL)", ok))
+
+
+def sparse_tree(V, T, zero_frac=0.3, det_frac=0.25):
+    """Random teacher with some zero probabilities and some deterministic states."""
+    n = sum(V ** t for t in range(T))
+    rows = []
+    for _ in range(n):
+        z = rng.normal(scale=1.5, size=V)
+        if rng.random() < det_frac:
+            z = np.full(V, -np.inf); z[rng.integers(V)] = 0.0
+        else:
+            z[rng.random(V) < zero_frac] = -np.inf
+            if np.isinf(z).all() or np.isfinite(z).sum() < 2:
+                z[:2] = rng.normal(size=2)
+        rows.append(np.exp(z - z[np.isfinite(z)].max()) / np.exp(z - z[np.isfinite(z)].max()).sum())
+    return Tree(V, T, np.array(rows))
+
+
+def support_student(P, scale):
+    """Student with the teacher's support at every state (finite reverse KL)."""
+    rows = []
+    for r in P.cond:
+        z = np.where(r > 0, np.log(np.where(r > 0, r, 1.0)) + rng.normal(scale=scale, size=len(r)), -np.inf)
+        rows.append(np.exp(z - z.max()) / np.exp(z - z.max()).sum())
+    return Tree(P.V, P.T, np.array(rows))
+
+
+# thm:greedy-seq with deterministic steps and null tokens: lower bound for all six f; for reverse KL the
+# minimum over non-deterministic steps equals omega, and a student reaches it there
+ok_lb = ok_att = True
+n_dis = 0
+for _ in range(25):
+    P = sparse_tree(3, 4)
+    Pl = P.seq_law()
+    path = greedy_path(P)
+    vals = [merge_cost("rKL", st["pi"] * st["p1"], st["pi"] * st["p2"], 1 - st["pi"] * (st["p1"] + st["p2"])) for st in path]
+    om = min(v[0] for v in vals)
+    nondet = [t for t, st in enumerate(path) if st["p2"] > 0]
+    if not nondet:
+        ok_att &= om == np.inf
+        continue
+    ok_att &= abs(min(vals[t][0] for t in nondet) - om) < 1e-12 or om == np.inf
+    for _ in range(40):
+        Qm = support_student(P, rng.uniform(0.05, 1.5))
+        if Qm.greedy() != P.greedy():
+            n_dis += 1
+            Ql = Qm.seq_law()
+            for nm in NAMES:
+                ok_lb &= fdiv(nm, Pl, Ql) >= omega(nm, path) - 1e-10
+    t = min(nondet, key=lambda tt: vals[tt][0])
+    st = path[t]
+    k, c = vals[t]
+    P1, P2 = st["pi"] * st["p1"], st["pi"] * st["p2"]
+    R = 1 - P1 - P2
+    cell1, cell2 = st["s"] + (st["a"],), st["s"] + (st["b"],)
+    Q = np.array([w * ((c - 1e-11) / P1 if y[:t + 1] == cell1 else (c + 1e-11) / P2 if y[:t + 1] == cell2
+                       else ((1 - 2 * c) / R if R > 0 else 0.0)) for y, w in zip(P.seqs, Pl)])
+    Qm = tree_from_law(P, Q)
+    ok_att &= Qm.greedy() != P.greedy() and abs(fdiv("rKL", Pl, Q) - k) < 1e-9 + 1e-6 * k
+results += [report(f"deterministic steps and null tokens: D_f >= omega_f for all six f ({n_dis} disagreements)", ok_lb),
+            report("reverse KL: a non-deterministic step attains omega_rKL, as in the proof of thm:greedy-seq", ok_att)]
+
+# thm:beam with null candidates: lower bounds always hold; attainment for f(0) < inf; the reverse-KL
+# counterexample (T=1, p=(0.9,0.1,0,0), k=3) where the cut lies between null candidates
+ok_lb = ok_att = True
+for _ in range(20):
+    P = sparse_tree(3, 3, det_frac=0.1)
+    Pl = P.seq_law()
+    k = int(rng.integers(2, 4))
+    pairs, traj, out = beam_gaps(P, k)
+    _, _, hist = beam_search(P, k)
+    for _ in range(30):
+        Qm = support_student(P, rng.uniform(0.05, 1.5))
+        t = first_deviation(P, Qm, k)
+        if t is None:
+            continue
+        P1, P2 = pairs[t]
+        lvl = min(t + 1, P.T)
+        for nm in NAMES:
+            ok_lb &= prefix_div(nm, P, Qm, lvl) >= merge_cost(nm, P1, P2, 1 - P1 - P2)[0] - 1e-10
+    for nm in F0_FINITE:
+        vals = [merge_cost(nm, a, b, 1 - a - b) if np.isfinite(a) else (np.inf, None) for a, b in pairs]
+        t = int(np.argmin([v[0] for v in vals]))
+        kf, c = vals[t]
+        if not np.isfinite(kf):
+            continue
+        P1, P2 = pairs[t]
+        if t < P.T:
+            c1, c2 = hist[t][k - 1], hist[t][k]
+        else:
+            fin = sorted(traj[-1], key=lambda cc: (-P.prob(cc), cc))
+            c1, c2 = fin[0], fin[1]
+        L, R = len(c1), 1 - P1 - P2
+        cont = lambda y: float(np.prod([P.c(y[:j])[y[j]] for j in range(L, P.T)]))  # teacher continuation law
+        Q = np.array([(c - 1e-11) * cont(y) if y[:L] == c1 else (c + 1e-11) * cont(y) if y[:L] == c2
+                      else (P.prob(y) * (1 - 2 * c) / R if R > 0 else 0.0) for y in P.seqs])
+        Qm = tree_from_law(P, Q)
+        ok_att &= first_deviation(P, Qm, k) is not None and abs(fdiv(nm, Pl, Q) - kf) < 1e-9 + 1e-6 * kf
+results += [report("beam with null candidates: first deviation => D_f(P_<=t || Q_<=t) >= k_f for all six f", ok_lb),
+            report("beam with null candidates: omega^(k)_f is attained when f(0) < inf", ok_att)]
+
+ex = Tree(4, 1, np.array([[0.9, 0.1, 0.0, 0.0]]))
+pairs, traj, out = beam_gaps(ex, 3)
+om_r = min(merge_cost("rKL", a, b, 1 - a - b)[0] if np.isfinite(a) else np.inf for a, b in pairs)
+best = np.inf
+for q in np.linspace(0.0, 1.0, 20001):  # finite reverse KL forces the support {0, 1}
+    Qm = Tree(4, 1, np.array([[q, 1 - q, 0.0, 0.0]]))
+    if first_deviation(ex, Qm, 3) is not None:
+        best = min(best, fdiv("rKL", [0.9, 0.1, 0.0, 0.0], [q, 1 - q, 0.0, 0.0]))
+results.append(report(f"beam, reverse KL: omega^(3) = {om_r:.3f} but changing the trajectory costs {best:.3f} >= log(1/0.9)",
+                      om_r == 0.0 and best >= np.log(1 / 0.9) - 1e-9))
+
+# ---------------------------------------------------------------------------
 # prop:spec  (greedy drafting versus speculative sampling)
 # ---------------------------------------------------------------------------
 ok = True
