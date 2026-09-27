@@ -175,7 +175,8 @@ $\sum_i\KL(p(\cdot\mid s_i)\|q_\Theta(\cdot\mid s_i))$ satisfies $q_\Theta=p$ at
 Estimation error is zero.
 \item \Kn The hard-label MLE from $n$ i.i.d.\ pairs $(s_i,y_i)$ satisfies
 $n\,\E\KL(p\|q_{\hat\Theta})\to\frac{(V-1)d}2$. This is the classical $k/2n$ law for a regular
-well-specified model with $k$ free parameters \citep{white1982maximum}.
+well-specified model with $k$ free parameters, the computation behind AIC \citep{akaike1974new}; see
+\citet{white1982maximum} for the misspecified case.
 \end{enumerate}
 \end{proposition}
 \begin{proof}[Proof of (a)]

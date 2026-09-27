@@ -28,6 +28,7 @@ pip install numpy scipy
 python3 verification/check_divergences.py   # single-distribution inequalities, gradients, temperature limits
 python3 verification/check_sequences.py     # exact enumeration: chain rules, compounding, unbiased estimators
 python3 verification/check_capacity.py      # water-filling exponents, softmax-bottleneck floor, K-facts floor
+python3 verification/check_representations.py  # over-constraint theorem, Fisher-aligned matching, CCA/CKA facts
 ```
 
 Each script prints `PASS`/`FAIL` per claim. The claims are identified by their LaTeX labels.

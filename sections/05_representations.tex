@@ -23,7 +23,7 @@ Relation-based variants match attention maps or value relations \citep{zagoruyko
 Contrastive variants maximise a mutual-information bound \citep{tian2020contrastive}.
 
 \begin{proposition}[The learned-map penalty is CCA; CKA constrains geometry]\label{prop:cca}
-\Pv
+\Pv\Ck
 $\cR_{\mathrm{LS}}=\tr\Sigma_{\TT\TT}-\tr(\Sigma_{\TT\TS}\Sigma_{\TS\TS}^{-1}\Sigma_{\TS\TT})$. If the teacher features are whitened
 ($\Sigma_{\TT\TT}=I$), then $\cR_{\mathrm{LS}}=d_\TT-\sum_i\rho_i^2$, where the $\rho_i$ are the canonical correlations.
 $\cR_{\mathrm{LS}}$ is invariant under $h_\TS\mapsto Gh_\TS$ for every invertible $G$, so it constrains only the
@@ -105,7 +105,7 @@ therefore reduce the optimisation term $\cE_{\mathrm{opt}}$ exponentially, even 
 \subsection{When it over-constrains, and a Fisher-aligned fix}
 
 \begin{theorem}[Over-constraint in a linear-Gaussian model]\label{thm:overconstraint}
-\Mo Let $h_\TT\sim\cN(0,\Sigma)$ in $\R^{d_\TT}$, with teacher centred logits $Wh_\TT$ and a constant Fisher matrix $F$.
+\Mo\Ck Let $h_\TT\sim\cN(0,\Sigma)$ in $\R^{d_\TT}$, with teacher centred logits $Wh_\TT$ and a constant Fisher matrix $F$.
 Let the student be $h_\TS=Bh_\TT$ with $B\in\R^{d_\TS\times d_\TT}$ and $d_\TS<\rank\Sigma$, and let
 $\cL_{\mathrm{out}}=\frac12\E\|F^{1/2}(W_\TS B-W)h_\TT\|^2$. Let $G:=F^{1/2}W\Sigma^{1/2}$ have singular values
 $s_1\ge s_2\ge\cdots$, and let $(\lambda_i,u_i)$ be the eigenpairs of $\Sigma$.
@@ -138,7 +138,7 @@ covariance of $h_\TT$. Let $U_F$ collect the top-$d_\TS$ eigenvectors of $\Sigma
 \end{definition}
 
 \begin{proposition}[Fisher alignment has no approximation cost]\label{prop:fisher-rep}
-\Mo In the model of \cref{thm:overconstraint}, assume $s_{d_\TS}>s_{d_\TS+1}$. For every $\gamma\ge0$, the minimisers
+\Mo\Ck In the model of \cref{thm:overconstraint}, assume $s_{d_\TS}>s_{d_\TS+1}$. For every $\gamma\ge0$, the minimisers
 of $\cL_{\mathrm{out}}+\gamma\cR_{\mathrm F}$ are exactly the output-optimal students of case (a). The constraint costs
 nothing in approximation, and it keeps the preconditioning benefit of \cref{prop:precond} in the retained
 directions.
