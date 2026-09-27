@@ -92,4 +92,43 @@ for Rbits in [0, 1000, 2000, 4000]:
     results.append(report(f"K-facts R={Rbits}: achieved {achieved:.3f} >= floor {floor:.3f} (tight)",
                           achieved >= floor - 1e-12 and achieved - floor < np.log(Vf) / K + 1e-12))
 
+# thm:capacity: randomized exact test  E_pi min_theta (1/N) sum_i KL >= (I(T;Y) - R ln2)/(mN)
+import itertools
+
+
+def kl_rows(P, Q):
+    return np.sum(P * (np.log(P) - np.log(Q)), axis=-1)
+
+
+worst = np.inf
+for trial in range(300):
+    Vc, X, Mt = 3, 2, int(rng.integers(2, 9))                 # vocabulary, inputs, number of teachers
+    teachers = rng.dirichlet(np.ones(Vc) * 10 ** rng.uniform(-1, 0.7), size=(Mt, X))
+    prior = rng.dirichlet(np.ones(Mt))
+    Rbits = int(rng.integers(0, 3))
+    k = 2 ** Rbits
+    n_copy = int(rng.integers(0, min(k, Mt) + 1))                 # seed the class with some teachers
+    students = np.concatenate([teachers[rng.choice(Mt, n_copy, replace=False)],
+                               rng.dirichlet(np.ones(Vc), size=(k - n_copy, X))])[:k]
+    for N in (1, 2):
+        xs = rng.integers(0, X, size=N)
+        lhs = sum(prior[j] * min(np.mean(kl_rows(teachers[j, xs], st[xs])) for st in students) for j in range(Mt))
+        for m in (1, 2):
+            # exact I(T;Y), Y = (Y_ij) with Y_ij ~ p_T(.|x_i)
+            HY_T = sum(prior[j] * m * np.sum(-teachers[j, xs] * np.log(teachers[j, xs])) for j in range(Mt))
+            HY = 0.0
+            for y in itertools.product(range(Vc), repeat=m * N):
+                yy = np.array(y).reshape(N, m)
+                py = sum(prior[j] * np.prod(teachers[j, xs[:, None], yy]) for j in range(Mt))
+                HY -= py * np.log(py)
+            rhs = (HY - HY_T - Rbits * np.log(2)) / (m * N)
+            worst = min(worst, lhs - rhs)
+results.append(report(f"capacity floor holds on 300 random instances (min slack {worst:.2e})", worst >= -1e-10))
+
+# cor:facts-tv: at R = 0 the implicit bound forces e >= 1 - 1/V, attained by the uniform student
+for Vf in (2, 3, 16):
+    g = lambda e: -e * np.log(e) - (1 - e) * np.log(1 - e) + e * np.log(Vf - 1)
+    e_star = 1 - 1 / Vf
+    results.append(report(f"facts-TV bound at R=0, V={Vf}: g(1-1/V) = ln V", abs(g(e_star) - np.log(Vf)) < 1e-12))
+
 print("\nALL PASS" if all(results) else "\nSOME CHECKS FAILED")

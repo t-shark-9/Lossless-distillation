@@ -58,20 +58,24 @@ store and $0$ on the others.
 \end{proof}
 
 \begin{corollary}[Behavioural floor for $K$ facts]\label{cor:facts-tv}
-\Pv In the setting of \cref{cor:facts} with $V\ge3$, every $R$-bit student class satisfies
+\Pv In the setting of \cref{cor:facts} with $V\ge2$, let $\bar e:=\E\,\E_{x\sim\cD}\TV\big(p(\cdot\mid x),q_{\theta^\star}(\cdot\mid x)\big)$.
+Every $R$-bit student class satisfies
 \[
-\E\,\E_{x\sim\cD}\TV\big(p(\cdot\mid x),q_{\theta^\star}(\cdot\mid x)\big)\;\ge\;1-\frac{R\ln2/K+\ln2}{\ln(V-1)} .
+h(\bar e)+\bar e\ln(V-1)\ \ge\ \ln V-\frac{R\ln2}K .
 \]
-The KL floor of \cref{cor:facts} is therefore not an artefact of KL: behavioural losslessness also
-fails once $R\ll K\log_2V$.
+The left side increases from $0$ to $\ln V$ as $\bar e$ goes from $0$ to $1-\frac1V$. So $\bar e>0$ whenever $R<K\log_2V$, and
+$\bar e\ge1-\frac1V$ at $R=0$, which is tight. In particular $\bar e\ge(\ln V-\ln2-R\ln2/K)/\ln(V-1)$ for $V\ge3$. The KL
+floor of \cref{cor:facts} is therefore not an artefact of KL: behavioural losslessness also fails once
+$R<K\log_2V$.
 \end{corollary}
 \begin{proof}
 Let $\hat G_i\sim q_{\theta^\star}(\cdot\mid i)$ independently given $\theta^\star$. Then
 $e_i:=\P(\hat G_i\ne F(i))=\E\TV_i$, because the teacher is a point mass. Since the $F(i)$ are independent and
 $\hat G$ depends on $F$ only through $\theta^\star$,
 $\sum_iI(F(i);\hat G_i)\le I(F;\hat G)\le H(\theta^\star)\le R\ln2$. Fano gives
-$I(F(i);\hat G_i)\ge\ln V-\ln2-e_i\ln(V-1)$. Sum over $i$ and rearrange:
-$\bar e\ln(V-1)\ge\ln V-\ln2-R\ln2/K\ge\ln(V-1)-\ln2-R\ln2/K$.
+$I(F(i);\hat G_i)\ge\ln V-h(e_i)-e_i\ln(V-1)$. Sum over $i$ and use concavity of $h$:
+$K[\ln V-h(\bar e)-\bar e\ln(V-1)]\le R\ln2$. Monotonicity follows from
+$\frac{\mathrm d}{\mathrm de}[h(e)+e\ln(V-1)]=\ln\frac{(1-e)(V-1)}e\ge0$ for $e\le1-\frac1V$. The explicit bound uses $h\le\ln2$.
 \end{proof}
 
 \begin{corollary}[Metric-entropy version]\label{cor:metric}
@@ -145,8 +149,8 @@ $\alpha\in\{1.5,2,3\}$.
 \Mo\Ck If $\lambda_i=0$ for $i>k_\TT$, then as soon as $w<\lambda_{k_\TT}$,
 $D(R)=\frac{k_\TT}2\big(\prod_{i\le k_\TT}\lambda_i\big)^{1/k_\TT}e^{-2R\ln2/k_\TT}$. The distortion decays
 \emph{exponentially} in the student's rate once the student can resolve every component the teacher has.
-For $k_\TT=1000$ and $\alpha=2$, $D$ drops by a factor $e^{4}\approx55$ when the rate doubles from $2000$ to
-$4000$ nats. Below $\approx k_\TT$ nats it follows the power law.
+For $k_\TT=1000$ and $\alpha=2$, $D$ drops by a factor $e^{4}\approx55$ when $R\ln2$ doubles from $2000$ to
+$4000$ nats. Below $R\ln2\approx k_\TT$ nats it follows the power law.
 \end{proposition}
 
 \begin{proposition}[No capacity gap under optimal rate-limited allocation]\label{prop:nogap}
@@ -162,8 +166,8 @@ $D_{k'}(R)\le D_{k_\TT}(R)+\frac12\sum_{k_\TT<i\le k'}\lambda_i$, so $E(k')\le E
 
 \subsection{What this implies for distillation scaling laws}
 
-Empirical laws take the form $L(N,D)=E+A/N^{a}+B/D^{b}$ for supervised pre-training
-\citep{kaplan2020scaling,hoffmann2022training}. \citet{busbridge2025distillation} fit a distillation
+Supervised pre-training follows power laws in parameters $N$ and tokens $D$ \citep{kaplan2020scaling}. A
+widely used joint form is the additive law $L(N,D)=E+A/N^{a}+B/D^{b}$ of \citet{hoffmann2022training}. \citet{busbridge2025distillation} fit a distillation
 scaling law in which the student's cross-entropy depends on the teacher's cross-entropy and on the
 student's supervised-scaling loss. That law captures a ``capacity gap'': beyond some point, stronger
 teachers yield worse students \citep[see also][]{cho2019efficacy,mirzadeh2020improved,zhang2023capacity}.

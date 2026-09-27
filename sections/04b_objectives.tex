@@ -24,8 +24,10 @@ distillation by \citet{wen2023fdivergence}.
 satisfies $\E\hat g=\nabla_\theta\KL(Q^x_\theta\|\Pseq)$. The ``stop-gradient'' estimator that keeps only the first
 term is \emph{biased}. Its bias is $-\sum_t\E[\nabla\log q_\theta(y_t\mid s_t)\sum_{k>t}g_k(s_k)]$, the effect of the
 student's actions on its own future prefixes. Under \cref{as:real} both estimators vanish in expectation
-at $\theta^\circ$. In general the stop-gradient fixed points are those of the DAgger-type map
-$\theta\mapsto\argmin_{\theta'}\sum_t\E_{\dstud t}\KL(q_{\theta'}\|p)$, not stationary points of the sequence-level KL.
+at $\theta^\circ$. In general the stop-gradient fixed points are the $\theta$ that are stationary for
+$\theta'\mapsto\sum_t\E_{\dstud t}\KL(q_{\theta'}\|p)$. This set includes the fixed points of the DAgger-type map
+$\theta\mapsto\argmin_{\theta'}\sum_t\E_{\dstud t}\KL(q_{\theta'}\|p)$, and is larger when that inner objective is
+non-convex (\cref{prop:convexity}). These are not, in general, stationary points of the sequence-level KL.
 \end{proposition}
 \begin{proof}
 $F(\theta)=\sum_t\E_{s\sim\dstud t}g_t(\theta;s)$ by \cref{thm:chain}. Differentiating gives a direct term and a
@@ -50,9 +52,11 @@ where $P(s)=\prod_{k<t}p(y_k\mid s_k)$ and $Q_\theta(s)$ are prefix probabilitie
 \[
 \JSD_\beta(\Pseq\|\Qseq)=\beta\sum_{t=1}^T\E_{s\sim\Pseq}\KL\big(p_t(s)\,\|\,m_t(s)\big)+(1-\beta)\sum_{t=1}^T\E_{s\sim\Qseq}\KL\big(q_t(s)\,\|\,m_t(s)\big).
 \]
-The token-level $\JSD_\beta$ of \citet{agarwal2024gkd} is the case $w_t\equiv\beta$. It coincides with the
-sequence-level divergence on prefixes with $P(s)=Q_\theta(s)$, so it is its \emph{near-lossless linearisation}.
-Because $\log P(s_t)-\log Q_\theta(s_t)$ is a sum of $t-1$ per-token log-ratios, the two diverge along long
+The token-level $\JSD_\beta$ of \citet{agarwal2024gkd} differs in two ways. It fixes $w_t\equiv\beta$, and it
+evaluates both terms on one prefix law (student or mixed) rather than the $\beta$-term on teacher
+prefixes. Both differences vanish when $P(s)=Q_\theta(s)$ on all prefixes, since then the prefix laws also
+coincide. The token-level objective is therefore the \emph{near-lossless linearisation} of the sequence-level
+one. Because $\log P(s_t)-\log Q_\theta(s_t)$ is a sum of $t-1$ per-token log-ratios, the two diverge along long
 prefixes unless the student is already nearly lossless there.
 \end{proposition}
 \begin{proof}
@@ -76,6 +80,28 @@ $\nabla\JSD_\beta=(1-\beta)\E_Q[\sum_t\nabla\log q(y_t\mid s_t)\sum_k\rho_k(y_k;
 $\rho_k$ is $s_t$-measurable. The $k=t$ term is replaced by its conditional expectation over $y_t$, and
 $k>t$ terms by $\E[\rho_k\mid s_k]=\KL(q_k\|m_k)$. Baselines are unbiased as before.
 \end{proof}
+
+\begin{proposition}[A bounded, unbiased, horizon-free value estimator]\label{prop:mix-est}
+\Pv\Ck Draw $y\sim M^x_\beta:=\beta\Pseq+(1-\beta)\Qseq$, that is, a teacher sample with probability $\beta$ and a
+student sample otherwise. Set $r=\Pseq(y)/M^x_\beta(y)$, $s=\Qseq(y)/M^x_\beta(y)$ and
+\[
+\varphi(y):=\beta\,r\log r+(1-\beta)\,s\log s .
+\]
+Then $\E_{y\sim M^x_\beta}\varphi=\JSD_\beta(\Pseq\|\Qseq)$ and $0\le\varphi\le\bar h(\beta):=\log\frac1{\min(\beta,1-\beta)}$ for every $y$
+and every horizon $T$. The two coincide at $\beta=\frac12$, where $\bar h(\frac12)=h(\frac12)=\log2$. Only sequence
+log-probabilities under the two models are needed.
+\end{proposition}
+\begin{proof}
+$\sum_yM(y)\big[\beta\frac PM\log\frac PM+(1-\beta)\frac QM\log\frac QM\big]=\beta\KL(P\|M)+(1-\beta)\KL(Q\|M)$. For the range, note
+$\beta r+(1-\beta)s=1$ with $r,s\ge0$. Convexity of $u\log u$ gives $\varphi\ge1\cdot\log1=0$. On the segment
+$\{\beta r+(1-\beta)s=1\}$, $\varphi$ is convex, so it is maximised at an endpoint: $(1/\beta,0)$ gives
+$\log\frac1\beta$ and $(0,1/(1-\beta))$ gives $\log\frac1{1-\beta}$.
+\end{proof}
+\noindent
+By contrast, summing the per-token KLs of \cref{prop:pajsd} along sampled prefixes is unbiased but has a
+range growing linearly in $T$. For example, $p_t\equiv(\frac12,\frac12,0)$ and $q_t\equiv(\frac12,0,\frac12)$ give
+$\frac{\beta T}2\log\frac1\beta$ on the all-$a$ teacher path. That representation is used for gradients
+(\cref{prop:jsd-est}), not for value estimates.
 
 \subsection{Bounded divergences are agnostically TV-competitive; KL is not}
 
@@ -115,9 +141,12 @@ downstream task, is maximally hurt.
 \[
 \cJ_\beta(\theta):=\E_{x\sim\cD}\JSD_\beta\big(\Pseq\,\|\,\Qseq\big),\qquad\beta=\tfrac12\text{ by default},
 \]
-computed through the exact decomposition of \cref{prop:pajsd}. The first sum is estimated on
-teacher-sampled prefixes with the teacher's soft labels. The second is estimated on student roll-outs.
-Gradients use \cref{prop:jsd-est}, optionally plus the pathwise gradient of the teacher-prefix term.
+Values are estimated with the bounded mixture estimator of \cref{prop:mix-est}. Gradients use
+\cref{prop:jsd-est}, which is already unbiased for the \emph{full} gradient because its score form
+accounts for $\theta$ inside $M_\beta$. An equivalent unbiased split, based on the exact decomposition of
+\cref{prop:pajsd}, is the pathwise gradient of the teacher-prefix term $\beta\KL(P\|M_\theta)$ plus the score and
+pathwise gradients of the student-prefix term $(1-\beta)\KL(Q_\theta\|M_\theta)$. The two recipes are alternatives:
+adding the teacher-prefix pathwise term to \cref{prop:jsd-est} double-counts it and biases the estimator.
 Optionally add $\gamma\,\cR_{\mathrm{F}}$, the Fisher-aligned representation term of \cref{def:fisher-rep}.
 \end{definition}
 
@@ -135,17 +164,19 @@ the minimisers are exactly the lossless students.
 \item \emph{No loss in the near-lossless regime.} If $a\le\Pseq/\Qseq\le b$, then
 $\cJ_\beta=\frac{\beta(1-\beta)}2\E\chi^2(1+O(b-a))=\beta(1-\beta)\,\E\KL(P\|Q_\theta)(1+O(b-a))$.
 \item \emph{Unbiased, Rao--Blackwellised gradients} (\cref{prop:jsd-est}).
-\item \emph{Horizon-free estimation} \Pa{\cref{as:finite}}. Per-prompt values lie in $[0,h(\beta)]$.
-If the per-prompt divergences are evaluated exactly, then with probability $\ge1-\delta$ the empirical
-objective deviates uniformly by at most $h(\beta)\sqrt{(R\ln2+\log(2/\delta))/(2n)}$, with no factor $T$.
-Compare the factor $TB$ in \cref{thm:unif}.
+\item \emph{Horizon-free estimation} \Pa{\cref{as:finite}}. Let $\hat\cJ_n(\theta)$ average the estimator $\varphi$
+of \cref{prop:mix-est} over $n$ i.i.d.\ prompts, one mixture draw each, generated with common random
+numbers across $\theta$ (for example $y=G_\theta(x,\xi)$ with the noise $\xi$ fixed). With probability $\ge1-\delta$,
+$\sup_\theta|\hat\cJ_n(\theta)-\cJ_\beta(\theta)|\le\bar h(\beta)\sqrt{(R\ln2+\log(2/\delta))/(2n)}$, with no factor $T$. Compare
+the factor $TB$ for the per-sequence KL loss of \cref{thm:unif}.
 \end{enumerate}
 \end{theorem}
 \begin{proof}
 (i) \cref{prop:pajsd}. (ii) \cref{prop:jsd}(i) with Jensen, and \cref{prop:covshift} with $G=h(\beta)$.
 (iii) \cref{prop:agnostic}. (iv) $\JSD_\beta\ge2\beta(1-\beta)\TV^2$. (v) \cref{prop:local}(ii) applied to
-sequence laws, and $f_\beta''(1)=\beta(1-\beta)$. (vi) \cref{prop:jsd-est}. (vii) Hoeffding for $[0,h(\beta)]$-valued
-losses and a union bound over $2^R$ students.
+sequence laws, and $f_\beta''(1)=\beta(1-\beta)$. (vi) \cref{prop:jsd-est}. (vii) For each fixed $\theta$ the summands
+$\varphi_\theta(x_i,\xi_i)$ are i.i.d., unbiased, and $[0,\bar h(\beta)]$-valued (\cref{prop:mix-est}). Apply Hoeffding, then a
+union bound over the $2^R$ students.
 \end{proof}
 
 \begin{remark}[Why this targets the dominant term]
@@ -160,13 +191,17 @@ variance, but does not remove it.
 \end{remark}
 
 \begin{proposition}[Likelihood-critical alternative: skew-Jeffreys]\label{prop:sj}
-\Pv Let $\cJ^{\mathrm{SJ}}_\lambda(\theta):=(1-\lambda)\sum_t\E_{\dteach t}\KL(p_t\|q_t)+\lambda\sum_t\E_{\dstud t}\KL(q_t\|p_t)$. It is
+\Pv\Ck Let $\cJ^{\mathrm{SJ}}_\lambda(\theta):=(1-\lambda)\sum_t\E_{\dteach t}\KL(p_t\|q_t)+\lambda\sum_t\E_{\dstud t}\KL(q_t\|p_t)$. It is
 estimated by off-policy soft-label forward KL plus on-policy reverse KL (\cref{prop:rb-reverse}). Then
 $\cJ^{\mathrm{SJ}}_\lambda=\E[(1-\lambda)\KL(P\|Q_\theta)+\lambda\KL(Q_\theta\|P)]$ exactly, and
 $\E\TV\le\sqrt{\cJ^{\mathrm{SJ}}_\lambda/2}$. The log-loss regret is at most $\cJ^{\mathrm{SJ}}_\lambda/(1-\lambda)$.
 Both event bounds of \cref{prop:events} hold with $\KL$ replaced by $\cJ^{\mathrm{SJ}}_\lambda/(1-\lambda)$
-(coverage) and $\cJ^{\mathrm{SJ}}_\lambda/\lambda$ (precision), per input. It is not agnostically
-TV-competitive (\cref{prop:agnostic}(b)).
+(coverage) and $\cJ^{\mathrm{SJ}}_\lambda/\lambda$ (precision), per input. For no $\lambda\in[0,1)$ is it agnostically
+TV-competitive. Take $P=(1-\eta,\eta)$ and the class $\{Q_1=(1-\eps,\eps),\,U=(\frac12,\frac12)\}$. Then
+$\TV(P,Q_1)\le\eta$, but $\cJ^{\mathrm{SJ}}_\lambda(Q_1)\ge(1-\lambda)\,\eta\,(\log\frac\eta\eps-1)$, which exceeds the finite value
+$\cJ^{\mathrm{SJ}}_\lambda(U)$ once $\eps$ is small enough. The minimiser is then $U$, with $\TV=\frac12-\eta$. For
+example, with $\eta=0.01$, $\lambda=\frac12$ and $\eps=10^{-120}$: $\cJ^{\mathrm{SJ}}(Q_1)\approx1.36>\cJ^{\mathrm{SJ}}(U)\approx1.13$. For
+$\lambda=1$ use \cref{prop:agnostic}(b).
 \end{proposition}
 \noindent
 \textbf{Recommendation.} If two-sided losslessness is within reach, the two objectives agree to second

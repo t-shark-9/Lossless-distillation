@@ -57,10 +57,13 @@ $R=\frac12\sum_{i\le k_\TT}\log(\lambda_i/w)$ gives $w=(\prod_i\lambda_i)^{1/k_\
 
 The scripts in \texttt{verification/} check, by random search, exact enumeration or optimisation, every
 result marked \textsf{[numerically checked]}. \texttt{check\_divergences.py} covers
-\cref{prop:pinsker,prop:jsd,prop:local,prop:events,prop:grad,prop:convexity,prop:temperature} and \cref{lem:logratio}.
-\texttt{check\_sequences.py} enumerates a $V=3$, $T=4$ autoregressive pair and verifies
-\cref{thm:chain,prop:hybrid,thm:quadratic,thm:pdl,prop:exposure,prop:rb-reverse,prop:seq-grad}, the TV estimator, and the
-bias of the stop-gradient estimator. \texttt{check\_capacity.py} verifies
-\cref{prop:powerlaw,prop:phase,thm:bottleneck,cor:facts}. \texttt{check\_representations.py} verifies
+\cref{prop:pinsker,prop:jsd,prop:local,prop:events,prop:grad,prop:convexity,prop:temperature,prop:missing,prop:invisible}, the
+counterexample of \cref{prop:sj}, and \cref{lem:logratio}. \texttt{check\_sequences.py} enumerates a $V=3$, $T=4$
+autoregressive pair and verifies
+\cref{thm:chain,prop:hybrid,thm:quadratic,thm:pdl,prop:exposure,prop:rb-reverse,prop:seq-grad,prop:mix-est}. It also checks the
+TV estimator, the bias of the stop-gradient estimator, the unbiasedness of the pathwise/score split in
+\cref{def:pajsd}, and the bias that results from adding the two recipes. \texttt{check\_capacity.py} verifies
+\cref{prop:powerlaw,prop:phase,thm:bottleneck,cor:facts}, the $R=0$ tightness of \cref{cor:facts-tv}, and
+\cref{thm:capacity} on 300 random instances by exact computation of $I(\mathbf T;Y)$. \texttt{check\_representations.py} verifies
 \cref{prop:cca,thm:overconstraint,prop:fisher-rep} in a random instance of the linear-Gaussian model. All
 checks pass.

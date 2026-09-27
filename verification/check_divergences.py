@@ -167,4 +167,40 @@ for _ in range(5000):
     ok &= kl(p, q) >= np.exp(-M) / 2 * var - TOL
 results.append(report("KL >= e^{-M}/2 Var_p(log p/q)", ok))
 
+# prop:sj: skew-Jeffreys picks the uniform student although inf TV = eta
+eta, eps, lam = 0.01, 1e-120, 0.5
+P2 = np.array([1 - eta, eta]); Q1 = np.array([1 - eps, eps]); U = np.array([0.5, 0.5])
+J = lambda Q: (1 - lam) * kl(P2, Q) + lam * kl(Q, P2)
+results.append(report(f"skew-Jeffreys example: J(Q1)={J(Q1):.3f} > J(U)={J(U):.3f}, TV(Q1)={tv(P2, Q1):.3f}, "
+                      f"TV(U)={tv(P2, U):.3f}", J(Q1) > J(U) and tv(P2, U) > 0.45 and tv(P2, Q1) <= eta + 1e-12))
+
+# prop:invisible: exact cost of perturbing logits on a set A, and the bound 1/2 sum p_i d_i^2 e^{(d_i)_+}
+ok = True
+for _ in range(5000):
+    V = rng.integers(3, 12)
+    p = rand_simplex(V, 0.5)
+    v = np.log(p)
+    A = rng.random(V) < 0.5
+    d = np.where(A, rng.normal(scale=3.0, size=V), 0.0)
+    exact = kl(p, softmax(v + d))
+    formula = np.log(1 + np.sum(p[A] * (np.exp(d[A]) - 1))) - np.sum(p[A] * d[A])
+    bound = 0.5 * np.sum(p[A] * d[A] ** 2 * np.exp(np.clip(d[A], 0, None)))
+    ok &= abs(exact - formula) < 1e-8 and exact <= bound + 1e-12
+results.append(report("logit-perturbation cost: exact formula and e^{(d)_+} bound", ok))
+
+# prop:missing (iii): exact JSD pull formula and upper bound
+ok = True
+for _ in range(5000):
+    V = rng.integers(2, 9)
+    p = rand_simplex(V); z = rng.normal(scale=2.0, size=V); q = softmax(z)
+    b = rng.uniform(0.05, 0.95); m = b * p + (1 - b) * q
+    g = (1 - b) * q * (np.log(q / m) - np.sum(q * np.log(q / m)))
+    c = kl(q, m)
+    pull = (1 - b) * q * (np.log(1 - b + b * p / q) + c)
+    ok &= np.allclose(-g, pull, atol=1e-12)
+    miss = p > q
+    ok &= np.all(pull[miss] <= b * (1 - b) * (p[miss] - q[miss]) + (1 - b) * q[miss] * np.log(1 / (1 - b)) + 1e-12)
+    ok &= 0 <= c <= np.log(1 / (1 - b)) + 1e-12
+results.append(report("JSD missing-mode pull: exact formula and upper bound", ok))
+
 print("\nALL PASS" if all(results) else "\nSOME CHECKS FAILED")

@@ -28,22 +28,30 @@ $\JSD_\beta\le h(\beta)$ is always finite and imposes neither constraint.
 \end{proposition}
 
 \begin{proposition}[Missing-mode gradients]\label{prop:missing}
-\Pv Fix a token $i$ with $p_i>0$ and let $q_i\to0$, the other coordinates staying bounded away from $0$.
+\Pv\Ck Fix a token $i$ with $p_i>0$ and let $q_i\to0$, the other coordinates staying bounded away from $0$.
 \begin{enumerate}[label=(\roman*),nosep]
 \item Forward KL: $\partial_{z_i}\KL(p\|q)=q_i-p_i\to-p_i$. The restoring force equals the missing mass.
-\item Reverse KL: $|\partial_{z_i}\KL(q\|p)|\le q_i\big(|\log\tfrac{q_i}{p_i}|+\KL(q\|p)\big)=O(q_i\log\tfrac1{q_i})\to0$.
-A mode the student has dropped exerts \emph{no} pull.
-\item $\JSD_\beta$: $\partial_{z_i}\JSD_\beta=-(1-\beta)\,q_i\big[\log(1-\beta+\beta p_i/q_i)+c\big]$ with
-$c=\KL(q\|m)\in[0,\log\frac1{1-\beta}]$. The pull towards the missing mode is therefore at most
-$\beta(1-\beta)p_i+(1-\beta)q_i\log\frac1{1-\beta}$, at most a quarter of the forward-KL pull when $q_i\ll p_i$.
-As $q_i\to0$ it equals $(1-\beta)q_i\log\frac{\beta p_i}{q_i}(1+o(1))\to0$, which is reverse-like. A teacher mode is
-effectively recovered only while the student's mass on it is not $\ll\beta p_i$.
+\item Reverse KL (assuming $\operatorname{supp}p=\cV$, otherwise $\KL(q\|p)=\infty$):
+$|\partial_{z_i}\KL(q\|p)|\le q_i\big(|\log\tfrac{q_i}{p_i}|+\KL(q\|p)\big)=O(q_i\log\tfrac1{q_i})\to0$. A mode the student has
+dropped exerts \emph{no} pull.
+\item $\JSD_\beta$: exactly, the pull is $-\partial_{z_i}\JSD_\beta=(1-\beta)\,q_i\big[\log(1-\beta+\beta p_i/q_i)+c\big]$ with
+$c=\KL(q\|m)\in[0,\log\frac1{1-\beta}]$. For a missing mode ($p_i>q_i$):
+\begin{itemize}[nosep]
+\item it is at most $\beta(1-\beta)(p_i-q_i)+(1-\beta)q_i\log\frac1{1-\beta}$, at most a quarter of the forward-KL pull
+when $q_i\ll p_i$;
+\item while $q_i\gg\beta p_i$ it equals $\beta p_i-(1-\beta)\big[\log\frac1{1-\beta}-c\big]q_i+O(\beta^2p_i^2/q_i)$, which is
+forward-like with weight $\beta$;
+\item as $q_i\to0$ it equals $(1-\beta)q_i\log\frac{\beta p_i}{q_i}(1+o(1))\to0$, which is reverse-like.
+\end{itemize}
+A teacher mode is effectively recovered only while the student's mass on it is not $\ll\beta p_i$.
 \end{enumerate}
 \end{proposition}
 \begin{proof}
 Read off \cref{prop:grad}. For (iii), $m_i/q_i=1-\beta+\beta p_i/q_i$, and
-$0\le\E_q\log\frac qm\le\log\frac1{1-\beta}$ because $m\ge(1-\beta)q$. Use $q_i\log(1+\beta p_i/q_i)\le\beta p_i$ for the
-upper bound, and $\log(1-\beta+\beta p_i/q_i)=\log\frac{\beta p_i}{q_i}+o(1)$ as $q_i\to0$.
+$0\le c=\E_q\log\frac qm\le\log\frac1{1-\beta}$ because $m\ge(1-\beta)q$. The upper bound uses
+$\log(1-\beta+\beta r)\le\beta(r-1)$. The middle regime expands
+$\log(1-\beta+\beta r)=\log(1-\beta)+\frac{\beta r}{1-\beta}+O(\beta^2r^2)$. The last uses
+$\log(1-\beta+\beta p_i/q_i)=\log\frac{\beta p_i}{q_i}+o(1)$.
 \end{proof}
 
 \begin{proposition}[M-projection versus I-projection]\label{prop:projections}
@@ -106,11 +114,16 @@ the entropy terms of $p^\tau$ vanish.
 \subsection{Dark knowledge as Fisher information}
 
 \begin{proposition}[Low-probability tokens are invisible at $\tau=1$]\label{prop:invisible}
-\Pv For $\delta\in\R^V$ supported on $A\subseteq\cV$,
-$\delta^\top(\diag p-pp^\top)\delta\le\max_{i\in A}p_i\,\|\delta\|^2\le p(A)\|\delta\|^2$. Near the optimum,
-perturbing the logits of tokens of total teacher mass $10^{-6}$ by $\delta$ costs at most $\frac12\cdot10^{-6}\|\delta\|^2$.
-Their relative logits, which is the ``dark knowledge'', are essentially unconstrained at $\tau=1$. At
-temperature $\tau$, $p$ is replaced by the flatter $p^\tau$.
+\Pv\Ck For $\delta\in\R^V$ supported on $A\subseteq\cV$, the curvature satisfies
+$\delta^\top(\diag p-pp^\top)\delta\le\max_{i\in A}p_i\,\|\delta\|^2\le p(A)\|\delta\|^2$. The exact cost of perturbing the
+matched logits $v$ is
+\[
+\KL\big(p\,\|\,\softmax(v+\delta)\big)=\log\Big(1+\sum_{i\in A}p_i(e^{\delta_i}-1)\Big)-\sum_{i\in A}p_i\delta_i\ \le\ \tfrac12\sum_{i\in A}p_i\,\delta_i^2\,e^{(\delta_i)_+}.
+\]
+So perturbing the logits of tokens of total teacher mass $10^{-6}$ by $\delta$ costs at most
+$\frac12\cdot10^{-6}e^{\max_i(\delta_i)_+}\|\delta\|^2$. Their relative logits, which is the ``dark knowledge'', are
+essentially unconstrained at $\tau=1$. At temperature $\tau$, $p$ is replaced by the flatter $p^\tau$. (Proof:
+$\log(1+x)\le x$ and $e^u-1-u\le\frac12u^2e^{u_+}$.)
 \end{proposition}
 
 \begin{proposition}[What soft labels add to hard labels]\label{prop:soft-info}
@@ -128,9 +141,9 @@ $\operatorname{range}C$). In the realisable linear case it upgrades a $k/2n$ err
 reweights existing information in the loss (\cref{prop:temperature}(iv), \cref{prop:invisible}). It
 matters only when the channel is lossy, for example with top-$k$ logits, finite precision, or finite
 optimisation budgets.
-\item Under \cref{as:linear} for the teacher, $\tilde v(s)=CW_\TT h_\TT(s)$. The soft label therefore reveals
-the teacher's final hidden state up to $\ker(CW_\TT)$: dark knowledge is a linear image of the
-teacher's representation. This links to \cref{sec:repr}.
+\item Under \cref{as:linear} for the teacher, $\tilde v(s)=CW_\TT h_\TT(s)+Cb_\TT$. The soft label therefore reveals
+the teacher's final hidden state up to $\ker(CW_\TT)$ and a known offset: dark knowledge is an affine image
+of the teacher's representation. This links to \cref{sec:repr}.
 \end{enumerate}
 \end{proposition}
 \noindent

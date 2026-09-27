@@ -53,13 +53,15 @@ informative only when outputs pass through a lossy channel: hard labels, top-$k$
 a finite optimisation budget (\cref{prop:invisible}).
 \end{proposition}
 \begin{proof}
-Take $A=(CW_\TT)^+CW_\TS$. Since $(CW_\TT)^+CW_\TT=I$, we get
-$Ah_\TS-h_\TT=(CW_\TT)^+(CW_\TS h_\TS-CW_\TT h_\TT)$. The last equality is \cref{prop:temperature}(ii).
+Take $A=(CW_\TT)^+CW_\TS$. With read-out biases, $\tilde z=C(Wh+b)$, and $(CW_\TT)^+CW_\TT=I$ gives
+$Ah_\TS-h_\TT=Y-c$ with $Y:=(CW_\TT)^+(\tilde z_\TS-\tilde z_\TT)$ and the constant $c:=(CW_\TT)^+C(b_\TS-b_\TT)$. The features
+are centred, so $\E[Ah_\TS-h_\TT]=0$, hence $c=\E Y$ and $\E\|Ah_\TS-h_\TT\|^2=\E\|Y-\E Y\|^2\le\E\|Y\|^2$. The last equality in
+the statement is \cref{prop:temperature}(ii).
 \end{proof}
 
 \begin{proposition}[No identifiability gain in the realisable noiseless linear model]\label{prop:noidgain}
-\Pv Let $u(s)\in\R^D$ be fixed input features, with teacher $h_\TT=B^\circ u$, $z_\TT=W^\circ h_\TT$, and student
-$h_\TS=Bu$, $z_\TS=WBu$ (realisable). With exact soft labels on states whose features span a subspace
+\Mo Let $u(s)\in\R^D$ be fixed input features, with teacher $h_\TT=B^\circ u\in\R^k$, $z_\TT=W^\circ h_\TT$, and student
+$h_\TS=Bu\in\R^k$, $z_\TS=WBu$ (realisable, $d_\TS=d_\TT=k$). With exact soft labels on states whose features span a subspace
 $\mathcal U\subseteq\R^D$, output matching identifies $CW^\circ B^\circ$ on $\mathcal U$. Adding exact representation
 targets identifies $B^\circ$ on the same $\mathcal U$. Neither yields any extrapolation beyond $\mathcal U$, and
 neither needs fewer states. Any gain must therefore come from noise, conditioning, or computation.
@@ -68,7 +70,7 @@ neither needs fewer states. Any gain must therefore come from noise, conditionin
 \subsection{When it provably helps}
 
 \begin{proposition}[Noisy output supervision: fewer parameters learned from noise]\label{prop:repr-count}
-\Kn In the model of \cref{prop:noidgain} with $\mathcal U=\R^D$, suppose outputs are observed only through
+\Kn In the model of \cref{prop:noidgain} (so $d_\TT=k$) with $\mathcal U=\R^D$, suppose outputs are observed only through
 hard labels $y\sim\softmax(W^\circ B^\circ u)$ and $\rank(W^\circ B^\circ)=k$. The MLE over rank-$k$ factorisations
 satisfies $n\,\E\KL\to\frac12k(V-1+D-k)$: the dimension of the manifold of rank-$k$ $(V-1)\times D$
 matrices, by the regular-model asymptotics of \cref{prop:exact}(b). If $B^\circ$ is instead supplied exactly
@@ -81,22 +83,25 @@ regression. The statistical gain is the complexity of the sub-network below the 
 to the whole. The gain disappears when the output channel is itself noiseless (\cref{prop:noidgain}).
 
 \begin{proposition}[Representation matching is a preconditioner]\label{prop:precond}
-\Pv Near the optimum, with $W=W^\circ$ fixed and the near-lossless quadratic output loss,
+\Mo In the model of \cref{prop:noidgain}, near the optimum, with $W=W^\circ$ fixed and the near-lossless
+quadratic output loss,
 $\cL_{\mathrm{out}}(B)=\frac12\tr\big((B-B^\circ)\Sigma_u(B-B^\circ)^\top K\big)$ with $K=W^{\circ\top}FW^\circ$. Its Hessian is
 $\Sigma_u\otimes K$. Adding $\gamma\E\|Bu-B^\circ u\|^2$ gives $\Sigma_u\otimes(K+2\gamma I)$, with the same minimiser.
 Gradient descent converges linearly at rate $1-1/\kappa$, where
 \[
 \kappa_\gamma=\kappa(\Sigma_u)\,\frac{\lambda_{\max}(K)+2\gamma}{\lambda_{\min}(K)+2\gamma}\ \searrow\ \kappa(\Sigma_u)\quad(\gamma\to\infty).
 \]
-In language models $K$ is extremely ill-conditioned, because $F=\diag p-pp^\top$ is dominated by a few tokens
-(\cref{prop:invisible}). So representation matching can speed up optimisation by orders of magnitude
-without changing the realisable solution.
+The ratio $\kappa_0/\kappa_\gamma$ can be arbitrarily large, and $\kappa_0=\infty$ when $K$ is singular, without any change
+to the realisable solution. \emph{Heuristic:} in language models $K$ is badly conditioned, because
+$F=\diag p-pp^\top$ is dominated by a few tokens (\cref{prop:invisible}), so the speed-up can be large in
+practice.
 \end{proposition}
 
 \begin{proposition}[Compositional hardness: a computational separation]\label{prop:parity}
 \Kn There are targets, for example $k$-sparse parities over $D$ bits computed through intermediate partial
 parities, for which every statistical-query learner using only end-to-end labels needs $D^{\Omega(k)}$
-queries \citep{kearns1998efficient}. Supervising the intermediate partial parities makes each step learnable
+queries. This follows from the statistical-query dimension of parities
+\citep{blum1994weakly,kearns1998efficient}. Supervising the intermediate partial parities makes each step learnable
 in polynomial time \citep{wies2023subtask}. The separation is \emph{computational}. Information-theoretically,
 $\log\binom Dk\approx k\log D$ samples suffice end-to-end (\cref{thm:mle}). Representation matching can
 therefore reduce the optimisation term $\cE_{\mathrm{opt}}$ exponentially, even when it cannot reduce $\cE_{\mathrm{est}}$.
@@ -112,7 +117,8 @@ $s_1\ge s_2\ge\cdots$, and let $(\lambda_i,u_i)$ be the eigenpairs of $\Sigma$.
 \begin{enumerate}[label=(\alph*),nosep]
 \item Output only ($\gamma=0$): $\min\cL_{\mathrm{out}}=\frac12\sum_{i>d_\TS}s_i^2$.
 \item Full feature matching ($\gamma\to\infty$ with $\cR_{\mathrm{LS}}$): the row space of $B$ is forced onto
-$\operatorname{span}(u_1,\dots,u_{d_\TS})$, and $\min\cL_{\mathrm{out}}\to\frac12\sum_{i>d_\TS}\lambda_i\|F^{1/2}Wu_i\|^2$.
+$\operatorname{span}(u_1,\dots,u_{d_\TS})$, provided $\lambda_{d_\TS}>\lambda_{d_\TS+1}$. Then
+$\min\cL_{\mathrm{out}}\to\frac12\sum_{i>d_\TS}\lambda_i\|F^{1/2}Wu_i\|^2$.
 \item The cost (b)$-$(a) is $\ge0$. It is $0$ iff the top-$d_\TS$ principal subspace of $\Sigma$ is output-optimal,
 and it can be arbitrarily large. For example, with $d_\TT=2$, $d_\TS=1$, $\Sigma=\diag(\lambda_1,\lambda_2)$,
 $\lambda_1>\lambda_2$, and $W=we_2^\top$: (a) is $0$ and (b) is $\frac12\lambda_2\,w^\top Fw$. The student is forced to
@@ -140,8 +146,8 @@ covariance of $h_\TT$. Let $U_F$ collect the top-$d_\TS$ eigenvectors of $\Sigma
 \begin{proposition}[Fisher alignment has no approximation cost]\label{prop:fisher-rep}
 \Mo\Ck In the model of \cref{thm:overconstraint}, assume $s_{d_\TS}>s_{d_\TS+1}$. For every $\gamma\ge0$, the minimisers
 of $\cL_{\mathrm{out}}+\gamma\cR_{\mathrm F}$ are exactly the output-optimal students of case (a). The constraint costs
-nothing in approximation, and it keeps the preconditioning benefit of \cref{prop:precond} in the retained
-directions.
+nothing in approximation. \emph{Heuristic:} it should retain the preconditioning effect of
+\cref{prop:precond} in the retained directions.
 \end{proposition}
 \begin{proof}
 Here $\Sigma^{1/2}K\Sigma^{1/2}=G^\top G$, so $U_F$ are the top right-singular vectors of $G$. The Eckart--Young

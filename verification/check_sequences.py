@@ -179,6 +179,31 @@ for y, qy, py in zip(seqs, qseq, pseq):
 results.append(report("on-policy score-function gradient of sequence JSD_beta",
                       np.allclose(G, num_grad(lambda th: seq_jsd(th, b), theta_S), atol=1e-6)))
 
+# prop:mix-est: bounded unbiased mixture estimator of sequence-level JSD_beta
+for b in [0.2, 0.5, 0.8]:
+    M = b * pseq + (1 - b) * qseq
+    r, s_ = pseq / M, qseq / M
+    phi = b * r * np.log(r) + (1 - b) * s_ * np.log(s_)
+    jsd_exact = b * kl(pseq, M) + (1 - b) * kl(qseq, M)
+    results.append(report(f"mixture estimator (beta={b}): unbiased and in [0, log(1/min(b,1-b))]",
+                          abs(np.sum(M * phi) - jsd_exact) < TOL and phi.min() >= -TOL
+                          and phi.max() <= np.log(1 / min(b, 1 - b)) + TOL))
+
+# def:pajsd: the pathwise/score split is unbiased; adding the teacher pathwise term to prop:jsd-est is biased
+b = 0.3
+P_ = softmax_rows(theta_S)
+M = b * pseq + (1 - b) * qseq
+dQ = [sum(score(P_, y[:t], y[t]) for t in range(T)) * qy for y, qy in zip(seqs, qseq)]   # grad Q(y)
+teacher_path = sum(-b * (1 - b) * py * g / My for py, g, My in zip(pseq, dQ, M))
+student_part = sum((1 - b) * (g * np.log(qy / My) - (1 - b) * qy * g / My)
+                   for qy, g, My in zip(qseq, dQ, M))
+g_true = num_grad(lambda th: seq_jsd(th, b), theta_S)
+g_score = sum((1 - b) * g * np.log(qy / My) for qy, g, My in zip(qseq, dQ, M))
+results += [report("teacher-pathwise + student score/pathwise split is unbiased",
+                   np.allclose(teacher_path + student_part, g_true, atol=1e-6)),
+            report("adding the teacher pathwise term to the score estimator is biased",
+                   np.abs(g_score + teacher_path - g_true).max() > 1e-3)]
+
 # Unbiased TV estimator: TV = E_{y~p}[(1 - q(y)/p(y))_+]
 results.append(report("TV_seq = E_p[(1-q/p)_+]", abs(np.sum(pseq * np.clip(1 - qseq / pseq, 0, None)) - TVs) < TOL))
 

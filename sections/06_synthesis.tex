@@ -10,38 +10,40 @@
 \[
 \E_\pi\min_\theta\E_\cD\KL(P\|Q_\theta)\ \ge\ \sup_{N,m}\frac{I(\mathbf T;Y\mid X_{1:N})-R\ln2}{mN}>0 .
 \]
-In the $K$-facts model, the behavioural error is also bounded below:
-$\E\TV\ge1-(R\ln2/K+\ln2)/\ln(V-1)$ (\cref{thm:capacity}, \cref{cor:facts-tv}).
+In the $K$-facts model the behavioural error is bounded below too: $\bar e=\E\TV$ satisfies
+$h(\bar e)+\bar e\ln(V-1)\ge\ln V-R\ln2/K$, so $\bar e>0$ whenever $R<K\log_2V$ (\cref{thm:capacity}, \cref{cor:facts-tv}).
 \item \emph{Sufficiency, realisable} \Pa{\cref{as:real,as:finite}}. Sequence-level hard-label KD with
 $n\ge2(R\ln2+\log\frac1\delta)/\eps^2$ teacher sequences achieves $\E_\cD\TV(P,Q_{\htheta})\le\eps$ with
 probability $\ge1-\delta$, \emph{for every horizon} $T$. Under input shift, $\E_\mu\TV\le\min\{\rho\eps,\eps+\TV(\mu,\cD)\}$
 (\cref{thm:mle}, \cref{prop:covshift}). With exact soft labels and a linear-softmax student, $n\ge d$ states
 in general position give exact recovery (\cref{prop:exact}).
-\item \emph{Misspecified, behavioural} \Pa{\cref{as:finite}}. Let $\htheta$ minimise the empirical PA-JSD
-objective, with per-prompt divergences evaluated exactly, up to optimisation error $\cE_{\mathrm{opt}}$.
-Let $\mathrm{TV}^\star=\min_\theta\E_\cD\TV(P,Q_\theta)$ and $\Delta_n=h(\beta)\sqrt{(R\ln2+\log\frac2\delta)/(2n)}$. With
-probability $\ge1-\delta$,
+\item \emph{Misspecified, behavioural} \Pa{\cref{as:finite}}. Let $\htheta$ minimise, up to optimisation error
+$\cE_{\mathrm{opt}}$, the empirical PA-JSD objective built from the bounded mixture estimator (\cref{prop:mix-est}) with
+common random numbers, as in \cref{thm:pajsd}(vii). Let $\mathrm{TV}^\star=\min_\theta\E_\cD\TV(P,Q_\theta)$ and
+$\Delta_n=\bar h(\beta)\sqrt{(R\ln2+\log\frac2\delta)/(2n)}$. With probability $\ge1-\delta$,
 \[
 \E_\mu\TV(P,Q_{\htheta})\ \le\ \sqrt{\frac{h(\beta)\,\mathrm{TV}^\star+2\Delta_n+\cE_{\mathrm{opt}}}{2\beta(1-\beta)}}\ +\ \TV(\mu,\cD).
 \]
 There is no dependence on $T$ and no exposure-bias term. For $\beta=\frac12$ the leading term is
 $\sqrt{2\ln2\,\mathrm{TV}^\star}$.
-\item \emph{Misspecified, likelihood} \Pa{\cref{as:bounded,as:shift}}. Off-policy soft-label forward KL gives
+\item \emph{Misspecified, likelihood} \Pa{\cref{as:bounded,as:shift,as:linear}}. Off-policy soft-label forward KL gives
 \cref{cor:e2e-offpolicy}. The approximation term obeys $\cA\ge T\eps_0$ (\cref{cor:approx-T}), and for students
 with a linear read-out $\eps_0$ is at least the softmax-bottleneck floor (\cref{thm:bottleneck}).
 \end{enumerate}
 \end{theorem}
 \begin{proof}
-(i), (ii) and (iv) collect earlier results. For (iii), write $\hat\cJ$ for the empirical objective. Then
+(i), (ii) and (iv) collect earlier results; \cref{as:linear} is needed only for the bottleneck clause of (iv).
+For (iii), write $\hat\cJ$ for the empirical objective. By \cref{thm:pajsd}(vii),
 $\cJ(\htheta)\le\hat\cJ(\htheta)+\Delta_n\le\hat\cJ(\theta_\TV)+\cE_{\mathrm{opt}}+\Delta_n\le\cJ(\theta_\TV)+\cE_{\mathrm{opt}}+2\Delta_n$ and
 $\cJ(\theta_\TV)\le h(\beta)\mathrm{TV}^\star$ (\cref{prop:jsd}(i)). Then apply \cref{thm:pajsd}(ii) and
 \cref{prop:covshift} with $G=1$.
 \end{proof}
 
-\noindent\textbf{Reading the sandwich.} Near-lossless distillation is possible essentially iff the
-student's \emph{usable} description length exceeds the teacher's \emph{functional} information on the
-deployment distribution. When it is possible, the sample complexity of behavioural $\eps$-losslessness
-is $\tilde O(R/\eps^2)$ sequences \emph{independent of the horizon}. Exposure bias is not a fundamental
+\noindent\textbf{Reading the sandwich.} Near-lossless distillation is possible \emph{only if} the student's
+\emph{usable} description length exceeds the teacher's \emph{functional} information on the deployment
+distribution. This condition is necessary, not sufficient: sufficiency needs realisability, which
+$R\ln2>I_\infty$ does not imply. When the teacher is realisable, the sample complexity of behavioural
+$\eps$-losslessness is $\tilde O(R/\eps^2)$ sequences \emph{independent of the horizon}. Exposure bias is not a fundamental
 obstacle: it is an artefact of pairing a divergence with the wrong prefix law. When it is impossible,
 the best achievable behavioural error is $\mathrm{TV}^\star$, and PA-JSD is guaranteed to reach
 $O(\sqrt{\mathrm{TV}^\star})$, whereas KL objectives carry no such guarantee.
@@ -52,9 +54,9 @@ $O(\sqrt{\mathrm{TV}^\star})$, whereas KL objectives carry no such guarantee.
 \begin{tabular}{@{}p{0.2\linewidth}p{0.74\linewidth}@{}}
 \toprule
 status & results\\\midrule
-proved, unconditional & TV as worst-case regret (\ref{prop:tv-task}); $\JSD_\beta$ sandwich (\ref{prop:jsd}); local equivalence (\ref{prop:local}); event bounds (\ref{prop:events}); margins (\ref{prop:margin}); chain rules (\ref{thm:chain}); hybrid bounds (\ref{prop:hybrid}, \ref{prop:hybrid-div}); master decomposition (\ref{thm:master}); compounding theorems (\ref{thm:terminal}--\ref{prop:exposure}); curvature (\ref{prop:convexity}); gradient formulas and unbiased estimators (\ref{prop:grad}, \ref{prop:seq-grad}--\ref{prop:jsd-est}); temperature limits (\ref{prop:temperature}); agnostic competitiveness (\ref{prop:agnostic}); capacity floor and its corollaries (\ref{thm:capacity}--\ref{cor:metric}, \ref{thm:rd}); CCA/CKA facts (\ref{prop:cca})\\
-proved under assumptions & softmax-bottleneck floor (\ref{as:linear}); uniform deviation (\ref{as:bounded}); horizon-free MLE (\ref{as:real}, \ref{as:finite}); PA-JSD estimation (\ref{as:finite}); end-to-end bounds; last-layer redundancy (\ref{as:linear})\\
-proved within a stylised model & power-law and exponential floors (\ref{prop:powerlaw}, \ref{prop:phase}); no capacity gap under optimal allocation (\ref{prop:nogap}); over-constraint and Fisher alignment (\ref{thm:overconstraint}, \ref{prop:fisher-rep})\\
+proved, unconditional & TV as worst-case regret (\ref{prop:tv-task}); $\JSD_\beta$ sandwich (\ref{prop:jsd}); local equivalence (\ref{prop:local}); event bounds (\ref{prop:events}); margins (\ref{prop:margin}); chain rules (\ref{thm:chain}); hybrid bounds (\ref{prop:hybrid}, \ref{prop:hybrid-div}); master decomposition (\ref{thm:master}); compounding theorems (\ref{thm:terminal}--\ref{prop:exposure}); curvature (\ref{prop:convexity}); gradient formulas and unbiased estimators (\ref{prop:grad}, \ref{prop:seq-grad}--\ref{prop:jsd-est}); temperature limits (\ref{prop:temperature}); bounded mixture estimator (\ref{prop:mix-est}); agnostic competitiveness (\ref{prop:agnostic}); facts floors and metric entropy (\ref{cor:facts}--\ref{cor:metric}); one-shot converse (\ref{thm:rd}); CCA/CKA facts (\ref{prop:cca})\\
+proved under assumptions & capacity floor (\ref{as:finite}); softmax-bottleneck floor (\ref{as:linear}); uniform deviation (\ref{as:bounded}); horizon-free MLE (\ref{as:real}, \ref{as:finite}); PA-JSD estimation (\ref{as:finite}); end-to-end bounds; last-layer redundancy (\ref{as:linear})\\
+proved within a stylised model & power-law and exponential floors (\ref{prop:powerlaw}, \ref{prop:phase}); no capacity gap under optimal allocation (\ref{prop:nogap}); no identifiability gain and preconditioning (\ref{prop:noidgain}, \ref{prop:precond}); over-constraint and Fisher alignment (\ref{thm:overconstraint}, \ref{prop:fisher-rep})\\
 known results cited & Pinsker/BH; SGD rates; $k/2n$ asymptotics; SQ lower bounds for parities\\
 heuristics & dominant term (\ref{heur:dominant}); size and data exponents (\ref{heur:size}, \ref{heur:data}); capacity gap as aliasing (\ref{heur:gap}); deep-network representation matching (\ref{heur:repr-deep})\\
 conjecture & distillation gap law (\ref{conj:law})\\\bottomrule
