@@ -64,7 +64,8 @@ e_off = [sum(w * tv(Pt[index[s]], Ps[index[s]]) for s, w in prefix_dist(Pt, t).i
 e_on = [sum(w * tv(Pt[index[s]], Ps[index[s]]) for s, w in prefix_dist(Ps, t).items()) for t in range(T)]
 TVs = tv(pseq, qseq)
 results += [report("TV_seq <= sum_t E_{d^p} TV_t and <= sum_t E_{d^q} TV_t", TVs <= sum(e_off) + TOL and TVs <= sum(e_on) + TOL),
-            report("max_t E_{d^p_t} TV_t <= 2 TV_seq", max(e_off) <= 2 * TVs + TOL)]
+            report("max_t E_{d^p_t} TV_t <= 2 TV_seq and max_t E_{d^q_t} TV_t <= 2 TV_seq",
+                   max(e_off) <= 2 * TVs + TOL and max(e_on) <= 2 * TVs + TOL)]
 
 # thm:quadratic / thm:pdl: cumulative per-step costs, off-policy (quadratic) and PDL (on-policy)
 C = rng.random((len(prefixes), V))  # c_t(s, a) in [0,1]

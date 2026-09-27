@@ -46,17 +46,27 @@ and note that the third bracket is $\le0$. This is the approximation--estimation
 \noindent
 When $\cE$ is a KL, the behavioural criterion follows from Pinsker:
 $\E_\mu\TV(\Pseq,Q^x_{\ttheta})\le\sqrt{\cE_\mu(\ttheta)/2}$.
-The key structural fact is that $\cE_{\mathrm{shift}}\equiv0$ for exactly two pairings (\cref{thm:chain}):
+The key structural fact is that $\cE_{\mathrm{shift}}\equiv0$ for exactly two pairings (\cref{thm:chain}). The
+table lists what each pairing's training objective $F$ equals and the resulting bound on sequence-level
+behaviour:
 \begin{center}\small
-\begin{tabular}{@{}p{0.2\linewidth}p{0.12\linewidth}p{0.22\linewidth}p{0.2\linewidth}p{0.15\linewidth}@{}}
+\begin{tabular}{@{}p{0.17\linewidth}p{0.12\linewidth}p{0.3\linewidth}p{0.3\linewidth}@{}}
 \toprule
-per-token loss & prefix law & $F$ equals & $\cE_{\mathrm{shift}}$ & $T$-factor in the TV bound\\\midrule
-forward KL & teacher & $\E_\cD\KL(P\|Q_\theta)$ & $0$ & $\sqrt T$ (\cref{cor:seq-tv})\\
-reverse KL & student & $\E_\cD\KL(Q_\theta\|P)$ & $0$ & $\sqrt T$\\
-forward KL & student & hybrid (\cref{prop:hybrid-div}) & $\neq0$ & $T$\\
-reverse KL, $\JSD_\beta$, TV & teacher & hybrid & $\neq0$, up to $O(T^2)$ (\cref{prop:exposure}) & $T$\\\bottomrule
+per-token loss & prefix law & $F$ equals & $\E_\cD\TV(P,Q_\theta)\le$\\\midrule
+forward KL & teacher & $\E_\cD\KL(P\|Q_\theta)$; $\cE_{\mathrm{shift}}=0$ & $\sqrt{F/2}$\\
+reverse KL & student & $\E_\cD\KL(Q_\theta\|P)$; $\cE_{\mathrm{shift}}=0$ & $\sqrt{F/2}$\\
+forward KL & student & hybrid (\cref{prop:hybrid-div}) & $\sqrt{TF/2}$\\
+reverse KL & teacher & hybrid (\cref{prop:hybrid-div}) & $\sqrt{TF/2}$\\
+TV & either & hybrid (\cref{prop:hybrid}) & $F$\\
+$\JSD_\beta$ & either & hybrid & $\sqrt{TF/(2\beta(1-\beta))}$\\\bottomrule
 \end{tabular}
 \end{center}
+For the hybrid rows, the factor $T$ inside the square root comes from our Cauchy--Schwarz argument. A
+sequential subadditivity inequality for squared Hellinger distance \citep{foster2021statistical}
+improves it to $O(\log T)$; we have not re-derived that lemma's constant. For hybrid rows, the on-policy
+per-token loss can also exceed the training loss. For bounded losses the excess is at most
+$G\sum_t\sum_{k<t}e^{\mathrm{off},\TV}_k$, which is $O(T^2)$ in the per-token TV error (\cref{prop:exposure}). For reverse KL
+on teacher prefixes it is unbounded relative to the training loss.
 
 \subsection{Approximation error}\label{sec:approx}
 
@@ -173,10 +183,13 @@ Let $q_\Theta(\cdot\mid s)=\softmax(\Theta\phi(s))$ with $\Theta\in\R^{V\times d
 \item \Pv If $\phi(s_1),\dots,\phi(s_n)$ span $\R^d$ (so $n\ge d$), every minimiser of
 $\sum_i\KL(p(\cdot\mid s_i)\|q_\Theta(\cdot\mid s_i))$ satisfies $q_\Theta=p$ at \emph{every} $s$.
 Estimation error is zero.
-\item \Kn The hard-label MLE from $n$ i.i.d.\ pairs $(s_i,y_i)$ satisfies
-$n\,\E\KL(p\|q_{\hat\Theta})\to\frac{(V-1)d}2$. This is the classical $k/2n$ law for a regular
-well-specified model with $k$ free parameters, the computation behind AIC \citep{akaike1974new}; see
-\citet{white1982maximum} for the misspecified case.
+\item \Kn If $\E[\phi\phi^\top]\succ0$, the hard-label MLE from $n$ i.i.d.\ pairs $(s_i,y_i)$ satisfies
+$n\,\KL(p\|q_{\hat\Theta})\Rightarrow\frac12\chi^2_{(V-1)d}$ in distribution. The limiting mean is $\frac{(V-1)d}2$. This is the
+classical $k/2n$ law for a regular, well-specified model with $k$ free parameters, the computation behind
+AIC \citep{akaike1974new}; see \citet{white1982maximum} for the misspecified case. The \emph{expectation}
+$\E\KL$ is infinite for every $n$, because with positive probability the MLE does not exist or puts zero
+mass on an observed class. The $k/2n$ law is therefore a statement about the limit law, not about
+$\E\KL$.
 \end{enumerate}
 \end{proposition}
 \begin{proof}[Proof of (a)]

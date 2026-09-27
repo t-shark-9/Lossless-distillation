@@ -57,8 +57,10 @@ is the binary entropy in nats.
 \paragraph{Standing assumptions.}
 Each result states exactly which of the following it uses.
 \begin{assumption}[Bounded student log-probabilities]\label{as:bounded}
-There is $B<\infty$ with $\log q_\theta(a\mid s)\ge -B$ for all $\theta,s,a$. This can be enforced, for
-example, by mixing with the uniform distribution: $q=(1-\eta)q'+\eta/V$ gives $B\le\log(V/\eta)$.
+There is $B<\infty$ with $\log q_\theta(a\mid s)\ge -B$ for all $\theta,s$ and all $a$ with $p(a\mid s)>0$. This can be
+enforced, for example, by mixing with the uniform distribution at every state before end-of-sequence:
+$q=(1-\eta)q'+\eta/V$ gives $B\le\log(V/\eta)$. Restricting to the teacher's support keeps the absorbing
+end-of-sequence convention intact, and it is all that \cref{thm:unif} uses.
 \end{assumption}
 \begin{assumption}[Bounded covariate shift]\label{as:shift}
 $\mu\ll\cD$ and $\rho:=\|\mathrm d\mu/\mathrm d\cD\|_\infty<\infty$.

@@ -45,11 +45,15 @@ $\E_{\dteach t}\TV_t=\TV(\Pi^P_t,\Pi^H)\le\TV(\Pi^P_t,\Pi^Q_t)+\TV(\dstud t,\dte
 because marginalisation cannot increase TV.
 \end{proof}
 
-\begin{proposition}[The mismatched pairings are divergences but lose $\sqrt T$]\label{prop:hybrid-div}
+\begin{proposition}[The mismatched pairings are divergences with a $\sqrt T$-lossy Pinsker bound]\label{prop:hybrid-div}
 \Pv Let $\mathsf H_{\mathrm{on}}^{\KL}:=\sum_t\E_{s\sim\Qseq}\KL(p_t\|q_t)$ and
 $\mathsf H_{\mathrm{off}}^{\mathrm{rKL}}:=\sum_t\E_{s\sim\Pseq}\KL(q_t\|p_t)$. Each is $\ge0$, and each
 vanishes iff $\Pseq=\Qseq$. Moreover $\TV(\Pseq,\Qseq)\le\sqrt{T\,\mathsf H/2}$ for either one.
 By contrast, the exact pairings give $\TV\le\sqrt{\KL/2}$ with $\KL$ the corresponding sequence-level KL.
+The factor $T$ is an artefact of the proof, not a proven loss. A sequential Hellinger subadditivity
+inequality \citep{foster2021statistical} gives $\TV\le C\sqrt{\mathsf H\log T}$ instead. Multi-start local search over binary
+autoregressive pairs finds worst ratios $\TV^2/\mathsf H\approx0.50,0.60,0.69,0.74$ for $T=1,\dots,4$, far below $T/2$. These are
+lower estimates of the true worst case.
 \end{proposition}
 \begin{proof}
 If $\mathsf H_{\mathrm{on}}^{\KL}=0$, then $p_1=q_1$ at $x$. So $d_2^{\,p}=d_2^{\,\theta}$, hence $p_2=q_2$ on the
@@ -119,9 +123,9 @@ search, margins matter too (\cref{prop:margin}).
 \item \emph{Among trainable surrogates, sequence-level forward KL is canonical.} It dominates behavioural
 loss via Pinsker and gives log-loss exactly. By \cref{thm:chain} its per-token decomposition uses
 \emph{teacher prefixes only}, so it is estimable without student roll-outs and has no exposure-bias term
-(\cref{sec:shift}). It is convex in the logits (\cref{prop:convexity}). It is also the only divergence on
-the simplex that is both an $f$-divergence and a Bregman divergence \citep{amari2009alpha}; we are
-confident of this characterisation for probability vectors but have not re-derived it.
+(\cref{sec:shift}). It is convex in the logits (\cref{prop:convexity}). More generally, KL is the only divergence
+on the simplex that is both an $f$-divergence and a Bregman divergence \citep{amari2009alpha}. That
+characterisation singles out the KL \emph{family}, not a direction: both argument orders qualify.
 \item \emph{But when exactness is impossible, the surrogate must be chosen for the target.} Under
 misspecification, minimisers of either KL direction can be arbitrarily bad in TV, whereas minimisers of
 a bounded divergence such as $\JSD_\beta$ are TV-competitive (\cref{prop:agnostic}). This is why the

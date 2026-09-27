@@ -87,7 +87,12 @@ for _ in range(5000):
     ok &= chi2 / (2 * bb) - TOL <= K <= chi2 / (2 * a) + TOL
     ok &= chi2 / (2 * bb ** 2) - TOL <= R <= chi2 / (2 * a ** 2) + TOL
     ok &= K <= (bb ** 2 / a) * R + TOL
-results.append(report("chi^2 sandwich for KL, reverse KL; KL <= (b^2/a) rKL", ok))
+    ok &= R <= (bb / a ** 2) * K + TOL
+    beta = rng.uniform(0.05, 0.95)
+    Jb = jsd(p, q, beta)
+    ok &= beta * (1 - beta) * chi2 / (2 * bb * (beta * bb + 1 - beta)) - TOL <= Jb
+    ok &= Jb <= beta * (1 - beta) * chi2 / (2 * a * (beta * a + 1 - beta)) + TOL
+results.append(report("chi^2 sandwich for KL, rKL, JSD_b; KL <= (b^2/a) rKL; rKL <= (b/a^2) KL", ok))
 
 # prop:events: Q(A) <= (KL(Q||P)+log 2)/log(1/P(A)); Renyi probability preservation
 ok = True
@@ -101,10 +106,11 @@ for _ in range(5000):
         continue
     PA, QA = p[A].sum(), q[A].sum()
     ok &= QA <= (kl(q, p) + np.log(2)) / np.log(1 / PA) + TOL
+    ok &= PA <= (kl(p, q) + np.log(2)) / np.log(1 / QA) + TOL
     alpha = rng.uniform(1.1, 5.0)
     Dalpha = np.log(np.sum(q ** alpha * p ** (1 - alpha))) / (alpha - 1)
     ok &= QA <= (np.exp(Dalpha) * PA) ** ((alpha - 1) / alpha) + 1e-9
-results.append(report("event bounds (reverse-KL Fano-type, Renyi preservation)", ok))
+results.append(report("event bounds (coverage, precision, Renyi preservation)", ok))
 
 # prop:grad: gradients wrt student logits
 ok = True
@@ -132,6 +138,26 @@ zp = np.log(pz / (1 - pz))
 z0 = zp + 3.0
 d2 = (f(z0 + 1e-4) - 2 * f(z0) + f(z0 - 1e-4)) / 1e-8
 results.append(report("reverse KL has negative curvature at z = z_p + 3", d2 < 0))
+ok = True
+for V in [3, 5, 10]:
+    pv = rand_simplex(V)
+    ray = lambda t: kl(softmax(np.r_[t, np.zeros(V - 1)]), pv)
+    ok &= all((ray(t + 1e-3) - 2 * ray(t) + ray(t - 1e-3)) / 1e-6 < 0 for t in (6.0, 10.0))
+    bj = 0.999
+    rayj = lambda t: jsd(pv, softmax(np.r_[t, np.zeros(V - 1)]), bj) / (1 - bj)
+    ok &= (rayj(10 + 1e-3) - 2 * rayj(10) + rayj(10 - 1e-3)) / 1e-6 < 0
+results.append(report("reverse KL (V>2 ray) and JSD_0.999 have negative curvature", ok))
+sg = lambda u: 1 / (1 + np.exp(-u))
+k2 = lambda x, y: x * np.log(x / y) + (1 - x) * np.log((1 - x) / (1 - y))
+th = np.linspace(-6, 14, 200001)
+fr = k2(sg(5.2 - th / 2), 0.79) + k2(sg(-1.5 - th / 3), 0.26)
+ff = k2(0.79, sg(5.2 - th / 2)) + k2(0.26, sg(-1.5 - th / 3))
+dr, df = np.diff(fr), np.diff(ff)
+mins_r = np.where((dr[:-1] < 0) & (dr[1:] >= 0))[0] + 1
+mins_f = np.where((df[:-1] < 0) & (df[1:] >= 0))[0] + 1
+results.append(report(f"spurious minima: reverse KL minima at {np.round(th[mins_r], 2)}, forward KL at {np.round(th[mins_f], 2)}",
+                      len(mins_r) == 2 and len(mins_f) == 1 and abs(fr[mins_r[0]] - 0.2191) < 1e-3
+                      and abs(fr[mins_r[1]] - 0.2300) < 1e-3))
 ok = True
 for _ in range(2000):
     q = rand_simplex(rng.integers(2, 20), 10 ** rng.uniform(-1, 1))

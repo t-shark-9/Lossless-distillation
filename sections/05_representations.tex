@@ -72,9 +72,9 @@ neither needs fewer states. Any gain must therefore come from noise, conditionin
 \begin{proposition}[Noisy output supervision: fewer parameters learned from noise]\label{prop:repr-count}
 \Kn In the model of \cref{prop:noidgain} (so $d_\TT=k$) with $\mathcal U=\R^D$, suppose outputs are observed only through
 hard labels $y\sim\softmax(W^\circ B^\circ u)$ and $\rank(W^\circ B^\circ)=k$. The MLE over rank-$k$ factorisations
-satisfies $n\,\E\KL\to\frac12k(V-1+D-k)$: the dimension of the manifold of rank-$k$ $(V-1)\times D$
+satisfies $n\,\KL\Rightarrow\frac12\chi^2_{k(V-1+D-k)}$, with limiting mean $\frac12k(V-1+D-k)$: the dimension of the manifold of rank-$k$ $(V-1)\times D$
 matrices, by the regular-model asymptotics of \cref{prop:exact}(b). If $B^\circ$ is instead supplied exactly
-by noiseless representation targets, only $W$ is estimated, and $n\,\E\KL\to\frac12k(V-1)$. The relative
+by noiseless representation targets, only $W$ is estimated, and the limiting mean drops to $\frac12k(V-1)$. The relative
 reduction is $(D-k)/(V-1+D-k)$.
 \end{proposition}
 \noindent

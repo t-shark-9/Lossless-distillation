@@ -5,20 +5,33 @@
 \begin{enumerate}[label=(\roman*),nosep]
 \item $z\mapsto\KL(p\|\softmax z)$ is convex. Its Hessian satisfies
 $0\preceq\diag(q)-qq^\top\preceq\frac12C$ \citep{bohning1992multinomial}, so it is $\frac12$-smooth.
-\item $z\mapsto\KL(\softmax z\|p)$ is not convex. With $V=2$, $f(z)=\KL(\sigma(z)\|\mathrm{Bern}(p))$ has
-$f''(z)=\sigma'(z)\,[1+(1-2\sigma(z))(z-z_p)]$ with $z_p=\operatorname{logit}p$, which is negative whenever
-$(2\sigma(z)-1)(z-z_p)>1$. For example $p=0.3$, $z=z_p+3$.
-\item For $\beta$ close to $1$, $z\mapsto\JSD_\beta(p\|\softmax z)$ is not convex: $\JSD_\beta/(1-\beta)\to\KL(q\|p)$
-with its second derivatives, uniformly on compacts.
+\item $z\mapsto\KL(\softmax z\|p)$ is not convex, for any $V\ge2$ and any $p$ of full support. With $V=2$,
+$f(z)=\KL(\sigma(z)\|\mathrm{Bern}(p))$ has $f''(z)=\sigma'(z)\,[1+(1-2\sigma(z))(z-z_p)]$ with $z_p=\operatorname{logit}p$, which is
+negative whenever $(2\sigma(z)-1)(z-z_p)>1$; for example $p=0.3$, $z=z_p+3$. For general $V$, along the ray
+$z=(t,0,\dots,0)$ the second derivative is $-(V-1)(t-2)e^{-t}+O(e^{-t})<0$ for large $t$.
+\item If $p$ has full support, then for $\beta$ close to $1$, $z\mapsto\JSD_\beta(p\|\softmax z)$ is not convex:
+$\JSD_\beta/(1-\beta)\to\KL(q\|p)$ together with its second derivatives, uniformly on compacts.
+\item Even with logits linear in a scalar $\theta$, reverse KL can have spurious local minima. Take two
+contexts, $V=2$, logits $z_1=5.2-\theta/2$ and $z_2=-1.5-\theta/3$, and teacher probabilities $0.79$ and $0.26$ for the
+first token. The summed reverse KL has strict local minima at $\theta\approx-1.00$ (value $0.2191$) and
+$\theta\approx7.23$ (value $0.2300$), separated by a barrier of height $0.2678$ at $\theta\approx3.61$. The forward KL has a
+single minimum.
 \end{enumerate}
 Consequently, for any student whose logits are linear in $\theta$ (for example, training only the
-read-out of \cref{as:linear}), off-policy forward-KL distillation is a convex problem. Reverse-KL and
-$\JSD_\beta$ objectives can have plateaus and spurious stationary points even then.
+read-out of \cref{as:linear}), off-policy forward-KL distillation is a convex problem. Reverse-KL
+objectives can have spurious local minima even then (iv).
 \end{proposition}
 \begin{proof}
 (i) The Hessian of $\mathrm{lse}$ is $\diag(q)-qq^\top$; Böhning's bound gives the smoothness constant.
-(ii) $f'(z)=\sigma(z)(1-\sigma(z))(z-z_p)$, because $\log\frac{q}{1-q}=z$; differentiate once more.
-(iii) follows from \cref{prop:jsd}(iii) and dominated convergence for the derivatives.
+(ii) $f'(z)=\sigma(z)(1-\sigma(z))(z-z_p)$, because $\log\frac{q}{1-q}=z$; differentiate once more. On the ray,
+$q_j=e^{-t}(1+O(e^{-t}))$ for $j>1$, and the reverse KL equals $\log\frac1{p_1}-(V-1)te^{-t}+O(e^{-t})$; differentiate twice.
+(iii) Write $\JSD_\beta/(1-\beta)=\KL(q\|M_\beta)+\frac{\beta}{1-\beta}\KL(p\|M_\beta)$. Since $p>0$, $M_\beta\ge\beta p$ is bounded away
+from $0$, so $\KL(q\|M_\beta)$ is jointly smooth in $(\beta,z)$ up to $\beta=1$, where it equals $\KL(q\|p)$. Let
+$\epsilon=1-\beta$ and $g(s):=\KL(p\|p+s(q-p))$. Then $g(0)=g'(0)=0$, so $g(\epsilon)/\epsilon=\epsilon\int_0^1(1-t)\,g''(\epsilon t)\,dt$. This is
+jointly smooth in $(\epsilon,z)$ and vanishes at $\epsilon=0$ together with its $z$-derivatives. Hence second
+$z$-derivatives converge uniformly on compacts, and the strict negative curvature of (ii) persists for
+$\beta$ near $1$. (iv) is a direct computation
+(\texttt{check\_divergences.py}).
 \end{proof}
 
 \begin{theorem}[Stochastic optimisation]\label{thm:sgd}
@@ -95,7 +108,7 @@ as a wrong early step in a proof. Related analyses of exposure bias include \cit
 \citet{lin2020autoregressive}, \citet{gu2024minillm}, \citet{agarwal2024gkd} and \citet{ko2024distillm}.
 \end{remark}
 
-\begin{theorem}[KL chain rules remove most of the compounding]\label{thm:kl-compounding}
+\begin{theorem}[KL chain rules and compounding]\label{thm:kl-compounding}
 \Pv
 \begin{enumerate}[label=(\roman*),nosep]
 \item Off-policy forward KL has $\cE_{\mathrm{shift}}=0$ for $\cE=\KL(P\|Q_\theta)$, and $\E\TV(P,Q_\theta)\le\sqrt{T\eoff^{\KL}/2}$.
@@ -109,6 +122,11 @@ $|J_c(q_\theta)-J_c(p)|\le uT\sqrt{\eon^{\mathrm{rKL}}/2}$.
 (i) and (iii) are \cref{thm:chain}. (ii) The law of $y_{\le t}$ has KL $\sum_{k\le t}e^{\mathrm{off},\KL}_k$ by
 the truncated chain rule; apply Pinsker per $t$. The last claim is \cref{thm:pdl}.
 \end{proof}
+\noindent
+Bound (ii) improves on \cref{thm:quadratic} only when errors are \emph{diffuse} (\cref{ex:regimes}(a)): there
+$e^{\mathrm{off},\TV}\approx\sqrt{e^{\mathrm{off},\KL}}$, so $T^{3/2}\sqrt\eps$ beats $T^2\sqrt\eps$. For concentrated errors (deterministic
+teacher, \cref{ex:regimes}(b)) the TV route is tighter. In the cliff with $T=100$ and $\eps=10^{-3}$, the true
+gap is $4.9$, \cref{thm:quadratic} gives $5.05$, and (ii) gives $15.0$.
 
 \begin{proposition}[Exposure-bias gap for mismatched pairings]\label{prop:exposure}
 \Pv\Ck Let $g_t:\cS_t\to[0,G]$ be any bounded per-state loss, for example per-token TV ($G=1$),
@@ -119,16 +137,21 @@ $\JSD_\beta$ ($G=h(\beta)$), or clipped KL. Then
 \]
 Also $\le G\sum_t\sqrt{\frac12\sum_{k<t}e^{\mathrm{off},\KL}_k}$. For a mixture prefix law
 $\nu_t=\lambda\dstud t+(1-\lambda)\dteach t$, the gap is multiplied by $1-\lambda$. For \emph{unbounded} $g_t$,
-for example reverse KL on teacher prefixes, no bound exists: the student can have zero training loss and
-infinite on-policy loss on states the teacher never visits.
+for example reverse KL on teacher prefixes, no bound in terms of the training loss exists. The training
+loss can be arbitrarily small while the on-policy loss is arbitrarily large, on states the teacher visits
+rarely but the student visits often. With $T=2$, $p_1=(1-\eta,\eta)$, $q_1=(1-r\eta,r\eta)$, reverse KL $r^{3/2}$ at the
+rare state and $\eta=r^{-2}$, the training loss is $O(r^{-1/2})$ while the on-policy loss is $\Theta(r^{1/2})$. Exactly
+zero training loss does force $Q^x_\theta=\Pseq$ (\cref{prop:hybrid-div}).
 \end{proposition}
 \begin{proof}
 Bounded-function duality for TV, then the hybrid argument for $\TV(\dstud t,\dteach t)$ as in \cref{prop:hybrid}.
 \end{proof}
 
 \begin{proposition}[Covariate-shift term]\label{prop:cov-term}
-\Pv Under \cref{as:shift}, $\cE_{\mathrm{cov}}\le(\rho-1)\cE_\cD(\ttheta)$ for any non-negative $\cE$. For
-criteria bounded by $G$, $\cE_{\mathrm{cov}}\le G\,\TV(\mu,\cD)$ (\cref{prop:covshift}).
+\Pv Let $\cE(\theta)=\E_x e_\theta(x)$ with $e_\theta\ge0$ \emph{pointwise}, for example a per-input divergence.
+Under \cref{as:shift}, $\cE_{\mathrm{cov}}\le(\rho-1)\cE_\cD(\ttheta)$. If $0\le e_\theta\le G$, then
+$\cE_{\mathrm{cov}}\le G\,\TV(\mu,\cD)$ (\cref{prop:covshift}). Pointwise non-negativity is needed: a task regret
+can be negative at some inputs, and then the first bound fails.
 \end{proposition}
 
 \subsection{Assembling the bound, and which term dominates}

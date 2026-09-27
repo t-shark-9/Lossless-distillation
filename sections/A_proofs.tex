@@ -43,9 +43,9 @@ $\max f-\min f\le u$, $|\E_qf-\E_pf|\le u\,\TV(p,q)$. \qed
 For a Gaussian vector with independent coordinates of variances $\lambda_i$ and squared-error distortion,
 the distortion--rate function is $D(R)=\sum_i\min(w,\lambda_i)$, with $w$ fixed by
 $\sum_i\frac12\log_+(\lambda_i/w)=R$ nats \citep[Thm.~10.3.3]{cover2006elements}. Take $\lambda_i=ci^{-\alpha}$, $\alpha>1$, and
-let $k=\max\{i:\lambda_i>w\}$, so that $w\in(\lambda_{k+1},\lambda_k]$. Then
+let $k=\max\{i:\lambda_i>w\}$, so that $w\in[\lambda_{k+1},\lambda_k)$. Then
 $R=\frac\alpha2\sum_{i\le k}\log\frac ki+\frac k2\log\frac{\lambda_k}w$. The last term lies in
-$[0,\frac k2\alpha\log(1+\frac1k))\subseteq[0,\frac\alpha2)$. By Stirling,
+$(0,\frac k2\alpha\log(1+\frac1k)]\subseteq(0,\frac\alpha2]$. By Stirling,
 $\sum_{i\le k}\log\frac ki=k-\frac12\log(2\pi k)+o(1)$. Hence $k=\frac{2R}\alpha(1+o(1))$. The distortion
 is $kw+\sum_{i>k}ci^{-\alpha}=ck^{1-\alpha}\big(1+\frac1{\alpha-1}\big)(1+o(1))$. Substituting $k$, and halving for the
 $\frac12\|\cdot\|^2$ form of the local KL, gives the constant in \cref{prop:powerlaw}. For a finite spectrum of length
@@ -55,10 +55,12 @@ $R=\frac12\sum_{i\le k_\TT}\log(\lambda_i/w)$ gives $w=(\prod_i\lambda_i)^{1/k_\
 
 \subsection{Numerical verification}
 
-The scripts in \texttt{verification/} check, by random search, exact enumeration or optimisation, every
-result marked \textsf{[numerically checked]}. \texttt{check\_divergences.py} covers
+The scripts in \texttt{verification/} check the results marked \textsf{[numerically checked]}, by random
+search, exact enumeration or optimisation. For multi-part results, the parts covered are those listed
+below. \texttt{check\_divergences.py} covers
 \cref{prop:pinsker,prop:jsd,prop:local,prop:events,prop:grad,prop:convexity,prop:temperature,prop:missing,prop:invisible}, the
-counterexample of \cref{prop:sj}, and \cref{lem:logratio}. \texttt{check\_sequences.py} enumerates a $V=3$, $T=4$
+counterexample of \cref{prop:sj}, and \cref{lem:logratio}. This includes both comparison directions and the
+$\JSD_\beta$ sandwich of \cref{prop:local}, all three event bounds, and parts (ii)--(iv) of \cref{prop:convexity}. \texttt{check\_sequences.py} enumerates a $V=3$, $T=4$
 autoregressive pair and verifies
 \cref{thm:chain,prop:hybrid,thm:quadratic,thm:pdl,prop:exposure,prop:rb-reverse,prop:seq-grad,prop:mix-est}. It also checks the
 TV estimator, the bias of the stop-gradient estimator, the unbiasedness of the pathwise/score split in
